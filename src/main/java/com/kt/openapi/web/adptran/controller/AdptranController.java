@@ -82,7 +82,9 @@ public class AdptranController {
 		boolean b_is_pass_devhome_key = "y".equals(session.getAttribute("pass.devhome.key"));
 
 		if (true == b_is_pass_devhome_key) {
-			mv.addObject("attr_vue_page_properties", ":prop_data=\"{ auto_load_schema_list: 'n' }\"");
+			// [JSP->Thymeleaf 마이그레이션] 예전엔 ":prop_data=\"...\"" 형태의 raw 속성 문자열을
+			// JSP에서 그대로 splice했으나, Thymeleaf에서는 값만 넘기고 템플릿에서 속성명을 붙인다.
+			mv.addObject("vuePropData", "{ auto_load_schema_list: 'n' }");
 			mv.setViewName("adptran/vue_page_mount");
 		}
 		else {

@@ -1,0 +1,24 @@
+<!--/* vue_page_mount.jsp -> Thymeleaf 변환. t:layout 미사용 독립 페이지(원본과 동일). */-->
+<!--/* requestUri/dpBundleScriptSrc 모델 속성은 AdptranViewModelAdvice에서 주입 */-->
+<div xmlns:th="http://www.thymeleaf.org"
+     th:with="bUseJqueryUi=${#strings.contains(requestUri ?: '', '/apidev/adptran/e.g.url')},
+              bUseJqueryCustomScrollbar=${#strings.contains(requestUri ?: '', '/apidev/adptran/devQuery')},
+              bUseCanvasDatagrid=${#strings.contains(requestUri ?: '', '/apidev/adptran/devQuery')}">
+
+    <script th:if="${bUseJqueryUi}" th:src="@{/resources/js/pub/jquery-ui.js}"></script>
+    <th:block th:if="${bUseJqueryCustomScrollbar}">
+        <link th:href="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mCustomScrollbar.min.css}" rel="stylesheet" />
+        <script th:src="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mousewheel.min.js}"></script>
+        <script th:src="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mCustomScrollbar.min.js}"></script>
+    </th:block>
+    <script th:if="${bUseCanvasDatagrid}" th:src="@{/resources/adptran/js/canvas-datagrid.0.22.12.js}"></script>
+
+    <link th:href="@{/resources/adptran/css/adptran-common.css}" rel="stylesheet" />
+    <script defer th:src="@{${dpBundleScriptSrc}}"></script>
+
+    <!--/* th:attr는 값이 null이면 해당 속성을 아예 생략하므로 vuePropData가 없을 때도 안전하다 */-->
+    <div id="container">
+        <div id="vid_vue_page_mount" th:attr=":prop_data=${vuePropData}" v-cloak></div>
+    </div><!-- #container -->
+
+</div>

@@ -213,6 +213,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         resolver.setOrder(1);
         resolver.setViewNames(new String[]{
             "adptran/vue_page_mount_apistatus",
+            "adptran/vue_page_mount",
             "cmmn/public_error"
         });
         return resolver;

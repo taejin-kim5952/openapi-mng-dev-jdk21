@@ -18,4 +18,9 @@ public class AdptranViewModelAdvice {
     public String dpBundleScriptSrc(HttpServletRequest request) {
         return AdptranUtil.getBundleScriptSrc(request);
     }
+
+    @ModelAttribute("requestUri")
+    public String requestUri(HttpServletRequest request) {
+        return request.getRequestURI();
+    }
 }
