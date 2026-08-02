@@ -1,0 +1,31 @@
+spring:
+  profiles:
+    active: local
+  config:
+    import:
+      # 공통 설정 로드
+      - "optional:classpath:config/common/application-profile.yml"
+      - "optional:classpath:config/common/beast.yml"
+      # 프로파일별 폴더의 메인 파일 로드
+      - "optional:classpath:config/${spring.profiles.active}/application-${spring.profiles.active}.yml"
+      - "optional:classpath:config/${spring.profiles.active}/apigw.yml"
+      - "optional:classpath:config/${spring.profiles.active}/adptran.yml"
+
+server:
+  port: 8080
+  servlet:
+    context-path: /apidev
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    session:
+      tracking-modes: cookie # jsessionid 노출 방지
+      timeout: 120m # 세션 타임아웃 120분 설정
+    error:
+      path: /error
+      whitelabel:
+        enabled: false # Whitelabel 에러 페이지 비활성화
+
+logging:
+  config: classpath:logback-spring.xml

@@ -1,0 +1,1007 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO">
+
+    <insert id="insertDeployProc" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo" useGeneratedKeys="true" keyProperty="seq">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertDeployProc */ 
+        INSERT INTO [KOA_TB_DEPLOY_PROC]
+           ([API_NO]
+           ,[DEPLOY_CD]
+           ,[VERIFI_CD]
+           ,[REGR]
+         )
+         VALUES (
+           #{apiNo}
+          ,#{deployCd}
+          ,#{verifiCd}
+          ,#{regr}
+        )
+    </insert>
+
+    <!-- 배포 프로스세 정상 진행 업데이트 -->
+    <update id="updateDeployProc" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployProc */  
+        UPDATE 
+          [KOA_TB_DEPLOY_PROC] 
+        SET DEPLOY_CD = 
+          (SELECT COMN_CD 
+            FROM [KOA_TB_COMN_CD]  
+            WHERE 
+              (SORT_ODRG = (SELECT (AA.SORT_ODRG + 1) FROM [KOA_TB_COMN_CD] AA  INNER JOIN [KOA_TB_DEPLOY_PROC] BB  ON (AA.COMN_CD = BB.DEPLOY_CD) WHERE BB.SEQ = #{seq})) 
+              AND (GROUP_CD = 'DEPLOY1000')
+            )
+          ,UPDATE_DT = NOW()
+          ,UPDATE_USR = #{regr}
+        WHERE
+          ([KOA_TB_DEPLOY_PROC].SEQ = #{seq})
+    </update>
+    
+    <!-- 배포 프로스세스 기본 업데이트 -->
+    <update id="updateDeployProcDefault" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployProcDefault */  
+        UPDATE 
+            [KOA_TB_DEPLOY_PROC]    
+        SET
+            DEPLOY_CD = #{deployCd}
+            <if test="verifiCd != null and verifiCd != ''">
+                ,VERIFI_CD = #{verifiCd}
+            </if>
+            <if test="bigo != null and bigo != ''">
+                ,bigo = #{bigo}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                ,USE_YN = #{useYn}
+            </if>
+            ,UPDATE_USR      = #{regr}
+            ,DEPLOY_ADM      = #{deployAdm}
+            ,UPDATE_DT       = NOW()
+        WHERE
+            ([KOA_TB_DEPLOY_PROC].SEQ = #{seq})
+    </update>
+
+    <!-- PROC 로그 저장 -->
+    <insert id="insertProcHst" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo" useGeneratedKeys="true" keyProperty="seq">
+       /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertProcHst */  
+        INSERT INTO [dbo].[KOA_TB_DEPLOY_PROC_HST]
+          ([PROC_SEQ]
+          ,[API_NO]
+          ,[VERIFI_CD]
+          ,[DEPLOY_ST_DT]
+          ,[REGR]
+          ,[DEPLOY_ADM]
+          ,[DEPLOY_CD]
+          ,[USE_YN]
+          ,[REG_DT]
+          ,[UPDATE_DT]
+          ,[BIGO]
+          ,[UPDATE_USR]
+          ,[HST_INSERT_USER])
+        SELECT 
+          SEQ, 
+          API_NO, 
+          VERIFI_CD, 
+          DEPLOY_ST_DT, 
+          REGR, 
+          DEPLOY_ADM, 
+          DEPLOY_CD,  
+          USE_YN, 
+          REG_DT, 
+          UPDATE_DT,
+          BIGO, 
+          UPDATE_USR,
+          #{regr}
+        FROM [KOA_TB_DEPLOY_PROC] 
+        WHERE
+          (SEQ = #{seq})
+    </insert>
+    
+    <!-- 배포 신청 기본 업데이트 -->
+    <update id="updateDeployApplyDefault" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
+         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployApplyDefault */  
+        UPDATE 
+            [KOA_TB_DEPLOY_APPLY]
+        SET [DEPLOY_CD] = #{deployCd}
+           ,[DEPLOY_DESC] = #{deployDesc}
+           ,[DEPLOY_ADM] = #{deployAdm}
+           ,[BIGO] = #{bigo}
+           ,[COMMENT] = #{comment}
+        WHERE 
+            [SEQ] = #{seq}
+    </update>
+    
+    <!-- 배포 신청 반려 사유 업데이트 -->
+    <update id="updateDeployApplyReject" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployApplyReject */  
+        UPDATE [KOA_TB_DEPLOY_APPLY]
+        SET [DEPLOY_CD] = #{deployCd}
+           ,[DEPLOY_ADM] = #{deployAdm}
+           ,[COMMENT] = #{comment}
+        WHERE
+            [SEQ] = #{seq}
+    </update>
+    
+    <!-- 배포 리스트 -->
+    <select id="selApiDeployList" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployVO">
+       /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployList */ 
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />    
+          SELECT 
+                ROW_NUMBER() OVER (ORDER BY DEPLOY_PROC.REG_DT DESC) rownum,
+                DEPLOY_PROC.SEQ SEQ, 
+                DEPLOY_COMNCD.CD_NM DEPLOY_CDNM, 
+                VERIFI_COMNCD.CD_NM VERIFI_CDNM, 
+                DEPLOY_COMNCD.PRNTS_CD PRNTS_CD, 
+                APISYSTEM.SYS_NM, 
+                SPC.API_NM CTGRY_NM, 
+                DEF.API_NM, 
+                DEPLOY_PROC.DEPLOY_CD,
+                DEPLOY_PROC.VERIFI_CD,
+                DEPLOY_PROC.regr,
+                TO_CHAR(DEPLOY_PROC.REG_DT, 'Mon DD YYYY')  REG_DT,
+                COALESCE(DEPLOY_PROC.BIGO,'') BIGO,
+                COALESCE(DEF.API_VER,'') API_VER
+            FROM 
+                [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
+                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+            WHERE (1=1) 
+                <if test="searchVerifi != null and searchVerifi != ''">
+                    AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
+                </if>
+                <if test="searchDeploy != null and searchDeploy != ''">
+                    AND DEPLOY_PROC.DEPLOY_CD = #{searchDeploy}
+                </if>
+                <if test="searchSystem != null and searchSystem != ''">
+                    AND APISYSTEM.SYS_ID = #{searchSystem}
+                </if>
+                <if test="searchSpc != null and searchSpc != ''">
+                    AND SPC.API_SPC_NO = #{searchSpc}
+                </if>
+                <if test="stDate != null and stDate != ''">
+                    AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND DEPLOY_PROC.REG_DT &lt; #{endDate}
+                </if>
+                <if test="searchKeyword != null and searchKeyword != ''">
+                     AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+                </if>
+                <if test="seq != null and seq != 0">
+                    AND SEQ = #{seq}
+                </if>
+                <!-- OGNL에서 'Y'(char)와 String 비교 시 NumberFormatException 발생, "Y"(String)로 변경 -->
+                <if test='observerYn != "Y"'>
+                    <if test="authSysIdList != null and authSysIdList.size() > 0">
+                        AND APISYSTEM.SYS_ID IN 
+                        <foreach item="item" index="index" collection="authSysIdList" open="(" separator="," close=")">
+                            #{item}
+                        </foreach>
+                    </if>
+                    <if test="authSysIdList == null or authSysIdList.size() == 0">
+                        AND (1!=1)
+                    </if>
+                </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+    
+    <!-- 목록 개수 -->
+    <select id="selApiDeployListCnt" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="int">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployListCnt */ 
+        SELECT
+            COUNT(*) AS cnt
+        FROM 
+            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
+            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+       WHERE (1=1)
+        <if test="searchVerifi != null and searchVerifi != ''">
+            AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
+        </if>
+        <if test="searchDeploy != null and searchDeploy != ''">
+            AND DEPLOY_PROC.DEPLOY_CD = #{searchDeploy}
+        </if>
+        <if test="searchSystem != null and searchSystem != ''">
+            AND APISYSTEM.SYS_ID = #{searchSystem}
+        </if>
+        <if test="searchSpc != null and searchSpc != ''">
+            AND SPC.API_SPC_NO = #{searchSpc}
+        </if>
+        <if test="stDate != null and stDate != ''">
+            AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DEPLOY_PROC.REG_DT &lt; #{endDate}
+        </if>
+        <if test="searchKeyword != null and searchKeyword != ''">
+             AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+        </if>
+        <if test="seq != null and seq != 0">
+            AND SEQ = #{seq}
+        </if>
+        <!-- OGNL에서 'Y'(char)와 String 비교 시 NumberFormatException 발생, "Y"(String)로 변경 -->
+        <if test='observerYn != "Y"'>
+            <if test="authSysIdList != null and authSysIdList.size() > 0">
+                AND APISYSTEM.SYS_ID IN 
+                <foreach item="item" index="index" collection="authSysIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="authSysIdList == null or authSysIdList.size() == 0">
+                AND (1!=1)
+            </if>
+        </if>
+    </select>
+
+    <!-- 배포 신청 리스트 -->
+    <select id="selApiDeployApplyList" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployApplyVO">
+       /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployApplyList */ 
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />    
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY DEPLOY_PROC.REG_DT DESC) rownum,
+            DEPLOY_PROC.SEQ SEQ, 
+            DEPLOY_COMNCD.CD_NM DEPLOY_CDNM, 
+            VERIFI_COMNCD.CD_NM VERIFI_CDNM, 
+            DEPLOY_COMNCD.PRNTS_CD PRNTS_CD, 
+            APISYSTEM.SYS_NM, 
+            SPC.API_NM CTGRY_NM, 
+            DEF.API_NM, 
+            DEPLOY_PROC.DEPLOY_CD,
+            DEPLOY_PROC.VERIFI_CD,
+            DEPLOY_PROC.regr,
+            TO_CHAR(DEPLOY_PROC.REG_DT, 'Mon DD YYYY')  REG_DT,
+            COALESCE(DEPLOY_PROC.BIGO,'') BIGO,
+            DEPLOYAPPLY.SEQ DEPLOY_APPLY_SEQ,
+            DEF.API_NO ,
+            DEF.API_ID ,
+            COALESCE(DEF.API_VER,'') API_VER
+            FROM 
+                [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
+                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+             WHERE DEPLOY_PROC.DEPLOY_CD = 'DEPLOY1050' AND DEPLOYAPPLY.DEPLOY_CD = 'DEPLOY1050' 
+                <if test="searchVerifi != null and searchVerifi != ''">
+                    AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
+                </if>
+                <if test="searchDeploy != null and searchDeploy != ''">
+                    AND DEPLOY_PROC.DEPLOY_CD = #{searchDeploy}
+                </if>
+                <if test="searchApplyCd != null and searchApplyCd != ''">
+                    AND DEPLOYAPPLY.DEPLOY_CD = #{searchApplyCd}
+                </if>
+                <if test="searchSystem != null and searchSystem != ''">
+                    AND APISYSTEM.SYS_ID = #{searchSystem}
+                </if>
+                <if test="stDate != null and stDate != ''">
+                    AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND DEPLOY_PROC.REG_DT &lt; #{endDate}
+                </if>
+                <if test="searchKeyword != null and searchKeyword != ''">
+                     AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+                </if>
+                <if test="seq != null and seq != 0">
+                    AND SEQ = #{seq}
+                </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+    
+    <!-- 배포 신청 개수 -->
+    <select id="selApiDeployApplyListCnt" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="int">
+         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployApplyListCnt */ 
+        SELECT
+          COUNT(*) AS cnt
+        FROM 
+            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
+            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+            INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+        WHERE DEPLOY_PROC.DEPLOY_CD = 'DEPLOY1050' AND DEPLOYAPPLY.DEPLOY_CD = 'DEPLOY1050' 
+            <if test="searchVerifi != null and searchVerifi != ''">
+                AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
+            </if>
+            <if test="searchDeploy != null and searchDeploy != ''">
+                AND DEPLOY_PROC.DEPLOY_CD = #{searchDeploy}
+            </if>
+            <if test="searchSystem != null and searchSystem != ''">
+                AND APISYSTEM.SYS_ID = #{searchSystem}
+            </if>
+            <if test="stDate != null and stDate != ''">
+                AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND DEPLOY_PROC.REG_DT &lt; #{endDate}
+            </if>
+            <if test="searchKeyword != null and searchKeyword != ''">
+                 AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+            </if>
+            <if test="seq != null and seq != 0">
+                AND SEQ = #{seq}
+            </if>
+    </select>
+    
+    <!-- 코드 리스트 -->
+    <select id="selCommCodeList" parameterType="com.kt.openapi.web.apiDeploy.vo.CommCodeVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiCommCodeVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selCommCodeList */ 
+        SELECT 
+            COMN_CD, 
+            GROUP_CD_NM, 
+            CD_NM 
+        FROM
+            [KOA_TB_COMN_CD] 
+        WHERE GROUP_CD = #{groupCd} 
+        AND PRNTS_CD IS NOT NULL
+    </select>
+    
+    <!-- 프로세스 view -->
+    <select id="selDeployView" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployVO">
+           /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployView */
+            SELECT 
+                DEPLOYPROC.SEQ, 
+                DEPLOYPROC.API_NO, 
+                DEPLOYPROC.DEPLOY_CD, 
+                DEPLOYPROC.VERIFI_CD, 
+                DEPLOYPROC.DEPLOY_ST_DT, 
+                DEPLOYPROC.REGR, 
+                DEPLOYPROC.DEPLOY_ADM, 
+                DEPLOYPROC.USE_YN, 
+                TO_CHAR(DEPLOYPROC.REG_DT, 'Mon DD YYYY')  REG_DT,
+                COMNCD.PRNTS_CD,
+                APIDEF.API_NM,
+                APIDEF.API_PATH,
+                VERICD.CD_NM AS VERICD_NM, 
+                SPC.API_NM CTGRY_NM,
+                APISYSTEM.SYS_NM,
+                DEPLOYPROC.BIGO, 
+                (SELECT COUNT(*) FROM KOA_TB_DEPLOY_HST  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEPLOY_GB = 'T' ) AS TB_CNT , 
+                (SELECT COUNT(*) FROM KOA_TB_DEPLOY_HST  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEPLOY_GB = 'T' ) AS TB_SUCCESS_CNT , 
+                (SELECT COUNT(*) FROM KOA_TB_DEPLOY_HST  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEPLOY_GB = 'C' ) AS CB_CNT ,
+                (SELECT COUNT(*) FROM KOA_TB_API_VERI_CONDITION  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEL_YN = 'N' ) AS VERIFI_CNT ,
+                COALESCE((SELECT CD_NM FROM [KOA_TB_COMN_CD]  WHERE COMN_CD = APIDEF.API_HANDLER_CD ),'') AS HANDLER_NM , 
+                COALESCE(APIDEF.ENDPNT_TB_URL,'') AS ENDPNT_TB_URL,
+                APIDEF.API_ID,
+                APIDEF.API_VER, 
+                (SELECT count(*) cnt 
+                    FROM  
+                     [KOA_TB_API_PARAM] 
+                    WHERE
+                        PARAM_NM IN ('bizHeader','orderId','cbSvcName','cbFnName') 
+                        AND PARAM_TYPE_CD = 'PRMTYP1010'
+                        AND REQUIRED = 'Y'
+                        AND API_NO = APIDEF.API_NO
+                ) REQUIRED_CNT
+            FROM
+                KOA_TB_DEPLOY_PROC AS DEPLOYPROC 
+                INNER JOIN KOA_TB_COMN_CD AS COMNCD  ON  DEPLOYPROC.DEPLOY_CD =  COMNCD.COMN_CD 
+                INNER JOIN KOA_TB_API_DEF AS APIDEF  ON DEPLOYPROC.API_NO = APIDEF.API_NO
+                INNER JOIN KOA_TB_API_SPC AS SPC  ON APIDEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN KOA_TB_COMN_CD AS VERICD  ON  DEPLOYPROC.VERIFI_CD = VERICD.COMN_CD
+            WHERE 
+                DEPLOYPROC.SEQ = #{seq} 
+    </select>
+    
+    <!-- 시스템 검색 항목 -->
+    <select id="selSystemList" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySystemVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selSystemList */
+        SELECT  
+             SYS_ID,
+             SYS_NM, 
+             URL, 
+             REG_DT, 
+             REGR, 
+             AMD_DT, 
+             AMDR, 
+             SORT_ODRG, 
+             SUB_SORT_ODRG
+        FROM     
+            KOA_TB_API_SYSTEM 
+        ORDER BY SYS_NM ASC
+    </select>
+    
+    <!-- SPC 항목 -->
+    <select id="selSpcList" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selSpcList */
+        SELECT   
+            APISPC.API_SPC_NO, 
+            API_SPC_ID, 
+            VER, 
+            API_NM,
+            SYS_ID
+        FROM    
+               KOA_TB_API_SPC AS APISPC 
+               INNER JOIN (SELECT API_SPC_NO FROM KOA_TB_API_DEF  GROUP BY API_SPC_NO  ) AS APIDEF ON APISPC.API_SPC_NO = APIDEF.API_SPC_NO
+        WHERE
+            DEL_YN = 'N'
+            AND SYS_ID = #{sysId}
+    </select>
+    
+    <!-- 상용 배포 요청 -->
+    <insert id="insertDeployPropose" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo" useGeneratedKeys="true" keyProperty="seq">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertDeployPropose */
+        INSERT INTO [dbo].[KOA_TB_DEPLOY_APPLY]
+           ([DEPLOY_PROC_SEQ]
+           ,[APPLY_REGR]
+           ,[REG_DT]
+           ,[DEPLOY_CD]
+           ,[BIGO]
+            )
+        VALUES
+           (#{deployProcSeq}
+           ,#{applyRegr}
+           ,NOW()
+           ,#{deployCd}
+           ,#{bigo}
+           )
+    </insert>
+    
+    <!-- 상용 신청 내역 출력 -->
+    <select id="selDeployApplyView" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployApplyVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployProposeContent */
+        SELECT 
+            DPROC.SEQ ,
+            APIDEF.API_NM,
+            APISYSTEM.SYS_NM,
+            SPC.API_NM SERVICE_NM,
+            APPLY.BIGO, 
+            DPROC.SEQ DEPLOY_PROC_SEQ
+        FROM 
+            [dbo].[KOA_TB_DEPLOY_APPLY] AS APPLY  
+            INNER JOIN KOA_TB_DEPLOY_PROC AS DPROC  ON APPLY.DEPLOY_PROC_SEQ = DPROC.SEQ
+            INNER JOIN KOA_TB_API_DEF AS APIDEF  ON DPROC.API_NO = APIDEF.API_NO
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON APIDEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+        WHERE APPLY.SEQ = #{deployApplySeq}
+    </select>
+    
+    <!-- 검증 결과 리스트 -->
+    <select id="selVerifiResult" parameterType="com.kt.openapi.web.apiDeploy.vo.VerifiResultVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiVerifiResultVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selVerifiResult */
+        <choose>
+            <when test="deployProcSeq == 0">
+              SELECT 
+                A.SEQ
+                , TO_CHAR(A.VERIFICATION_DT, 'YYYY-MM-DD HH24:MI:SS') VERIFICATION_DT 
+                , A.RESULT_CD
+                , A.RESULT_MSG
+                , A.SUCCESS_YN
+              FROM 
+                KOA_TB_API_VERI_CONDITION AS A 
+              WHERE
+                (A.API_NO = #{apiNo})
+              ORDER BY A.VERIFICATION_DT DESC
+            </when>
+            <otherwise>
+              SELECT 
+                A.SEQ,
+                TO_CHAR(A.VERIFICATION_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  VERIFICATION_DT, 
+                A.RESULT_CD,
+                A.RESULT_MSG,
+                A.SUCCESS_YN
+              FROM 
+                KOA_TB_API_VERI_CONDITION AS A 
+                  INNER JOIN KOA_TB_DEPLOY_PROC AS B ON A.DEPLOY_PROC_SEQ = B.SEQ
+              WHERE
+                (B.SEQ = #{deployProcSeq})
+              ORDER BY A.VERIFICATION_DT DESC
+            </otherwise>
+        </choose>
+    </select>
+    
+    <!-- 배포 결과 리스트 -->
+    <select id="selDeployHstList" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployHstVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployHstVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployHstList */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" /> 
+            SELECT
+                ROW_NUMBER() OVER (ORDER BY DEPLOY_HST.DEPLOY_DATE DESC) rownum,
+                DEPLOY_HST.SEQ,
+                APISYSTEM.SYS_NM ,  
+                SPC.API_NM SERVICE_NM, 
+                DEF.API_NM,
+                TO_CHAR(DEPLOY_HST.DEPLOY_DATE, 'Mon DD YYYY')  DEPLOY_DATE,
+                TO_CHAR(DEPLOY_APPLY.REG_DT, 'Mon DD YYYY')  REG_DT,
+                DEPLOY_HST.SUCCESS_YN,
+                DEPLOY_APPLY.SEQ  DEPLOY_APPLY_SEQ,
+                DEPLOY_PROC.SEQ depSeq
+            FROM 
+                (SELECT 
+                    MAX(DEPLOY_DATE) DEPLOY_DATE
+                    , MAX(SEQ) SEQ
+                    ,(SELECT SUCCESS_YN FROM KOA_TB_DEPLOY_HST  WHERE SEQ=MAX(AA.SEQ)) SUCCESS_YN
+                    , DEPLOY_APPLY_SEQ
+                FROM KOA_TB_DEPLOY_HST AA 
+                GROUP BY DEPLOY_APPLY_SEQ) AS DEPLOY_HST
+                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
+                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            WHERE DEPLOY_PROC.DEPLOY_CD IN ('DEPLOY1063','DEPLOY1065','DEPLOY1070')
+                <if test="searchSystem != null and searchSystem != ''">
+                    AND APISYSTEM.SYS_ID = #{searchSystem}
+                </if>
+                <if test="stDate != null and stDate != ''">
+                    AND DEPLOY_HST.DEPLOY_DATE &gt;= #{stDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND DEPLOY_HST.DEPLOY_DATE &lt; #{endDate}
+                </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+    
+    <!-- 배포 결과 개수 -->
+    <select id="selDeployHstCnt" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployHstVo" resultType="int">
+            /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployHstCnt */    
+            SELECT
+                 COUNT(*) AS cnt
+            FROM 
+                (SELECT 
+                    MAX(DEPLOY_DATE) DEPLOY_DATE
+                    , MAX(SEQ) SEQ
+                    ,(SELECT SUCCESS_YN FROM KOA_TB_DEPLOY_HST  WHERE SEQ=MAX(AA.SEQ)) SUCCESS_YN
+                    , DEPLOY_APPLY_SEQ
+                FROM KOA_TB_DEPLOY_HST AA 
+                GROUP BY DEPLOY_APPLY_SEQ) AS DEPLOY_HST
+                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
+                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            WHERE  DEPLOY_PROC.DEPLOY_CD IN ('DEPLOY1065','DEPLOY1070')
+                <if test="searchSystem != null and searchSystem != ''">
+                    AND APISYSTEM.SYS_ID = #{searchSystem}
+                </if>
+                <if test="stDate != null and stDate != ''">
+                    AND DEPLOY_HST.DEPLOY_DATE &gt;= #{stDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND DEPLOY_HST.DEPLOY_DATE &lt; #{endDate}
+                </if>
+    </select>
+    
+    <!-- 상용 배포 현황 insert -->
+    <insert id="insertDeployHst" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployHstVo" useGeneratedKeys="true" keyProperty="seq">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertDeployHst */    
+        INSERT INTO KOA_TB_DEPLOY_HST
+      (
+        DEPLOY_DATE
+       ,DEPLOY_APPLY_SEQ 
+       ,DEPLOY_PROC_SEQ 
+       ,DEPLOY_ADM
+       ,API_NO
+       ,LOG_SEQ
+       ,SUCCESS_YN
+       ,RESULT_MSG
+       ,RESULT_CD
+       ,DEPLOY_GB
+      )
+      VALUES
+      (
+        NOW()
+        ,#{deployApplySeq}
+        ,#{deployProcSeq}
+        ,#{deployAdm}
+        ,#{apiNo}
+        ,#{logSeq}
+        ,#{successYn}
+        ,#{resultMsg}
+        ,#{resultCd}
+        ,#{deployGb}
+      )
+    </insert>
+    
+    <!-- 검증결과 저장 -->
+    <insert id="insertVerifiDefault" parameterType="com.kt.openapi.web.apiDeploy.vo.VerifiResultVo" useGeneratedKeys="true" keyProperty="seq">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertVerifiDefault */    
+        INSERT INTO KOA_TB_API_VERI_CONDITION (
+           DEPLOY_PROC_SEQ
+          ,TEST_CASE_SEQ
+          ,VERIFICATION_DT
+          ,RESULT_CD
+          ,RESULT_MSG
+          ,VERIFI_USR
+          ,DEL_YN
+          ,SUCCESS_YN
+          ,ST_TIME
+          ,END_TIME
+          ,PROC_RESULT_ CD
+          ,PROC_RESULT_MSG
+          ,REQ_GW_PROFILE
+          ,REQ_API_VERI_BASEURL
+          ,REQ_API_URL
+          ,REQ_HEADERS
+          ,REQ_BODY
+          ,REQ_TRANSACTION_ID
+          ,REQ_SEQUENCE_NO
+          ,RES_TRANSACTION_ID
+          ,RES_SEQUENCE_NO
+          ,RES_RETURN_CODE
+          ,RES_RETURN_DESCRIPTION
+          ,RES_ERROR_CODE
+          ,RES_ERROR_DESCRIPTION
+          ,RES_RESPONSE
+          ,API_NO
+          ,API_NM
+          ,TESTCASE_NM
+          ,PARAM_GUB
+          ,PARAM_HEADER
+          ,PARAM_BODY
+          ,PARAM_QUERY
+          ,PARAM_HEADER_JSON
+          ,PARAM_BODY_JSON
+          ,ASSERT_CASE
+          ,ASSERT_FIELD
+          ,ASSERT_OPERATOR
+          ,ASSERT_VALUE
+          ,ASSERT_RESULT
+        )
+        VALUES (
+           #{deployProcSeq}
+          ,#{testCaseSeq}
+          ,NOW()
+          ,#{resultCd}
+          ,#{resultMsg}
+          ,#{verifiUsr}
+          ,'N'
+          ,#{successYn}
+          ,#{stTime}
+          ,#{endTime}
+          ,#{procResultCd}
+          ,#{procResultMsg}
+          ,#{reqGwProfile}
+          ,#{reqApiVeriBaseurl}
+          ,#{reqApiUrl}
+          ,#{reqHeaders}
+          ,#{reqBody}
+          ,#{reqTransactionId}
+          ,#{reqSequenceNo}
+          ,#{resTransactionId}
+          ,#{resSequenceNo}
+          ,#{resReturnCode}
+          ,#{resReturnDescription}
+          ,#{resErrorCode}
+          ,#{resErrorDescription}
+          ,#{resResponse}
+          ,#{apiNo}
+          ,#{apiNm}
+          ,#{testcaseNm}
+          ,#{paramGub}
+          ,#{paramHeader}
+          ,#{paramBody}
+          ,#{paramQuery}
+          ,#{paramHeaderJson}
+          ,#{paramBodyJson}
+          ,#{assertCase}
+          ,#{assertField}
+          ,#{assertOperator}
+          ,#{assertValue}
+          ,#{assertResult}
+        )
+    </insert>
+  
+    <!-- 상용 배포 결과 상세 보기 -->
+    <select id="selDeployDetailList" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployHstVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployHstVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selCbDeployView */    
+        SELECT 
+            TO_CHAR(DEPLOY_HST.DEPLOY_DATE, 'Mon DD YYYY')  DEPLOY_DATE,
+            DEPLOY_HST.SUCCESS_YN,
+            DEPLOY_HST.RESULT_MSG 
+        FROM 
+            [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY 
+            INNER JOIN [KOA_TB_DEPLOY_HST] AS DEPLOY_HST  ON DEPLOY_APPLY.SEQ = DEPLOY_HST.DEPLOY_APPLY_SEQ
+        WHERE DEPLOY_APPLY.SEQ = #{deployApplySeq}
+    </select>
+    
+  <!-- 배포 결과 상세 보기 -->
+  <select id="selTbDeployHst" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployHstVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployHstVO">
+    /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selTbDeployHst */
+    <choose>
+        <when test="deployProcSeq == 0">
+          SELECT 
+            A.SUCCESS_YN
+            , TO_CHAR(A.DEPLOY_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DEPLOY_DATE
+            , A.RESULT_MSG
+            , A.API_NO
+            , A.LOG_SEQ
+          FROM KOA_TB_DEPLOY_HST AS A 
+          WHERE
+            (A.API_NO = #{apiNo})
+            <if test="deployGb != null and deployGb != ''">
+              AND (A.DEPLOY_GB = #{deployGb})
+            </if>
+          ORDER BY A.SEQ DESC
+        </when>
+        <otherwise>
+          SELECT 
+            A.SUCCESS_YN
+            , TO_CHAR(A.DEPLOY_DATE, 'Mon DD YYYY') AS DEPLOY_DATE
+            , A.RESULT_MSG
+          FROM KOA_TB_DEPLOY_HST AS A 
+          WHERE
+            (A.DEPLOY_PROC_SEQ = #{deployProcSeq})
+            <if test="deployGb != null and deployGb != ''">
+              AND (A.DEPLOY_GB = #{deployGb})
+            </if>
+          ORDER BY A.SEQ DESC
+        </otherwise>
+    </choose>
+  </select>
+
+    <!-- 테스트 케이스 입력 -->
+    <insert id="insertTestList" parameterType="com.kt.openapi.web.apiDeploy.vo.TestCaseListVo" useGeneratedKeys="true" keyProperty="seq">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertTestList */    
+        INSERT INTO [KOA_TB_TEST_CASE_LIST]
+           (
+              [API_NO]
+             ,[CASE_CODE]
+             ,[REGR]
+             ,[CASE_NM]
+           )
+        VALUES
+          ( 
+            #{apiNo}
+           ,#{caseCd} 
+           ,#{regr} 
+           ,#{caseNm}
+          )
+    </insert>
+    
+    <!-- 테스트 케이스 -->
+    <select id="selTescCaseResult" parameterType="com.kt.openapi.web.apiDeploy.vo.TestCaseListVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiTestCaseVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selTescCaseList */    
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY TEST_CASE_LIST.SEQ DESC) rownum,
+            TEST_CASE_LIST.API_NO,
+            TEST_CASE_LIST.CASE_NM,
+            COMN_CD.CD_NM, 
+            COALESCE(B.CNT,0) AS VERIFI_SUCCESS,
+            COALESCE(C.CNT,0) AS VERIFI_FAIL,
+            COALESCE((SELECT SUCCESS_YN FROM KOA_TB_API_VERI_CONDITION  WHERE TEST_CASE_SEQ = TEST_CASE_LIST.SEQ ORDER BY SEQ DESC LIMIT 1),'X') AS LAST_SUCCESS_YN,
+            TEST_CASE_LIST.SEQ TEST_CASE_SEQ 
+        FROM KOA_TB_TEST_CASE_LIST AS TEST_CASE_LIST 
+                INNER JOIN KOA_TB_COMN_CD AS COMN_CD  ON TEST_CASE_LIST.CASE_CODE = COMN_CD.COMN_CD
+                LEFT OUTER JOIN (
+                    SELECT COUNT(*) AS CNT
+                         , VC.TEST_CASE_SEQ
+                       FROM KOA_TB_API_VERI_CONDITION AS VC 
+                      WHERE VC.SUCCESS_YN = 'Y'
+                      GROUP BY VC.TEST_CASE_SEQ
+                 ) B ON (B.TEST_CASE_SEQ = TEST_CASE_LIST.SEQ)
+                LEFT OUTER JOIN (
+                    SELECT COUNT(*) AS CNT
+                         , VC.TEST_CASE_SEQ
+                       FROM KOA_TB_API_VERI_CONDITION AS VC 
+                      WHERE VC.SUCCESS_YN = 'F'
+                      GROUP BY VC.TEST_CASE_SEQ
+                 ) C ON (C.TEST_CASE_SEQ = TEST_CASE_LIST.SEQ)
+        WHERE
+            TEST_CASE_LIST.DEL_YN = 'N' 
+            <if test="caseCd != null and caseCd != ''">
+                AND TEST_CASE_LIST.CASE_CODE = #{caseCd}
+            </if>
+            <if test="apiNo != null and apiNo != ''">
+                AND TEST_CASE_LIST.API_NO = #{apiNo}
+            </if>
+    </select>
+    
+    <!-- 최근 등록 API 리스트 -->
+    <select id="selApiList" parameterType="com.kt.openapi.web.apiDeploy.vo.TestCaseListVo" resultType="com.kt.openapi.web.api.vo.ApiDefVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selApiList */    
+        SELECT 
+          APIDEF.API_NO,
+          APIDEF.API_SPC_NO, 
+          APIDEF.API_NM, 
+          APIDEF.API_CTGRY_NO, 
+          APIDEF.API_PATH, 
+          APIDEF.METHOD_CD, 
+          APIDEF.API_ID,
+          APIDEF.API_DESC,
+          APIDEF.REG_DT, 
+          APIDEF.REGR, 
+          APIDEF.AMD_DT,
+          APIDEF.AMDR, 
+          APIDEF.SORT_ODRG, 
+          APIDEF.SHOW_STATUS_CD, 
+          APIDEF.USE_YN,
+          APIDEF.API_GUBUN,
+          APIDEF.API_HANDLER_CD, 
+          APIDEF.API_VER,
+           (SELECT SEQ FROM KOA_TB_DEPLOY_PROC  WHERE API_NO = APIDEF.API_NO ORDER BY SEQ DESC LIMIT 1) AS PROC_SEQ
+        FROM    
+             KOA_TB_API_DEF AS APIDEF 
+             INNER JOIN KOA_TB_API_SPC AS APISPC  ON APIDEF.API_SPC_NO = APISPC.API_SPC_NO
+        WHERE 1 = 1
+        ORDER BY 
+            API_NO DESC
+        LIMIT 300
+    </select>
+    
+    <!-- 검증 페이지의 카테고리 정보 -->
+    <select id="selApiTreeList" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiTreeVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selApiTreeList */    
+        SELECT A.*
+          FROM (
+            SELECT 
+                SYS_NM, SPC.API_NM SPC_NM, APIDEF.API_NM, DEPLOYPROC.SEQ
+            FROM 
+                KOA_TB_DEPLOY_PROC AS DEPLOYPROC 
+                        INNER JOIN KOA_TB_COMN_CD AS COMNCD  ON DEPLOYPROC.DEPLOY_CD =  COMNCD.COMN_CD
+                        INNER JOIN KOA_TB_API_DEF AS APIDEF  ON DEPLOYPROC.API_NO = APIDEF.API_NO
+                        INNER JOIN KOA_TB_API_SPC AS SPC  ON APIDEF.API_SPC_NO = SPC.API_SPC_NO
+                        INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                        INNER JOIN KOA_TB_COMN_CD AS VERICD  ON  DEPLOYPROC.VERIFI_CD = VERICD.COMN_CD
+            WHERE APISYSTEM.SYS_ID  = (SELECT APISYSTEM.SYS_ID FROM KOA_TB_DEPLOY_PROC AS DEPLOY_PROC 
+                                     INNER JOIN KOA_TB_API_DEF AS APIDEF  ON DEPLOY_PROC.API_NO = APIDEF.API_NO
+                                     INNER JOIN KOA_TB_API_SPC AS APISPC  ON APIDEF.API_SPC_NO = APISPC.API_SPC_NO
+                                     INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON APISPC.SYS_ID = APISYSTEM.SYS_ID
+               LIMIT 1) 
+          ) A
+         WHERE (1=1)
+            <if test="apiNo != null and apiNo != ''">
+                AND A.SEQ = #{seq}
+            </if>
+    </select>
+    
+    <!-- 이메일 발송 리스트 -->
+    <select id="selMailList" parameterType="com.kt.openapi.web.apiDeploy.vo.MailVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiEmailVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selEmailSendList */    
+        SELECT 
+            AUTMPPG.MBR_ID, TBMBR.EMAIL 
+        FROM 
+            KOA_TB_AUT TBAUT 
+                INNER JOIN KOA_TB_AUT_MPPG AUTMPPG  ON TBAUT.AUT_ID = AUTMPPG.AUT_ID
+                INNER JOIN KOA_TB_MBR AS TBMBR  ON TBMBR.MBR_ID = AUTMPPG.MBR_ID
+        WHERE 1=1
+        <if test="mbrId != null and mbrId != ''">
+            AND AUTMPPG.MBR_ID = #{mbrId}
+        </if>
+        <if test="autNm != null and autNm != ''">
+            AND AUT_NM = #{autNm}
+        </if>
+    </select>
+    
+    <!-- 한건의 배포PROC 삭제 -->
+    <delete id="delDeployProc" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.delDeployProc */    
+        DELETE FROM KOA_TB_DEPLOY_PROC WHERE SEQ = #{deployProcSeq} 
+    </delete>
+    
+    <!-- 오 등록 API 삭제 하기 위한 조회-->
+    <select id="selDelApiSearch" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.api.vo.ApiDefVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDelApiSearch */
+        SELECT 
+          APIDEF.[API_NO],
+          APIDEF.[API_NM],
+          APIDEF.[API_PATH],
+          APIDEF.[API_ID],
+          TO_CHAR(APIDEF.REG_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  [REG_DT],
+          APIDEF.[API_VER],
+          APIDEF.[API_VER_NO],
+          APISPC.API_NM AS SPC_NM
+        FROM 
+            KOA_TB_API_DEF APIDEF  INNER JOIN KOA_TB_API_SPC APISPC  ON APIDEF.API_SPC_NO = APISPC.API_SPC_NO
+        WHERE 
+          UPPER(APIDEF.API_NM) LIKE CONCAT('%' , UPPER(#{apiNm}) , '%') 
+        ORDER BY APIDEF.[REG_DT] DESC
+    </select>
+    
+    <!-- 한건의 PATH 삭제 -->
+    <delete id="delDeployApi" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.delDelApi */
+        DELETE FROM KOA_TB_API_DEF WHERE API_NO = #{apiNo} 
+    </delete>
+    
+    <!-- 배포신청 오 등록 삭제를 위한 조회 -->
+    <select id="selDeployApplySearch" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployApplyVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployApplySearch */
+        SELECT 
+          APIDEF.API_NM ,
+          APIDEF.API_NO  ,
+          DEPLOYAPPLY.BIGO,
+          TO_CHAR(DEPLOYAPPLY.REG_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  REG_DT,
+          DEPLOYAPPLY.SEQ
+        FROM 
+            [KOA_TB_DEPLOY_APPLY] DEPLOYAPPLY 
+                INNER JOIN [KOA_TB_DEPLOY_PROC] DEPLOYPROC  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ
+                INNER JOIN [KOA_TB_API_DEF] APIDEF  ON DEPLOYPROC.API_NO = APIDEF.API_NO
+        WHERE 
+            UPPER(APIDEF.API_NM) LIKE CONCAT('%' , UPPER(#{apiNm}) , '%') 
+    </select>
+    
+    <!-- 한건의 배포 신청 삭제 -->
+    <delete id="delDeployApply" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.delDeployApply */
+        DELETE FROM [KOA_TB_DEPLOY_APPLY] WHERE seq = #{seq} 
+    </delete>
+
+    <select id="selDeployStateTotal" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployStateVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployStateTotal */
+        SELECT
+            DEPLOY_PROC.SEQ SEQ, 
+            DEPLOY_COMNCD.CD_NM DEPLOY_CDNM, 
+            VERIFI_COMNCD.CD_NM VERIFI_CDNM, 
+            DEPLOY_COMNCD.PRNTS_CD PRNTS_CD, 
+            APISYSTEM.SYS_NM, 
+            SPC.API_NM CTGRY_NM, 
+            DEF.API_NM, 
+            DEPLOY_PROC.DEPLOY_CD,
+            DEPLOY_PROC.VERIFI_CD,
+            DEPLOY_PROC.regr,
+            TO_CHAR(DEPLOY_PROC.REG_DT, 'Mon DD YYYY')  REG_DT,
+            COALESCE(DEPLOY_PROC.BIGO,'') BIGO,
+            COALESCE(DEF.API_VER,'') API_VER,
+            DEF.API_ID,
+            0 REQUIRED_CNT
+        FROM 
+            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
+            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+        WHERE APISYSTEM.SYS_NM ='KOS'
+        ORDER BY DEF.REG_DT DESC
+    </select>
+    
+    <!-- API 등록자 메일 정보 -->
+    <select id="selMailByApiRegrNAmdr" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiEmailVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selMailByApiRegrNAmdr */
+        SELECT 
+            (SELECT EMAIL FROM [V2OA_TB_USER_INFO] WHERE USER_ID = [KOA_TB_API_DEF].REGR) AS REG_EMAIL,
+            (SELECT EMAIL FROM [V2OA_TB_USER_INFO] WHERE USER_ID = [KOA_TB_API_DEF].AMDR) AS EDIT_EMAIL
+        FROM 
+            [KOA_TB_API_DEF] 
+        WHERE 
+            API_NO = #{apiNo}
+    </select>
+
+    <!-- 이메일 정보 출력(by userid) -->
+    <select id="selMailByUserid" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiEmailVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selMailByUserid */
+        SELECT 
+            COALESCE(EMAIL,'') AS EMAIL
+        FROM 
+            KOA_TB_MBR 
+        WHERE 
+            MBR_ID = #{regr}
+    </select>
+    
+    <!-- API NM SEARCH(by procseq) -->
+    <select id="selApiNmByprocseq" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.api.vo.ApiDefVO">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selApiNmByprocseq */
+      SELECT 
+        API_DEF.API_NM, 
+        API_SPC.API_NM AS SPC_NM,
+        API_SYSTEM.SYS_NM AS SYS_NM
+      FROM 
+        [KOA_TB_DEPLOY_PROC] DEPLOY_PROC  
+                        INNER JOIN [KOA_TB_API_DEF] API_DEF  ON DEPLOY_PROC.API_NO = API_DEF.API_NO
+                    INNER JOIN [KOA_TB_API_SPC] API_SPC  ON API_DEF.API_SPC_NO = API_SPC.API_SPC_NO
+                    INNER JOIN [KOA_TB_API_SYSTEM] API_SYSTEM  ON API_SPC.SYS_ID = API_SYSTEM.SYS_ID
+      WHERE
+        DEPLOY_PROC.SEQ = #{seq}
+    </select>
+    
+    <!-- API 버전번호 업데이트 -->
+    <update id="apiVerNoUpdate" parameterType="map">
+        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.apiVerNoUpdate */              
+        UPDATE KOA_TB_API_DEF
+          SET API_VER_NO = #{setApiVerNo}
+        WHERE 
+          API_NO = #{apiNo}    
+    </update>
+
+</mapper>

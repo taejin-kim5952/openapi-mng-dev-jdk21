@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.login.dao.LoginDAO">
+
+	<!-- [마이그레이션] EgovMap은 그대로 유지하되, 추후 Step 3.4에서 VO로 교체 예정 -->
+	
+	<resultMap id="userinfoList" type="com.kt.openapi.web.userJoin.vo.UserJoinVO">
+		<result property="mbrId" column="MBR_ID"/>
+		<result property="idDivCd" column="ID_DIV_CD"/>
+		<result property="mbrNm" column="MBR_NM"/>
+		<result property="cmpnNm" column="CMPN_NM"/>
+		<result property="telNo" column="TEL_NO"/>
+		<result property="email" column="EMAIL"/>
+		<result property="stpltAgreeYn" column="STPLT_AGREE_YN"/>
+		<result property="indvInfoAgreeYn" column="INDV_INFO_AGREE_YN"/>
+		<result property="mbrSttusCd" column="MBR_STTUS_CD"/>
+		<result property="admrYn" column="ADMR_YN"/>
+		<result property="lastLoginDt" column="LAST_LOGIN_DT"/>
+		<result property="sbscDt" column="SBSC_DT"/>
+		<result property="useYn" column="USE_YN"/>
+	</resultMap>
+	
+	<resultMap id="authinfoList" type="com.kt.openapi.web.auth.vo.AuthVO">
+		<result property="autSttusCd" column="AUT_STTUS_CD"/>
+		<result property="autApyDt" column="AUT_APY_DT"/>
+		<result property="autApvDt" column="AUT_APV_DT"/>
+		<result property="autApvr" column="AUT_APVR"/>
+		<result property="usePerdStDt" column="USE_PERD_ST_DT"/>
+		<result property="usePerdFnsDt" column="USE_PERD_FNS_DT"/>
+		<result property="autId" column="AUT_ID"/>
+		<result property="autNm" column="AUT_NM"/>
+		<result property="sysId" column="SYS_ID"/>
+		<result property="useYn" column="USE_YN"/>
+		<result property="sysNm" column="SYS_NM"/>
+	</resultMap>
+
+     <!-- PSSO 연동 ID 일치 여부 -->
+	 <select id="getUserIdChk" parameterType="com.kt.openapi.web.userJoin.vo.UserJoinVO" resultType="com.kt.openapi.web.userJoin.vo.UserJoinVO">
+        <![CDATA[
+            SELECT
+                *
+            FROM KOA_TB_MBR 
+            WHERE MBR_ID = #{mbrId}
+               AND USE_YN = 'Y'
+        ]]>
+    </select>
+    
+    <!-- 최종 로그인 일시 수정 -->
+    <update id="updateLDate"  parameterType="com.kt.openapi.web.userJoin.vo.UserJoinVO">
+		<![CDATA[
+			UPDATE KOA_TB_MBR
+			SET LAST_LOGIN_DT = NOW()
+			WHERE MBR_ID = #{mbrId}
+		]]>
+	</update>
+	
+	<!-- 회원 정보 -->
+	<select id="selUserInfo" parameterType="com.kt.openapi.web.userJoin.vo.UserJoinVO" resultMap="userinfoList">
+        <![CDATA[
+            SELECT 
+                MBR_ID,
+                ID_DIV_CD,
+                MBR_NM,
+                CMPN_NM,
+                TEL_NO,
+                EMAIL,
+                STPLT_AGREE_YN,
+                INDV_INFO_AGREE_YN,
+                MBR_STTUS_CD,
+                ADMR_YN,
+                LAST_LOGIN_DT,
+                SBSC_DT,
+                USE_YN
+            FROM KOA_TB_MBR 
+            WHERE MBR_ID = #{mbrId}
+               AND USE_YN = #{useYn}
+        ]]>
+    </select>
+    
+    <!-- 권한 정보 -->
+    <select id="selAuthList" parameterType="com.kt.openapi.web.auth.vo.AuthVO" resultMap="authinfoList">
+      <![CDATA[
+      SELECT
+        MM.AUT_STTUS_CD,
+        MM.AUT_APY_DT, 
+        MM.AUT_APV_DT,
+        MM.AUT_APVR,
+        MM.AUT_ID,
+        MM.USE_PERD_ST_DT,
+        MM.USE_PERD_FNS_DT,
+        MM.AUT_NM,
+        MM.SYS_ID,
+        MM.USE_YN,
+        SY.SYS_NM
+      FROM ( 
+        SELECT
+          AA.AUT_STTUS_CD,
+          AA.AUT_APY_DT,
+          AA.AUT_APV_DT,
+          AA.AUT_APVR,
+          AA.AUT_ID,
+          AA.USE_PERD_ST_DT,
+          AA.USE_PERD_FNS_DT,
+          AA.AMD_DT,
+          TA.AUT_NM,
+          TA.SYS_ID,
+          TA.USE_YN
+        FROM (
+          SELECT 
+            AM.*
+          FROM KOA_TB_AUT_MPPG AM 
+            LEFT JOIN KOA_TB_MBR TM  ON (AM.MBR_ID = TM.MBR_ID)
+          WHERE (TM.MBR_ID = #{mbrId})
+            AND (TM.USE_YN= #{userUseYn})
+            AND (AM.AUT_STTUS_CD = 'MBRAUT1020')
+            AND (USE_PERD_ST_DT <= NOW())
+            AND (USE_PERD_FNS_DT >= NOW())
+        ) AS AA LEFT JOIN KOA_TB_AUT TA ON (AA.AUT_ID = TA.AUT_ID)
+        WHERE TA.USE_YN = #{useYn}
+      ) MM LEFT JOIN KOA_TB_API_SYSTEM SY  ON (MM.SYS_ID = SY.SYS_ID)
+      ORDER BY MM.AMD_DT DESC
+      ]]>
+    </select>
+
+</mapper>

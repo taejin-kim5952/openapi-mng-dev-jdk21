@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ============================================================
+         CONSOLE APPENDER
+         - 콘솔 출력용 (IDEA 터미널 등)
+         - 패턴: 시간 [스레드] 레벨 로거명 - 메시지
+         ============================================================ -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ============================================================
+         FILE APPENDER (전체 로그)
+         - 서버: /link/logs/openapi-mng-dev/ 에 로테이션 저장
+         - 로컬: HOSTNAME 환경변수 없으면 "application"으로 폴백
+         - 30MB 초과 시 롤오버, 최대 100개 유지
+         ============================================================ -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/link/logs/openapi-mng-dev/${HOSTNAME:-application}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/link/logs/openapi-mng-dev/%d{yyyy-MM-dd}_${HOSTNAME:-application}_%i.log</fileNamePattern>
+            <maxFileSize>30MB</maxFileSize>
+            <maxHistory>100</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ============================================================
+         ERROR FILE APPENDER (에러 전용 로그)
+         - ERROR 레벨 이상만 별도 파일로 저장
+         - 20MB 초과 시 롤오버, 최대 100개 유지
+         ============================================================ -->
+    <appender name="ERRORFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/link/logs/openapi-mng-dev/${HOSTNAME:-application}_error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/link/logs/openapi-mng-dev/%d{yyyy-MM-dd}_${HOSTNAME:-application}_error_%i.log</fileNamePattern>
+            <maxFileSize>20MB</maxFileSize>
+            <maxHistory>100</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- ============================================================
+         ROOT LOGGER
+         - INFO: 모든 라이브러리 기본 레벨 (DEBUG 폭주 방지)
+         - DEBUG로 하면 HikariCP housekeeper, Spring BeanFactory 등이 폭주
+         ============================================================ -->
+    <root level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- ============================================================
+         SQL LOGGER
+         - java.sql: JDBC 드라이버 로그 (WARN으로 커넥션 디버깅 차단)
+         - java.sql.ResultSet: ResultSet 로그 완전 차단 (OFF)
+         - java.sql.Connection: 커넥션 획득/반납 로그 (WARN)
+         ============================================================ -->
+    <logger name="java.sql" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="java.sql.ResultSet" level="OFF" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="java.sql.Connection" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         SPRING LOGGER
+         - org.springframework: INFO (Bean 생성/초기화 DEBUG 차단)
+         - org.springframework.jdbc: INFO (트랜잭션/커넥션 DEBUG 차단)
+         - org.springframework.security: WARN (FilterChain Proxy DEBUG 차단)
+         - org.springframework.web: INFO (DispatcherServlet DEBUG 차단)
+         ============================================================ -->
+    <logger name="org.springframework" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.springframework.jdbc" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.springframework.security" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.springframework.web" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         API EXCEPTION LOGGER
+         - 프로젝트 ApiException WARN 이상은 CONSOLE + FILE + ERRORFILE 모두 기록
+         ============================================================ -->
+    <logger name="com.kt.openapi.web.cmmn.ApiException" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERRORFILE" />
+    </logger>
+
+    <!-- ============================================================
+         iBATIS LOGGER (레거시)
+         - 레거시 iBatis 프레임워크용 (현재 프로젝트는 MyBatis 사용)
+         ============================================================ -->
+    <logger name="com.ibatis" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- ============================================================
+         HTTP CLIENT LOGGER
+         - org.apache.http: HTTP 요청/응답 디버깅 (WARN으로 과다 로그 차단)
+         - DEBUG로 하면 모든 HTTP 요청 헤더/바디가 출력됨
+         ============================================================ -->
+    <logger name="org.apache.http" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         HIKARICP LOGGER
+         - com.zaxxer.hikari: 커넥션 풀 관리 로그 (WARN)
+         - DEBUG로 하면 housekeeper keepalive/cleanup/connection-adder 폭주
+         - WARN: 풀 시작/종료/에러만 기록
+         ============================================================ -->
+    <logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         PROJECT LOGGER (com.kt.openapi.web)
+         - 프로젝트 비즈니스 코드: DEBUG 유지
+         - 서비스 로직, 컨트롤러, DAO 등 개발자 코드 디버깅용
+         ============================================================ -->
+    <logger name="com.kt.openapi.web" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         PROJECT ROOT LOGGER (com.kt.openapi)
+         - web 제외 프로젝트 전체: INFO
+         - fwk, config 등 인프라 코드
+         ============================================================ -->
+    <logger name="com.kt.openapi" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- ============================================================
+         VALIDATOR LOGGER
+         - Hibernate Validator, Apache Commons Validator: WARN
+         - 유효성 검사 실패 시 WARN 이상만 출력
+         ============================================================ -->
+    <logger name="org.hibernate.validator" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    <logger name="org.apache.commons.validator" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- ============================================================
+         COMMONS BEANUTILS LOGGER
+         - BeanUtils, ConvertUtils, Digester: WARN
+         - 리플렉션 기반 빈 조작 시 발생하는 WARN 로그만 출력
+         ============================================================ -->
+    <logger name="org.apache.commons.beanutils.ConvertUtils" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    <logger name="org.apache.commons.beanutils.BeanUtils" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    <logger name="org.apache.commons.digester.Digester" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+</configuration>

@@ -1,0 +1,54 @@
+<DBMAP>
+ 	<Config>
+	  	<INILog4j path="" isIniLog4j="N"/>
+	  	<Logging logPath="C:\\log" isLogging="N" option="file" alertLogPath="C:\\log"/>
+	  	<Proven mode="N"/>
+	  	<!-- option="file" alertLogPath="C:\test\alert" logPath="C:\test\log" -->
+	  	<!-- type's value is NONE or NET  -->
+		<Socket type="NONE" propertyPath="C:/INISAFENet/INISAFENet_Server.properties"/>
+	  	<!-- type's value is C or JAVA  , accessType's value is SDK or AGENT-->
+		<Crypto type="JAVA" accessType="SDK" batchThreadCount="3"/>
+		<!-- Policy Key / Y:XOR, N:Enc, P:Plain -->
+		<KeyXor mode="Y"/>		
+		<!-- KeyChange : Y/N, view Key Seq : Y/N -->
+		<KeyChange mode="Y" viewSeq="Y"/>		
+		<!-- FileLog Write : Y/N --> 
+		<FileLog mode="N"/>
+		<!-- Config Info Print on Screen : Y/N, Received Policy Print on Screen : Y/N -->
+		<ViewConfig mode="Y" viewPolicy="N"/>
+		<!-- Stream Enc/Dec Buffer size -->
+		<StreamBuffer size="1024"/>
+		<!-- No Authority Decryption Message-->
+		<DecMessage value="You have no authority for decryption !"/>
+	</Config>	
+	
+	<SafeDBUser id="SAFEDB" SDKName="API-DB">
+      <AUTH password="#{SAFEDB_AUTH_PASSWORD}" amhoType="H" />
+      <DB ip="127.0.0.1"  port="1521" sid="ora10g"/>
+    </SafeDBUser>
+
+
+	<!-- 개발서버로 agent 연동하도록 설정 -->
+ 	 <Agent id="1">
+	      <Info ip="safedb" port="19201" timeOut="30000" />
+	      <AccessControl  macAddress="11:11:11:11:11:10" /> 
+	  </Agent>
+	  
+	  <Agent id="2">
+	      <Info ip="safedb" port="19202" timeOut="30000" />
+	      <AccessControl  macAddress="11:11:11:11:11:10" /> 
+	  </Agent>
+
+	
+<!--
+	<Agent id="1">
+	  	<Info ip="10.214.188.53" port="19201" timeOut="30000" />
+	  	<AccessControl  macAddress="11:11:11:11:11:10" />	
+	</Agent>
+	
+	<Agent id="2">
+	  	<Info ip="10.214.188.53" port="19202" timeOut="30000" />
+	  	<AccessControl  macAddress="11:11:11:11:11:10" />	
+	</Agent>
+-->	
+</DBMAP>

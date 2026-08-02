@@ -1,0 +1,66 @@
+{
+  "_from": "vue-modal-dialog",
+  "_id": "vue-modal-dialog@0.2.2",
+  "_inBundle": false,
+  "_integrity": "sha1-WEDsZaZgAwdjQyGjOoHqUEvymcc=",
+  "_location": "/vue-modal-dialog",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "vue-modal-dialog",
+    "name": "vue-modal-dialog",
+    "escapedName": "vue-modal-dialog",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/vue-modal-dialog/-/vue-modal-dialog-0.2.2.tgz",
+  "_shasum": "5840ec65a6600307634321a33a81ea504bf299c7",
+  "_spec": "vue-modal-dialog",
+  "_where": "D:\\workspace\\ksm\\openapi-web-dev\\frontend\\bcconsole",
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/geoctrl/vue-modal-dialog/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "rxjs": "^5.4.0",
+    "velocity-animate": "^1.5.0"
+  },
+  "deprecated": false,
+  "description": "A small but powerful modal system. Use it for:",
+  "devDependencies": {
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-plugin-transform-object-assign": "^6.22.0",
+    "babel-preset-env": "^1.5.1",
+    "css-loader": "^0.28.3",
+    "extract-text-webpack-plugin": "^2.1.0",
+    "html-webpack-plugin": "^2.28.0",
+    "postcss-loader": "^2.0.5",
+    "sass-loader": "^6.0.5",
+    "style-loader": "^0.18.1",
+    "vue": "^2.3.3",
+    "webpack": "^2.6.1"
+  },
+  "homepage": "https://github.com/geoctrl/vue-modal-dialog#readme",
+  "license": "ISC",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "name": "vue-modal-dialog",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geoctrl/vue-modal-dialog.git"
+  },
+  "scripts": {
+    "build": "cp src/_modal.scss dist/ && webpack",
+    "start": "webpack-dev-server --history-api-fallback --progress --inline --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.2.2"
+}

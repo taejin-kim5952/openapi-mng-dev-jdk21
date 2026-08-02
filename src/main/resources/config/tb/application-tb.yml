@@ -1,0 +1,19 @@
+# Test Bed Environment Main Configuration
+spring:
+  config:
+    import:
+      - optional:classpath:config/tb/common.yml
+      - optional:classpath:config/tb/apigw.yml
+      - optional:classpath:config/tb/adptran.yml
+      - optional:classpath:config/common/beast.yml
+
+  datasource:
+    # openapi-ptl(application-tb.yml)과 동일한 TB Azure PostgreSQL 접속 정보
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://pgdb-az01-dev-shub-01.postgres.database.azure.com:5432/portal?currentSchema=public&stringtype=unspecified
+    username: "${TB_DB_USERNAME:shubsupport_user5}"
+    password: "${TB_DB_PASSWORD}"
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      pool-name: HikariTB

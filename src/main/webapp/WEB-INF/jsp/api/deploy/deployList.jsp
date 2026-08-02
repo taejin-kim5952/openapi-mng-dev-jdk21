@@ -1,0 +1,467 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<%@taglib prefix="commonFunc" uri="/WEB-INF/tld/CommonFunc.tld"%>
+<t:layout type="default">
+<script type="text/javascript">
+$(function(){
+	
+	fnSearch(1);//조회 
+	fnSearchSelectList(); // 검색 리스트
+	
+	$("#btnSearch").on('click' , function(){
+		fnSearch(1);//조회
+	});
+	
+	$("#btnReg").on('click' , function(){
+		location.href=c_url+"api/main/mvMainList.do";
+	});
+	
+	
+	/**
+	 * 시스템 선택시 카테고리 조건 노출 (상용 배포 이력 영역)
+	 * @return void
+	 */
+	$("#systemSelect").change(function(){ //시스템에 따른 2depth 노출
+		var obj = new Object();
+		obj.sysId = this.value;
+
+		$.ajax({
+			url: '<c:url value="/api/deploy/mvSpcListAjax.do"/>', 
+			type: 'POST',
+			data :obj,
+			success: function(data){
+				////조회항목 - SPC
+				$('#spcListLayer').empty(); 
+				if (data != null  && data.spcList.length != 0) {
+					var spchtml = '<option value="">전체 카테고리</option>';
+					$.each(data.spcList, function(index, item) { 
+						spchtml +='<option value="' + item.apiSpcNo + '">' + item.apiNm + '</option>' ;
+					}); //each끝
+				}
+				else {
+					spchtml +='<option value="">카테고리 정보가 없습니다.</option>' ;
+				}
+				$('#spcListLayer').append(spchtml); 		
+			},
+			error:function(request,status,error){
+        alert("code:"+request.status+"\n"+"error:"+error);
+    	}
+		});
+	}); 
+})
+
+function fnSearch(pageIndex) {
+	var obj = new Object();
+	obj.searchCondition = $('#searchCondition').val();
+	obj.searchKeyword   = $('#searchKeyword').val();
+	obj.searchVerifi    = $('#verifiSelect').val();
+	obj.searchDeploy    = $('#deploySelect').val();
+	obj.searchSystem    = $('#systemSelect').val();
+	obj.searchSpc    	= $('#spcListLayer').val();
+	obj.stDate = fnDateNullCheck($('#picker_before').val(), "start") ;
+	obj.endDate = fnDateNullCheck($('#picker_after').val(), "end") ;
+	obj.pageIndex = pageIndex;
+	
+	$('.table-list > tbody').empty();
+	drawPaging('paging', 1, 0, 0, 0, 'pageGo');
+	$('#totCnt').html('-');
+
+	$.ajax({
+		url: '<c:url value="/api/deploy/mvDeployListAjax.do"/>', 
+		type: 'POST',
+		data :obj,
+		success: function(data) {
+			var html = '';
+			var msg = '';
+			if ((!$has_own(data, 'nlist')) || (!$has_own(data, 'paginationInfo'))) {
+			  msg = '응답 형식 오류';
+			}
+			else {
+  			var listNum = data.paginationInfo.totalRecordCount - (data.paginationInfo.recordCountPerPage * (data.paginationInfo.currentPageNo - 1));
+  			// 정보리스트
+  			if (data.nlist.length > 0) {
+  				$.each(data.nlist, function(index, item) { 
+  					html+=	' <tr> ';
+  					html+=	'   <td><div>'+ (listNum - index) +'</div></td> ';
+            html+=	'   <td class="tdTitle"><div>'+ item.sysNm +'</a></div></td> ';
+            html+=	'   <td><div>'+ item.ctgryNm+'</div></td> ';
+            html+=	'   <td><div><a href="javascript:fnGoViewPage('+item.seq+');" >'+ item.apiNm+'</a></div></td> ';
+            //html+=	'   <td><div>'+ item.verifiCdnm +'</div></td> ';
+            html+=	'   <td><div>'+ item.apiVer +'</div></td> ';
+            html+=	'   <td><div>'+ item.deployCdnm +'</div></td> ';
+            html+=	'   <td><div>'+ item.regr +'</div></td> ';
+            html+=	'   <td><div>'+ fnConverDate(item.regDt) +'</div></td> ';
+            html+=	' </tr> ';
+  				}); //each끝
+  			}
+  			else {
+  			  msg = '검색된 DATA가 존재하지 않습니다.';
+	    	}
+			}
+			if (msg.length > 0) {
+				var colspan = $('.table-list > thead > tr').children().length;
+    		html += '<tr>';
+    		html += '<td colspan="' + colspan + '">';
+    		html += msg;
+    		html += '</td>';
+    		html += '</tr>';
+			}
+			else {
+				drawPaging('paging', data.paginationInfo.currentPageNo, data.paginationInfo.firstPageNoOnPageList, data.paginationInfo.totalPageCount, data.paginationInfo.lastPageNoOnPageList, 'pageGo');
+				$('#totCnt').html(data.paginationInfo.totalRecordCount);
+			}
+			$('.table-list > tbody').append(html);
+		},
+		error: function(request,status,error){
+		  alert('code:' + request.status + '\n' + 'error:' + error);
+		}
+	});
+}
+
+
+
+//검색조건 리스트 
+function fnSearchSelectList() {
+	
+
+	
+	$.ajax({
+		url: '<c:url value="/api/deploy/mvSelectListAjax.do"/>', 
+		type: 'POST',
+		success: function(data){
+			
+			var verihtml = "<option value=''>검증상태</option>";
+			var deplhtml = "<option value=''>진행상태</option>";
+			var syshtml = "<option value=''>시스템</option>";
+			
+			//조회항목 - 검증 리스트 
+			if(data != null  && data.verifilist.length != 0){
+			
+				$('#verifiSelect').empty(); 	
+				
+				$.each(data.verifilist, function(index, item) { 
+					
+					verihtml +='<option value="' + item.comnCd + '">' + item.cdNm + '</option>' ;
+						
+				}); //each끝
+				
+				$('#verifiSelect').append(verihtml); 				
+			}
+			
+			
+			//조회항목 - 배포상태
+			if(data != null  && data.deployList.length != 0){
+				
+				$('#deploySelect').empty(); 	
+				
+				$.each(data.deployList, function(index, item) { 
+					
+					deplhtml +='<option value="' + item.comnCd + '">' + item.cdNm + '</option>' ;
+						
+				}); //each끝
+				
+				$('#deploySelect').append(deplhtml); 				
+			}
+			
+			
+			////조회항목 - 시스템
+			if(data != null  && data.systemList.length != 0){
+				
+				$('#systemSelect').empty(); 
+				
+				$.each(data.systemList, function(index, item) { 
+					
+					syshtml +='<option value="' + item.sysId + '">' + item.sysNm + '</option>' ;
+						
+				}); //each끝
+				
+				$('#systemSelect').append(syshtml); 				
+			}
+			
+			
+		},
+		error:function(request,status,error){
+	        alert("code:"+request.status+"\n"+"error:"+error);
+		    }
+		});
+	
+}
+
+
+//페이징 조회
+function pageGo(pageIndex){
+	fnSearch(pageIndex);
+}
+
+
+$( function() {
+    var dateFormat = "yy-mm-dd",
+      from = $( "#picker_before" )
+        .datepicker({
+          defaultDate: "+1w",
+          changeMonth: false,
+          // changeYear: true,
+          numberOfMonths: 1
+        })
+        .on( "change", function() {
+          to.datepicker( "option", "minDate", getDate( this ) );
+        }),
+      to = $( "#picker_after" ).datepicker({
+        defaultDate: "+1w",
+        changeMonth: false,
+        // changeYear: true,
+        numberOfMonths: 1
+      })
+      .on( "change", function() {
+        from.datepicker( "option", "maxDate", getDate( this ) );
+      });
+ 
+    function getDate( element ) {
+      var date;
+      try {
+        date = $.datepicker.parseDate( dateFormat, element.value );
+      } catch( error ) {
+        date = null;
+      }
+ 
+      return date;
+    }
+
+    $('[name="sysChoice"]').change(function(){
+    	var obj = new Object();
+    	obj.sysId = $(".sect_wrap option:selected").val();
+    	$.ajax({
+			url: '<c:url value="/mypage/selboxAjax.do"/>', 
+			type: 'POST',
+			data :obj,
+			success: function(data){
+				var autGhtml = "";
+				if(data != null  && data.autGroup.length != 0){
+					autGhtml += '<option value="">권한그룹 선택</option>';
+					$.each(data.autGroup, function(index, autGList) { 
+						autGhtml += '<option value="'+autGList.autId+'">'+autGList.autNm+'</option>';
+						/* if(index == 0){
+							autGhtml += '<option value="">권한그룹 선택</option>';
+						}else{
+							autGhtml += '<option value="'+autGList.autId+'">'+autGList.autNm+'</option>';
+    					} */
+					});
+					$('[name="autChoice"]').html(autGhtml);
+				}else{
+					autGhtml += '<option value="">권한그룹 선택</option>';
+					$('[name="autChoice"]').html(autGhtml);
+				}
+			},
+			error:function(request,status,error){
+			   /*  console.log("code:"+request.status+"\n"+"error:"+error);     */
+				   alert("code:"+request.status+"\n"+"error:"+error);
+			}
+		});
+    });
+});
+    
+$.datepicker.setDefaults({
+    dateFormat: 'yy-mm-dd',
+    prevText: '이전 달',
+    nextText: '다음 달',
+    monthNames: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
+    monthNamesShort: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
+    // dayNames: ['일', '월', '화', '수', '목', '금', '토'],
+    // dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+    dayNamesMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    showMonthAfterYear: true,
+    yearSuffix: '.',
+    showOtherMonths: true
+    // selectOtherMonths: true
+});
+
+   //3개월 after         
+   function dateThree(){
+   	$("#picker_before").val(getCalculatedDate(0,0,0,'.'));
+   	$("#picker_after").val(getCalculatedDate(0,+3,0,'.'));
+   } 
+   
+   //6개월 after
+   function dateSix(){
+   	$("#picker_before").val(getCalculatedDate(0,0,0,'.'));
+   	$("#picker_after").val(getCalculatedDate(0,+6,0,'.'));
+   }
+   
+   //1년 after
+   function dateOneYear(){
+   	$("#picker_before").val(getCalculatedDate(0,0,0,'.'));
+   	$("#picker_after").val(getCalculatedDate(+1,0,0,'.'));
+   }
+
+   // 날짜 계산 함수 
+function getCalculatedDate(iYear, iMonth, iDay, seperator)
+{
+ //현재 날짜 객체를 얻어옴.
+ var gdCurDate = new Date();
+ //현재 날짜에 날짜 게산.
+ gdCurDate.setYear( gdCurDate.getFullYear() + iYear );
+ gdCurDate.setMonth( gdCurDate.getMonth() + iMonth );
+ gdCurDate.setDate( gdCurDate.getDate() + iDay );
+ 
+ //실제 사용할 연, 월, 일 변수 받기.
+ var giYear = gdCurDate.getFullYear();
+ var giMonth = gdCurDate.getMonth()+1;
+ var giDay = gdCurDate.getDate();
+ //월, 일의 자릿수를 2자리로 맞춘다.
+ giMonth = "0" + giMonth;
+ giMonth = giMonth.substring(giMonth.length-2,giMonth.length);
+ giDay   = "0" + giDay;
+ giDay   = giDay.substring(giDay.length-2,giDay.length);
+ //display 형태 맞추기.
+ return giYear + seperator + giMonth + seperator +  giDay;
+}
+   
+// 상세보기
+function fnGoViewPage(procSeq){
+	setSession("procSeq", procSeq, "api/deploy/mvDeployView.do");
+	//location.href=c_url+"api/deploy/mvDeployView.do";
+}
+
+//API 배포
+function  apiRegPrivate(){
+	
+	 alert(!loginStep);
+	  var loginStep = '';
+	  loginStep = "${ssUserVo.mbrId}";
+	  if(!loginStep){
+		  var btnHtm = "";
+		  btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="fnDeLogin()"  id="cBtton">확인</button> ';
+		  btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+		  fnOpenLayer(btnHtm, '로그인','<spring:message code="top.login.req" />' );
+		  return;
+	  }
+	  var list = new Array(); 
+	  <c:forEach items="${ssUserVo.authList}" var="item">
+	  	list.push("${item.autId}");
+	  </c:forEach>
+	  
+	  if(!list[0]){
+		  var btnHtm = "";
+		  btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="mypageGo()"  id="cBtton">확인</button> ';
+		  btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+		  fnOpenLayer(btnHtm, 'API 권한 신청','<spring:message code="top.aut.req" />' );
+		  return;  
+	  }else{
+		  location.href="<c:url value='/api/main/mvMainList.do'/>";
+	  }
+}
+
+</script>
+	<div id="container">
+		<div class="sVisual sv_regiapi">
+			<div>
+				<h2>G/W배포 API 리스트</h2>
+				<p>여러분이 생각하는 모든 생각들을 API로 만들고 KT 플랫폼을 이용하여 서비스 해보세요</p>
+			</div>
+		</div>
+		<div class="contents ">
+			<div class="conBox">
+				<div class="pg_location"><a href="javascript:;">Go home</a> <span>></span> API 배포</div>
+
+				<div id="content">
+                    <!-- content 영역에 붙여야 할 부분  2019.05.20 -->
+                    <h5 class="rTitleOneDep">API 배포</h5>
+                    <div class="date_setting">
+                        <div class="searching_wrap">
+                            <em class="pr10"> 조회항목 </em>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                    <select style="width:140px;height:40px;" title="검증상태" id="verifiSelect">
+                                       
+                                    </select>
+                                </span>
+                            </div>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                    <select style="width:140px;height:40px;" title="배포상태" id="deploySelect">
+                                       
+                                    </select>
+                                </span>
+                            </div>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                    <select style="width:140px;height:40px;" title="시스템 명"  id="systemSelect">
+                                        
+                                    </select>
+                                </span>
+                            </div>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                    <select style="width:200px;height:40px;" title="카테고리"  id="spcListLayer">
+                                        <option value="">카테고리</option>
+                                    </select>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="searching_wrap">
+                            <em class="pr10">등록날짜 </em>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                   <input type="text" id="picker_before" name="picker_before"></span><label for="picker_before"></label>&nbsp;&nbsp;~
+                                </span>
+                            </div>
+                            <div class="select_form">
+                                <span class="combo_box">
+                                   <input type="text" id="picker_after" name="picker_after"></span><label for="picker_after"></label>
+                                </span>
+                            </div>
+                            <em class="pl20"> API명 </em>
+                            <div class="select_form ">
+                                <span class="input_txt wx400"><input type="text" id="searchKeyword" title="검색어 입력" placeholder="검색어를 입력하세요."></span>
+                                <button type="button" id="btnSearch" class="btn-lg btn_searching"><span>검색</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn_set-right">
+                        <p class="list_count">전체: <span id="totCnt"></span> 건</p>
+						<a href="javascript:;" title="등록하기" class="btn btn_black"><span class="btn btn_black" id="btnReg">등록하기</span></a>
+                    </div>
+
+                    <div class="pkg_board">                                     
+                        <table class="table-list">
+                            <caption>API 관리 list</caption>
+                            <colgroup>
+                                <col style="width:8%">
+                                <col style="width:10%">
+                                <col style="width:auto">
+                                <col style="width:auto">
+                                <col style="width:11%">
+                                <col style="width:11%">
+                                <col style="width:10%">
+                                <col style="width:11%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th scope="row">NO</th>
+                                    <th scope="row">시스템명</th>
+                                    <th scope="row">카테고리</th>
+                                    <th scope="row">API명</th>
+                                    <th scope="row">버전</th>
+                                    <th scope="row">진행상태</th>
+                                    <th scope="row">작성자</th>
+                                    <th scope="row">작성일</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+
+                       <div class="paging"  id="paging">
+
+                       </div>
+                    </div>
+                    <!-- // content 영역에 붙여야 할 부분  2019.05.20 -->
+                </div>
+			</div>
+		</div>
+	</div>
+
+</t:layout>

@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.faq.dao.FaqDAO">
+
+    <!-- faq 목록 -->
+    <select id="selFaqList" parameterType="com.kt.openapi.web.faq.vo.FaqVO" resultType="com.kt.openapi.web.faq.vo.FaqVO">
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY FAQ_ID DESC) rownum,
+            FAQ_ID,
+            FAQ_CTGRY_CD,
+            TITLE,
+            SBST,
+            SHOW_YN,
+            TOP5_YN,
+            A.REG_DT,
+            A.REGR,
+            COALESCE(B.CD_NM,'') AS FAQ_CTGRY_CD_NM
+        FROM KOA_TB_FAQ A 
+        LEFT OUTER JOIN KOA_TB_COMN_CD B ON (A.FAQ_CTGRY_CD = B.COMN_CD AND B.GROUP_CD = 'FAQCAT1000')
+        WHERE SHOW_YN = 'Y'
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+        </if>
+        <if test="faqCtgryCd != null and faqCtgryCd != ''">
+            AND FAQ_CTGRY_CD = #{faqCtgryCd}
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <!-- faq TOP5 목록 -->
+    <select id="selToplist" parameterType="com.kt.openapi.web.faq.vo.FaqVO" resultType="com.kt.openapi.web.faq.vo.FaqVO">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY A.REG_DT DESC) rownum,
+            FAQ_ID,
+            FAQ_CTGRY_CD,
+            TITLE,
+            SBST,
+            SHOW_YN,
+            TOP5_YN,
+            A.REG_DT,
+            A.REGR,
+            COALESCE(B.CD_NM,'') AS FAQ_CTGRY_CD_NM
+        FROM KOA_TB_FAQ A 
+        LEFT OUTER JOIN KOA_TB_COMN_CD B ON (A.FAQ_CTGRY_CD = B.COMN_CD AND B.GROUP_CD = 'FAQCAT1000')
+        WHERE SHOW_YN = 'Y'
+          AND TOP5_YN = 'Y'
+    </select>
+
+    <!-- faq 목록 개수 -->
+    <select id="selfaqCnt" parameterType="com.kt.openapi.web.faq.vo.FaqVO" resultType="int">
+        SELECT
+            COUNT(*) AS TOTCNT
+        FROM KOA_TB_FAQ 
+        WHERE SHOW_YN = 'Y'
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+        </if>
+        <if test="faqCtgryCd != null and faqCtgryCd != ''">
+            AND FAQ_CTGRY_CD = #{faqCtgryCd}
+        </if>
+    </select>
+
+    <!-- faq top 5 개수-->
+    <select id="selTopCnt" parameterType="com.kt.openapi.web.faq.vo.FaqVO" resultType="int">
+        <![CDATA[
+        SELECT
+            COUNT(*) AS TOPCNT
+        FROM KOA_TB_FAQ 
+        WHERE SHOW_YN = 'Y' AND TOP5_YN = 'Y'
+        ]]>
+    </select>
+
+    <!-- 조회수 증가 -->
+    <update id="upRCnt" parameterType="com.kt.openapi.web.faq.vo.FaqVO">
+        UPDATE KOA_TB_FAQ
+        SET RETV_NUM = (SELECT COALESCE(RETV_NUM, 0)+1 FROM KOA_TB_FAQ  WHERE FAQ_ID = #{faqId})
+        WHERE FAQ_ID = #{faqId}
+    </update>
+
+</mapper>

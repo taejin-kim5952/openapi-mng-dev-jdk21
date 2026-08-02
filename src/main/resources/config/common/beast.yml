@@ -1,0 +1,19 @@
+# Beast API Gateway Configuration (Common for all profiles)
+bstgw:
+  api:
+    local:
+      url: http://127.0.0.1:19080/apidev/beast
+    test:
+      url: http://ec2-43-200-30-176.ap-northeast-2.compute.amazonaws.com:8081
+    tb:
+      url: http://portal.tbapi.kt.com
+    prd:
+      url: http://portal.api.kt.com
+    new:
+      tb:
+        url: http://new-portal.tbapi.kt.com
+      prd:
+        url: http://new-portal.api.kt.com
+    header:
+      authorization: Authorization Bearer [Token]
+      baseurl: /apidev/beast

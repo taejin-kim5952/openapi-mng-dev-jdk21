@@ -1,0 +1,41 @@
+# kt/props/tb/apigw.properties
+gateway:
+  ml:
+    tbUrl: https://172.31.30.14
+    prodUrl: https://172.31.171.14
+    prodBUrl: https://172.31.171.14
+    prodDUrl: https://172.31.21.13
+  pl:
+    tbList: TB_ALL_PL
+    prodList: BD_A_ID_PL,BD_B_ID_PL,BD_A_CUS_PL,BD_B_CUS_PL,BD_A_IF_PL,BD_B_IF_PL,DR_A_ID_PL,DR_B_ID_PL,DR_A_CUS_PL,DR_B_CUS_PL,DR_A_IF_PL,DR_B_IF_PL,
+    prodBList: BD_A_ID_PL,BD_B_ID_PL,BD_A_CUS_PL,BD_B_CUS_PL,BD_A_IF_PL,BD_B_IF_PL
+    prodDList: DR_A_ID_PL,DR_B_ID_PL,DR_A_CUS_PL,DR_B_CUS_PL,DR_A_IF_PL,DR_B_IF_PL
+  al:
+    tbList: TB_A_ID_ALEXT,TB_B_ID_ALEXT,TB_A_CUS_ALEXT,TB_B_CUS_ALEXT,TB_A_IF_ALEXT,TB_B_IF_ALEXT,TB_A_ID_ALINT,TB_B_ID_ALINT,TB_A_CUS_ALINT,TB_B_CUS_ALINT,TB_A_IF_ALINT,TB_B_IF_ALINT
+    prodList: BD_A_CUS_ALINT,BD_A_ID_ALINT,BD_A_IF_ALINT,BD_A_CUS_ALEXT,BD_A_ID_ALEXT,BD_A_IF_ALEXT,BD_B_CUS_ALINT,BD_B_ID_ALINT,BD_B_IF_ALINT,BD_B_CUS_ALEXT,BD_B_ID_ALEXT,BD_B_IF_ALEXT
+    prodBList: BD_A_CUS_ALINT,BD_A_ID_ALINT,BD_A_IF_ALINT,BD_B_IF_ALINT,BD_B_ID_ALINT,BD_A_CUS_ALEXT,BD_B_CUS_ALEXT,BD_A_ID_ALEXT,BD_A_IF_ALEXT,BD_B_ID_ALEXT,BD_B_IF_ALEXT,BD_B_CUS_ALINT
+    prodDList: DR_A_CUS_ALINT,DR_A_ID_ALINT,DR_A_IF_ALINT,DR_B_IF_ALINT,DR_B_ID_ALINT,DR_A_CUS_ALEXT,DR_B_CUS_ALEXT,DR_A_ID_ALEXT,DR_A_IF_ALEXT,DR_B_ID_ALEXT,DR_B_IF_ALEXT,DR_B_CUS_ALINT
+    tbUrl: https://172.31.30.238
+    prodUrl: https://int-in.api.kt.com
+  route:
+    tbList: TB_ALL
+    prodList: BD_A_ID,BD_A_CUS,BD_A_IF,BD_B_ID,BD_B_CUS,BD_B_IF,DR_A_ID,DR_A_CUS,DR_A_IF,DR_B_ID,DR_B_CUS,DR_B_IF,
+    prodBList: BD_A_ID,BD_A_CUS,BD_A_IF,BD_B_ID,BD_B_CUS,BD_B_IF
+    prodDList: DR_A_ID,DR_A_CUS,DR_A_IF,DR_B_ID,DR_B_CUS,DR_B_IF
+  api:
+    nameCheckURL: http://portal.tbapi.kt.com/apilink/v1/api/getApiDplyById?apiId=
+lamp:
+  serviceCode: OG081701
+  authKey: ${LAMP_AUTHKEY}
+  gwServiceCode: ""
+  tbUrl: http://10.217.235.79
+  prodUrl: http://10.217.235.79
+  logApi: /onmweb/openapi/searchEsLogList
+apilink:
+  log:
+    filepath: /var/log/LAMP/
+    service:
+      name: OG081704
+      domain: https://tb.apimanager.kt.co.kr
+    caller:
+      channel: APIMANAGER_AII7120006864QJFCHL

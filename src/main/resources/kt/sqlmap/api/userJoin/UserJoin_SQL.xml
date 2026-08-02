@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.userJoin.dao.UserJoinDAO">
+
+    <!-- 회원 가입 완료 조회 -->
+    <select id="selectUserJoin" parameterType="com.kt.openapi.web.userJoin.vo.UserJoinVO" resultType="com.kt.openapi.web.userJoin.vo.UserJoinVO">
+        <![CDATA[
+            SELECT *
+            FROM (
+                     SELECT 
+                         MBR_ID,
+                         ID_DIV_CD,
+                         COALESCE(MBR_NM,'') AS MBR_NM,
+                         COALESCE(CMPN_NM,'') AS CMPN_NM,
+                         TEL_NO,
+                         EMAIL,
+                         STPLT_AGREE_YN,
+                         INDV_INFO_AGREE_YN,
+                         MBR_STTUS_CD,
+                         ADMR_YN,
+                         LAST_LOGIN_DT,
+                         SBSC_DT,
+                         USE_YN,
+                         REG_DT,
+                         COALESCE(REGR,'') AS REGR,
+                         AMD_DT,
+                         COALESCE(AMDR,'') AS AMDR,
+                         ROW_NUMBER() OVER( ORDER BY SBSC_DT DESC) AS NUM
+                     FROM KOA_TB_MBR 
+                 ) T1
+            WHERE T1.NUM = '1'
+        ]]>
+    </select>
+    
+    <!-- 회원 가입 등록 -->
+    <insert id="insertUserJoin" parameterType="com.kt.openapi.web.userJoin.vo.UserJoinVO">
+        <![CDATA[
+            INSERT INTO KOA_TB_MBR 
+                 ( MBR_ID
+                  , ID_DIV_CD
+                  , MBR_NM
+                  , CMPN_NM
+                  , TEL_NO
+                  , EMAIL
+                  , STPLT_AGREE_YN
+                  , INDV_INFO_AGREE_YN
+                  , MBR_STTUS_CD
+                  , ADMR_YN
+                  , LAST_LOGIN_DT
+                  , SBSC_DT
+                  , USE_YN
+                  , REG_DT
+                  , REGR
+                  , AMDR
+                  , AMD_DT
+                   )
+            VALUES 
+                 ( #{mbrId}
+                  , #{idDivCd}
+                  , #{mbrNm}
+                  , #{cmpnNm}
+                  , #{telNo}
+                  , #{email}
+                  , #{stpltAgreeYn}
+                  , #{indvInfoAgreeYn}
+                  , #{mbrSttusCd}
+                  , 'N'
+                  , NOW()
+                  , NOW()
+                  , 'Y'
+                  , NOW()
+                  , #{mbrId} 
+                   , #{mbrId}
+                   , NOW()
+                  )
+        ]]>
+    </insert>
+    
+    <!-- 회원 가입 이력 저장 -->
+    <insert id="insertMgtHist" parameterType="com.kt.openapi.web.userJoin.vo.UserHistVO">
+        <![CDATA[
+            INSERT INTO KOA_TB_MBR_MGT_HST 
+                 ( MBR_ID
+                  , MGT_STTUS_CD
+                  , MEMO
+                  , REG_DT
+                  , REGR )
+            VALUES 
+                 ( #{mbrId}
+                  , #{mgtSttusCd}
+                  , #{memo}
+                  , NOW() 
+                  , #{mbrId} )
+        ]]>
+    </insert>
+
+</mapper>

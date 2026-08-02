@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.adptran.dao.RefCommonDAO">
+
+    <!-- sample(검색) -->
+    <select id="select_sample" parameterType="map" resultType="map">
+        /* refCommon.select_sample */
+        <![CDATA[
+        ]]>
+    </select>
+
+    <select id="select_tabdata_count" parameterType="map" resultType="int">
+        /* refCommonMapper.select_tabdata_count */
+        SELECT COUNT(1) AS count
+        FROM lab_tabdata A 
+        WHERE (1=1) 
+        <if test="tabdata_seq != null and tabdata_seq != ''">
+            AND (A.col_seq = #{tabdata_seq})
+        </if>
+    </select>
+
+    <select id="select_tabdata_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.LabTabDataVO">
+        /* refCommonMapper.select_tabdata_list */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY col_seq DESC) rownum
+            , A.col_seq AS fd_seq
+            , A.col_varchar AS fd_varchar
+            , A.col_int AS fd_int
+            , A.col_datetime AS fd_datetime
+        FROM lab_tabdata A 
+        WHERE (1=1) 
+        <if test="tabdata_seq != null and tabdata_seq != ''">
+            AND (A.col_seq = #{tabdata_seq})
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <update id="update_tabdata_readstatus" parameterType="map">
+        /* refCommonMapper.update_tabdata_readstatus */
+        UPDATE lab_tabdata
+        SET col_datetime = NOW()
+        WHERE (col_seq = #{tabdata_seq})
+    </update>
+
+    <select id="select_tabdata" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.LabTabDataVO">
+        /* refCommonMapper.select_tabdata */
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY col_seq DESC) rownum
+            , A.col_seq AS fd_seq
+            , A.col_varchar AS fd_varchar
+            , A.col_int AS fd_int
+            , TO_CHAR(A.col_datetime, 'YYYY-MM-DD HH24:MI:SS') AS fd_datetime
+        FROM lab_tabdata A 
+        WHERE (col_seq = #{tabdata_seq})
+    </select>
+
+    <insert id="insert_tabdata" parameterType="map">
+        /* refCommonMapper.insert_tabdata */
+        <selectKey keyProperty="fd_seq" resultType="int" order="AFTER">
+            SELECT SCOPE_IDENTITY()
+        </selectKey>
+        INSERT INTO lab_tabdata (
+            col_varchar
+            , col_int
+            , col_datetime
+        )
+        VALUES (
+            #{fd_varchar}
+            , #{fd_int}
+            , #{fd_datetime}
+        )
+    </insert>
+
+    <update id="update_tabdata" parameterType="map">
+        /* refCommonMapper.update_tabdata */
+        UPDATE lab_tabdata
+        SET col_varchar = #{fd_varchar}
+          , col_int = #{fd_int}
+          , col_datetime = NOW()
+        WHERE (col_seq = #{tabdata_seq})
+    </update>
+
+    <delete id="delete_tabdata" parameterType="map">
+        /* adpt.delete_tabdata */
+        DELETE FROM lab_tabdata
+        WHERE (col_seq = #{tabdata_seq})
+    </delete>
+
+    <!-- [마이그레이션] KsmCmnDAO.selectQueryList() → RefCommonDAO로 이전 (Map 기반) -->
+    <select id="select_tabdata_list_map" parameterType="map" resultType="map">
+        /* refCommonMapper.select_tabdata_list_map */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY col_seq DESC) rownum
+            , A.col_seq AS fd_seq
+            , A.col_varchar AS fd_varchar
+            , A.col_int AS fd_int
+            , A.col_datetime AS fd_datetime
+        FROM lab_tabdata A 
+        WHERE (1=1) 
+        <if test="tabdata_seq != null and tabdata_seq != ''">
+            AND (A.col_seq = #{tabdata_seq})
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <!-- [마이그레이션] KsmCmnDAO.selectQuery() → RefCommonDAO로 이전 (Map 기반) -->
+    <select id="select_tabdata_map" parameterType="map" resultType="map">
+        /* refCommonMapper.select_tabdata_map */
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY col_seq DESC) rownum
+            , A.col_seq AS fd_seq
+            , A.col_varchar AS fd_varchar
+            , A.col_int AS fd_int
+            , TO_CHAR(A.col_datetime, 'YYYY-MM-DD HH24:MI:SS') AS fd_datetime
+        FROM lab_tabdata A 
+        WHERE (col_seq = #{tabdata_seq})
+    </select>
+
+</mapper>

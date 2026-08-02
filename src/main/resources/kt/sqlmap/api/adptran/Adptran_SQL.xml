@@ -1,0 +1,465 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.adptran.dao.AdptranDAO">
+
+    <!-- sample(검색) -->
+    <select id="select_sample" parameterType="map" resultType="map">
+        /* adpt.select_sample */
+        <![CDATA[
+        ]]>
+    </select>
+    
+    <select id="select_API_DEF_with_API_SPC" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranApiVO">
+        /* adpt.select_API_DEF_with_API_SPC */
+        SELECT
+             A.API_NO
+            ,A.API_SPC_NO
+            ,A.API_NM
+            ,A.API_CTGRY_NO
+            ,A.API_PATH
+            ,A.METHOD_CD
+            ,COALESCE(B.CD_NM,'') AS METHOD_CD_NM
+            ,A.API_ID
+            ,A.API_DESC
+            ,TO_CHAR(A.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT
+            ,A.REGR
+            ,TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            ,A.SORT_ODRG
+            ,A.SHOW_STATUS_CD
+            ,A.USE_YN
+            ,A.API_GUBUN
+            ,A.API_HANDLER_CD
+            ,COALESCE(C.CD_NM,'') AS API_HANDLER_CD_NM
+            ,A.ENDPNT_METHOD_CD
+            ,COALESCE(D.CD_NM,'') AS ENDPNT_METHOD_CD_NM
+            ,A.ENDPNT_TB_URL
+            ,A.ENDPNT_PRD_URL
+            ,COALESCE(A.ENDPNT_TIMEOUT, 0) AS ENDPNT_TIMEOUT
+            ,A.ENDPNT_CLIENT_IP
+            ,A.RESMAP_RES_CD_FIELD
+            ,A.RESMAP_SUCC_VAL
+            ,A.RESMAP_ERR_CD_FIELD
+            ,A.RESMAP_ERR_MSG_FIELD
+            ,A.HDP_API_OUT_FORMAT
+            ,A.HDP_API_OUT_COMMON_PARAM
+            ,A.HDP_API_ENDPOINT_ID
+            ,A.HDP_REQ_API_NAME
+            ,A.HDP_REQ_CONFIG_TO_BODY
+            ,A.HDP_REQ_HEADER_TO_BODY
+            ,A.HDP_REQ_MAPPING_TO_BODY
+            ,A.HDP_REQ_URL_DECODE
+            ,A.HDP_REQ_URL_ENCODE
+            ,A.HDP_RES_MAPPING_TO_BODY
+            ,A.HDP_RES_PROVIDE_PARAM
+            ,A.HDP_RES_URL_ENCODE
+            ,A.HDP_EXT_PROP
+            ,A.HDP_HNDLROPTN_CONFIG
+            ,A.API_VER
+            ,A.API_VER_NO
+            ,A.BSTGW_TB_SYS_ID
+            ,COALESCE((SELECT sub.SYS_NM FROM BST_SYNC_TB_ADM_SYS_DPLY sub WHERE (sub.SYS_ID = A.BSTGW_TB_SYS_ID)), '') AS BSTGW_TB_SYS_NM
+            ,A.BSTGW_PRD_SYS_ID
+            ,COALESCE((SELECT sub.SYS_NM FROM BST_SYNC_ADM_SYS_DPLY sub WHERE (sub.SYS_ID = A.BSTGW_PRD_SYS_ID)), '') AS BSTGW_PRD_SYS_NM
+            ,A.DPLY_REQ_FLAG
+            ,TO_CHAR(A.DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_REQ_FLAG_DATE
+            ,A.TB_DPLY_STATUS
+            ,TO_CHAR(A.TB_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS TB_DPLY_STATUS_DATE
+            ,A.DPLY_VERI_STATUS
+            ,TO_CHAR(A.DPLY_VERI_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_VERI_STATUS_DATE
+            ,A.PRD_DPLY_REQ_FLAG
+            ,TO_CHAR(A.PRD_DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_REQ_FLAG
+            ,A.PRD_DPLY_STATUS
+            ,TO_CHAR(A.PRD_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_STATUS_DATE
+            ,S.API_SPC_ID      AS spc_API_SPC_ID
+            ,S.VER             AS spc_VER
+            ,S.API_NM          AS spc_API_NM
+            ,S.API_DESC        AS spc_API_DESC
+            ,S.AUT_ID          AS spc_AUT_ID
+            ,S.SYS_ID          AS spc_SYS_ID
+            ,COALESCE(E.SYS_NM,'') AS SYS_ID_NM
+            ,S.VER_DESC        AS spc_VER_DESC
+            ,S.RFRN_WSDL_URL   AS spc_RFRN_WSDL_URL
+            ,S.RFRN_TMPLT_NO   AS spc_RFRN_TMPLT_NO
+            ,S.RFRN_API_SPC_NO AS spc_RFRN_API_SPC_NO
+            ,S.HOST            AS spc_HOST
+            ,S.BAS_PATH        AS spc_BAS_PATH
+            ,S.YAML_FILE_PATH  AS spc_YAML_FILE_PATH
+            ,S.YAML_FILE_NM    AS spc_YAML_FILE_NM
+            ,S.REG_STTUS_CD    AS spc_REG_STTUS_CD
+            ,TO_CHAR(S.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS spc_REG_DT
+            ,S.REGR            AS spc_REGR
+            ,TO_CHAR(S.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS spc_AMD_DT
+            ,S.YAML_SBST       AS spc_YAML_SBST
+            ,S.API_CLASS       AS spc_API_CLASS
+            ,S.BSTGW_YN        AS spc_BSTGW_YN
+            ,S.API_VERI_BASEURL AS spc_API_VERI_BASEURL
+        FROM KOA_TB_API_DEF A 
+            INNER JOIN KOA_TB_API_SPC S ON (S.API_SPC_NO = A.API_SPC_NO) AND (S.DEL_YN = 'N')
+            LEFT OUTER JOIN KOA_TB_COMN_CD B ON (B.COMN_CD = A.METHOD_CD AND B.GROUP_CD = 'MTHTYP1000')
+            LEFT OUTER JOIN KOA_TB_COMN_CD C ON (C.COMN_CD = A.API_HANDLER_CD AND C.GROUP_CD = 'APIHDR1000')
+            LEFT OUTER JOIN KOA_TB_COMN_CD D ON (D.COMN_CD = A.ENDPNT_METHOD_CD AND D.GROUP_CD = 'MTHTYP1000')
+            LEFT OUTER JOIN KOA_TB_API_SYSTEM E ON (E.SYS_ID = S.SYS_ID)
+        WHERE (A.API_NO = #{apiNo})
+    </select>
+
+    <select id="select_API_PARAM_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranParamVO">
+        /* adpt.select_API_PARAM_list */
+        SELECT
+             P.PARAM_NO
+            ,P.API_NO
+            ,P.PARAM_TYPE_CD
+            ,COALESCE(B.CD_NM,'') AS PARAM_TYPE_CD_NM
+            ,P.SORT_ODRG
+            ,P.PARAM_NM
+            ,P.DATA_TYPE_CD
+            ,COALESCE(C.CD_NM,'') AS DATA_TYPE_CD_NM
+            ,P.PARAM_DESC
+            ,P.EXAM
+            ,COALESCE(P.PRNTS_PARAM_NO, 0) AS PRNTS_PARAM_NO
+            ,TO_CHAR(P.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT
+            ,P.REGR
+            ,TO_CHAR(P.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            ,P.RES_CD
+            ,P.RES_DESC
+            ,P.PARAM_LOC
+            ,P.OBJ_NO
+            ,P.OBJ_ODRG
+            ,P.REQUIRED
+            ,P.PERSONAL_DATA
+            ,P.DO_NOT_SEND
+            ,P.FIXED_VALUE
+            ,P.HIDDEN
+            ,P.MAPPING_KEY
+            ,P.HDP_URL_DECODE
+            ,P.HDP_URL_ENCODE
+            ,P.HDP_UPLOAD_TARGET
+            ,P.BIGO
+        FROM KOA_TB_API_PARAM P 
+            LEFT OUTER JOIN KOA_TB_COMN_CD B ON (B.COMN_CD = P.PARAM_TYPE_CD AND B.GROUP_CD = 'PRMTYP1000')
+            LEFT OUTER JOIN KOA_TB_COMN_CD C ON (C.COMN_CD = P.DATA_TYPE_CD AND C.GROUP_CD = 'DATTYP1000')
+        WHERE (P.API_NO = #{apiNo})
+            AND (P.PARAM_TYPE_CD IN ('PRMTYP1010', 'PRMTYP1020'))
+            AND (P.DATA_TYPE_CD IN ('DATTYP1010','DATTYP1020','DATTYP1030','DATTYP1040','DATTYP1050','DATTYP1060'))
+            <if test="paramLocList != null">
+                AND P.PARAM_LOC IN
+                <foreach item="item" collection="paramLocList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        ORDER BY P.PARAM_TYPE_CD, P.PARAM_LOC, P.SORT_ODRG, P.PARAM_NO
+    </select>
+
+    <!-- API PARAM-[hierarchy]-목록 -->
+    <select id="select_API_PARAM_TEST_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranParamVO">
+        /* adpt.select_API_PARAM_TEST_list */
+        ;WITH CTE_API_PARAM(LEVEL, PARAM_NM_FULL, PARAM_NO, API_NO, PARAM_TYPE_CD, SORT_ODRG, PARAM_NM, DATA_TYPE_CD, EXAM, PRNTS_PARAM_NO, PARAM_LOC, REQUIRED, DO_NOT_SEND, FIXED_VALUE, HIDDEN, PARAM_SANDBOX_YN)
+        AS (
+            SELECT
+                0
+                ,CAST(P.PARAM_NM AS VARCHAR($n))
+                ,P.PARAM_NO
+                ,P.API_NO
+                ,P.PARAM_TYPE_CD
+                ,P.SORT_ODRG
+                ,P.PARAM_NM
+                ,P.DATA_TYPE_CD
+                ,P.EXAM
+                ,COALESCE(P.PRNTS_PARAM_NO, 0) AS PRNTS_PARAM_NO
+                ,P.PARAM_LOC
+                ,P.REQUIRED
+                ,P.DO_NOT_SEND
+                ,P.FIXED_VALUE
+                ,P.HIDDEN
+                ,P.PARAM_SANDBOX_YN
+            FROM KOA_TB_API_PARAM P 
+            WHERE (COALESCE(P.PRNTS_PARAM_NO, 0) = 0)
+                AND (P.API_NO = #{apiNo})
+          UNION ALL
+            SELECT
+                CC.LEVEL + 1
+                ,CAST((CC.PARAM_NM_FULL || '.' || C.PARAM_NM) AS VARCHAR(500))
+                ,C.PARAM_NO
+                ,C.API_NO
+                ,C.PARAM_TYPE_CD
+                ,C.SORT_ODRG
+                ,C.PARAM_NM
+                ,C.DATA_TYPE_CD
+                ,C.EXAM
+                ,COALESCE(C.PRNTS_PARAM_NO, 0) AS PRNTS_PARAM_NO
+                ,C.PARAM_LOC
+                ,C.REQUIRED
+                ,C.DO_NOT_SEND
+                ,C.FIXED_VALUE
+                ,C.HIDDEN
+                ,C.PARAM_SANDBOX_YN
+            FROM KOA_TB_API_PARAM C  
+                INNER JOIN CTE_API_PARAM CC ON (CC.PARAM_NO = C.PRNTS_PARAM_NO)
+        )
+        SELECT P.LEVEL
+             , P.PARAM_NM_FULL
+             , P.PARAM_NO
+             , P.API_NO
+             , P.PARAM_TYPE_CD
+             , P.SORT_ODRG
+             , P.PARAM_NM
+             , COALESCE(B.CD_NM, '') AS DATA_TYPE_CD_NM
+             , P.EXAM
+             , P.PRNTS_PARAM_NO
+             , P.PARAM_LOC
+             , COALESCE(P.REQUIRED, 'N') AS REQUIRED
+             , COALESCE(P.DO_NOT_SEND, 'N') AS DO_NOT_SEND
+             , COALESCE(P.FIXED_VALUE, '') AS FIXED_VALUE
+             , COALESCE(P.HIDDEN, 'N') AS HIDDEN
+             , COALESCE(P.PARAM_SANDBOX_YN, 'N') AS PARAM_SANDBOX_YN
+        FROM CTE_API_PARAM P
+            LEFT OUTER JOIN KOA_TB_COMN_CD B ON (B.COMN_CD = P.DATA_TYPE_CD AND B.GROUP_CD = 'DATTYP1000')
+        WHERE (1 = 1)
+            <if test="paramTypeCdList != null">
+                AND P.PARAM_TYPE_CD IN
+                <foreach item="item" collection="paramTypeCdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            AND (
+                ((P.PARAM_LOC IN ('header', 'query')) AND (B.CD_NM IN ('Array','String','Number','Integer','Boolean')))
+                OR
+                ((P.PARAM_LOC IN ('body')) AND (B.CD_NM IN ('Object','Array','String','Number','Integer','Boolean')))
+            )
+            AND (COALESCE(P.DO_NOT_SEND, 'N') != 'Y') AND (COALESCE(P.HIDDEN, 'N') != 'Y')
+        ORDER BY P.PARAM_TYPE_CD, P.PARAM_LOC, P.SORT_ODRG, P.PARAM_NO
+    </select>
+
+    <select id="select_API_TESTCASE" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranTestcaseVO">
+        /* adpt.select_API_TESTCASE */
+        SELECT
+             T.TESTCASE_ID
+            ,T.API_NO
+            ,T.TESTCASE_NM
+            ,T.PARAM_GUB
+            ,T.PARAM_HEADER
+            ,T.PARAM_BODY
+            ,T.PARAM_QUERY
+            ,T.PARAM_HEADER_JSON
+            ,T.PARAM_BODY_JSON
+            ,T.ASSERT_CASE
+            ,T.ASSERT_FIELD
+            ,T.ASSERT_OPERATOR
+            ,T.ASSERT_VALUE
+            ,T.INFOVIEW_YN
+            ,TO_CHAR(T.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT
+            ,TO_CHAR(T.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            ,D.API_NO AS def_API_NO
+            ,D.API_NM AS def_API_NM
+            ,COALESCE(B1.CD_NM, 0) AS def_API_HANDLER_CD_NM
+        FROM KOA_TB_API_TESTCASE T  
+            INNER JOIN KOA_TB_API_DEF D ON (D.API_NO = T.API_NO)
+            LEFT OUTER JOIN KOA_TB_COMN_CD B1  ON (B1.COMN_CD = D.API_HANDLER_CD AND B1.GROUP_CD = 'APIHDR1000')
+        WHERE (T.DEL_YN = 'N')
+            <if test="apiNo != null and apiNo != ''">
+                AND (T.API_NO = #{apiNo})
+            </if>
+            <if test="testcaseId != null and testcaseId != ''">
+                AND (T.TESTCASE_ID = #{testcaseId})
+            </if>
+        ORDER BY T.AMD_DT DESC, T.TESTCASE_ID DESC
+    </select>
+    
+    <insert id="insert_API_TESTCASE" parameterType="map">
+        /* adpt.insert_API_TESTCASE */
+        <selectKey keyProperty="fd_seq" resultType="int" order="AFTER">
+            SELECT SCOPE_IDENTITY()
+        </selectKey>
+        INSERT INTO KOA_TB_API_TESTCASE (
+             API_NO
+            ,TESTCASE_NM
+            ,PARAM_GUB
+            ,PARAM_HEADER
+            ,PARAM_BODY
+            ,PARAM_QUERY
+            ,PARAM_HEADER_JSON
+            ,PARAM_BODY_JSON
+            ,ASSERT_CASE
+            ,ASSERT_FIELD
+            ,ASSERT_OPERATOR
+            ,ASSERT_VALUE
+            ,INFOVIEW_YN
+            ,DEL_YN
+            ,REG_DT
+            ,REGR
+            ,AMD_DT
+            ,AMDR
+        )
+        VALUES (
+             #{api_no}
+            ,#{testcase_nm}
+            ,#{param_gub}
+            ,#{param_header}
+            ,#{param_body}
+            ,#{param_query}
+            ,#{param_header_json}
+            ,#{param_body_json}
+            ,#{assert_case}
+            ,#{assert_field}
+            ,#{assert_operator}
+            ,#{assert_value}
+            ,#{infoview_yn}
+            ,'N'
+            ,NOW()
+            ,#{mbrId}
+            ,NOW()
+            ,#{mbrId}
+        )
+    </insert>
+
+    <update id="update_API_TESTCASE" parameterType="map">
+        /* adpt.update_API_TESTCASE */
+        UPDATE KOA_TB_API_TESTCASE
+        SET TESTCASE_NM = #{testcase_nm}
+          ,PARAM_GUB = #{param_gub}
+          ,PARAM_HEADER = #{param_header}
+          ,PARAM_BODY = #{param_body}
+          ,PARAM_QUERY = #{param_query}
+          ,PARAM_HEADER_JSON = #{param_header_json}
+          ,PARAM_BODY_JSON = #{param_body_json}
+          ,ASSERT_CASE = #{assert_case}
+          ,ASSERT_FIELD = #{assert_field}
+          ,ASSERT_OPERATOR = #{assert_operator}
+          ,ASSERT_VALUE = #{assert_value}
+          ,INFOVIEW_YN = #{infoview_yn}
+          ,AMD_DT = NOW()
+          ,AMDR = #{mbrId}
+        WHERE (TESTCASE_ID = #{testcase_id})
+    </update>
+
+    <delete id="delete_API_TESTCASE" parameterType="map">
+        /* adpt.delete_API_TESTCASE */
+        DELETE FROM KOA_TB_API_TESTCASE
+        WHERE (TESTCASE_ID = #{testcase_id})
+    </delete>
+
+    <delete id="delete_API_TESTCASE_list" parameterType="map">
+        /* adpt.delete_API_TESTCASE_list */
+        DELETE FROM KOA_TB_API_TESTCASE
+        WHERE
+            <if test="paramTestcaseIdList != null">
+                TESTCASE_ID IN
+                <foreach item="item" collection="paramTestcaseIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+    </delete>
+
+    <!-- 검증 결과  -->
+    <select id="select_API_VERI_CONDITION" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranVeriConditionVO">
+        /* adpt.select_API_VERI_CONDITION */
+        SELECT 
+             V.SEQ
+            ,V.DEPLOY_PROC_SEQ
+            ,V.TEST_CASE_SEQ
+            ,TO_CHAR(V.VERIFICATION_DT, 'YYYY-MM-DD HH24:MI:SS') AS VERIFICATION_DT
+            ,V.RESULT_CD
+            ,V.RESULT_MSG
+            ,V.VERIFI_USR
+            ,V.SUCCESS_YN
+            ,V.ST_TIME
+            ,V.END_TIME
+            ,V.PROC_RESULT_CD
+            ,V.PROC_RESULT_MSG
+            ,V.REQ_GW_PROFILE
+            ,V.REQ_API_VERI_BASEURL
+            ,V.REQ_API_URL
+            ,V.REQ_HEADERS
+            ,V.REQ_BODY
+            ,V.REQ_TRANSACTION_ID
+            ,V.REQ_SEQUENCE_NO
+            ,V.RES_TRANSACTION_ID
+            ,V.RES_SEQUENCE_NO
+            ,V.RES_RETURN_CODE
+            ,V.RES_RETURN_DESCRIPTION
+            ,V.RES_ERROR_CODE
+            ,V.RES_ERROR_DESCRIPTION
+            ,V.RES_RESPONSE
+            ,V.API_NO
+            ,V.API_NM
+            ,V.TESTCASE_NM
+            ,V.PARAM_GUB
+            ,V.PARAM_HEADER
+            ,V.PARAM_BODY
+            ,V.PARAM_QUERY
+            ,V.PARAM_HEADER_JSON
+            ,V.PARAM_BODY_JSON
+            ,V.ASSERT_CASE
+            ,V.ASSERT_FIELD
+            ,V.ASSERT_OPERATOR
+            ,V.ASSERT_VALUE
+            ,V.ASSERT_RESULT
+        FROM KOA_TB_API_VERI_CONDITION V 
+        WHERE (V.SEQ = #{seq})  
+    </select>
+
+    <!-- NEXT API ID -->
+    <select id="select_NEXT_API_ID" parameterType="string" resultType="string">
+        /* adpt.select_NEXT_API_ID*/
+        SELECT COALESCE(
+            (SELECT (SUBSTRING(MAX(API_ID), 1, 5) || RIGHT('0000' || CAST((CAST(SUBSTRING(MAX(API_ID), 6, 4) AS INTEGER) + 1) AS VARCHAR), 4))
+             FROM KOA_TB_API_DEF 
+             WHERE (API_ID LIKE (#{prefix} + '[0-9][0-9][0-9][0-9]')))
+          , (#{prefix} + '0001')) AS NEXT_API_ID
+    </select>
+
+    <!-- NEXT API ID 관련정보 -->
+    <select id="select_NEXT_API_ID_INFO" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranNextApiIdInfoVO">
+        /* adpt.select_NEXT_API_ID_INFO */
+        SELECT 
+            PREFIX_API_ID AS prefix
+            , MIN(CAST(SUBSTRING(API_ID, (LENGTH(#{prefix}) + 1), #{rangeLen}) AS INTEGER)) AS curMinId
+            , MAX(CAST(SUBSTRING(API_ID, (LENGTH(#{prefix}) + 1), #{rangeLen}) AS INTEGER)) AS curMaxId
+            <if test="sysId != null and sysId != ''">
+                , COALESCE((SELECT MIN_ID::INTEGER FROM KOA_TB_API_SYSTEM WHERE (SYS_ID = #{sysId}) AND (MIN_ID ~ '^\d+$') AND (MAX_ID ~ '^\d+$')), -999) AS sysMinId
+                , COALESCE((SELECT MAX_ID::INTEGER FROM KOA_TB_API_SYSTEM WHERE (SYS_ID = #{sysId}) AND (MIN_ID ~ '^\d+$') AND (MAX_ID ~ '^\d+$')), -999) AS sysMaxId
+            </if>
+        FROM (
+            SELECT 
+                sub.API_ID
+                , LEFT(sub.API_ID, LENGTH('' + #{prefix})) AS PREFIX_API_ID
+            FROM KOA_TB_API_DEF sub
+        ) tab
+        WHERE
+            (PREFIX_API_ID = #{prefix})
+            AND (SUBSTRING(API_ID, (LENGTH(#{prefix}) + 1), #{rangeLen}) ~ '^\d+$')
+            <if test="minId != null and minId != ''">
+                <if test="minId > 0">
+                    <![CDATA[
+                    AND (SUBSTRING(API_ID, (LENGTH(#{prefix}) + 1), #{rangeLen})::INTEGER >= #{minId})
+                    ]]>
+                </if>
+            </if>
+            <if test="maxId != null and maxId != ''">
+                <if test="maxId > 0">
+                    <![CDATA[
+                    AND (SUBSTRING(API_ID, (LENGTH(#{prefix}) + 1), #{rangeLen})::INTEGER <= #{maxId})
+                    ]]>
+                </if>
+            </if>
+        GROUP BY PREFIX_API_ID
+    </select>
+
+    <!-- 배포처리 상태 조회 -->
+    <select id="select_DEPLOY_PROC" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranDeployProcVO">
+        /* adpt.select_DEPLOY_PROC */
+        SELECT
+            D.API_NO
+            ,D.DEPLOY_CD
+            ,D.VERIFI_CD
+            ,TO_CHAR(D.DEPLOY_ST_DT, 'YYYY-MM-DD HH24:MI:SS') AS DEPLOY_ST_DT
+        FROM KOA_TB_DEPLOY_PROC D 
+        WHERE (D.API_NO = #{apiNo})
+        ORDER BY D.DEPLOY_ST_DT DESC, SEQ DESC
+        <if test="top != null and top != ''">
+            LIMIT #{top}
+        </if>
+    </select>
+
+</mapper>
+

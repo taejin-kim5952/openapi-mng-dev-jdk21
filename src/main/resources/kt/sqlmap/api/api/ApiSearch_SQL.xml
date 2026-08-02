@@ -1,0 +1,361 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.api.dao.ApiSearchDAO">
+
+    <!-- 등록완료 목록(regSttusCd없을경우) -->
+	<select id="selMainList" parameterType="com.kt.openapi.web.api.vo.ApiMainSearchVo" resultType="com.kt.openapi.web.api.vo.ApiSearchVO">
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        <if test="searchYn == 'true'">
+            SELECT ZZ.*, ROW_NUMBER() OVER(ORDER BY ZZ.AMD_DT DESC) rownum
+            FROM (
+        </if>
+        SELECT    /* com.kt.openapi.web.api.dao.ApiSearchDAO.selMainList */
+            <if test="searchYn != 'true'">
+                ROW_NUMBER() OVER( ORDER BY A.AMD_DT DESC) rownum,
+            </if>
+            A.API_SPC_NO,
+            A.API_SPC_ID,
+            A.VER,
+            B.API_NM,
+            B.API_NO,
+            B.API_PATH,
+            COALESCE(A.API_DESC,'') AS API_DESC,
+            COALESCE(A.AMDR,'') AS AMDR,
+            COALESCE((SELECT MBR_NM FROM KOA_TB_MBR B WHERE A.AMDR = B.MBR_ID ),'') AS AMDR_NM,
+            A.AMD_DT,
+            TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR,
+            A.REG_STTUS_CD,
+            COALESCE(D.CD_NM,'') AS REG_STTUS_CD_NM,
+            A.SYS_ID,
+            COALESCE(S.SYS_NM,'') AS SYS_ID_NM,
+            A.API_NM AS API_SPC_NM,
+            B.API_DESC AS API_DEF_DESC,
+            B.METHOD_CD,
+            COALESCE(C.CD_NM,'') AS METHOD_NM,
+            B.SHOW_STATUS_CD,
+            REPLACE(B.API_NM, '@@', '') AS F_API_NM,
+            B.API_DESC AS F_API_DESC
+        FROM KOA_TB_API_SPC A 
+        INNER JOIN KOA_TB_API_DEF B ON (A.API_SPC_NO = B.API_SPC_NO)
+        LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REG_STTUS_CD = D.COMN_CD AND D.GROUP_CD = 'APIREG1000')
+        LEFT OUTER JOIN KOA_TB_COMN_CD C ON (B.METHOD_CD = C.COMN_CD AND C.GROUP_CD = 'MTHTYP1000')
+        LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+        WHERE (COALESCE(A.DEL_YN,'N') = 'N')
+          AND NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL))
+        <choose>
+            <when test="regSttusCd == null or regSttusCd == ''">
+                AND (COALESCE(A.SHOW_YN,'Y') = 'Y')
+                AND (A.REG_STTUS_CD = 'APIREG1030')
+            </when>
+            <when test="regSttusCd != 'all'">
+                AND (A.REG_STTUS_CD = #{regSttusCd})
+            </when>
+        </choose>
+
+        <if test="searchYn != 'true'">
+            <if test="schText != null and schText != ''">
+                AND (
+                    (B.API_DESC LIKE '%' || #{} || '%') OR
+                    (B.API_NM LIKE '%' || #{} || '%') OR
+                    (A.API_NM LIKE '%' || #{} || '%') OR
+                    (B.API_NO IN (SELECT API_NO FROM KOA_TB_API_PARAM C WHERE (C.PARAM_NM LIKE '%' || #{} || '%')))
+                )
+            </if>
+            <if test="sysId != null and sysId != ''">
+                <choose>
+                    <when test="sysId == 'ETC'">
+                        AND (A.SYS_ID NOT IN ('SHUB' , 'IOTMAKERS' , 'UCLOUDBIZ' , 'GIGAGENIE' , 'OLLEHMAP'))
+                    </when>
+                    <otherwise>
+                        AND (A.SYS_ID = #{sysId})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="ctgryNm != null and ctgryNm != ''">
+                AND (A.API_SPC_NO IN (SELECT B.API_SPC_NO FROM KOA_TB_API_CTGRY B WHERE (B.CTGRY_NM = #{ctgryNm})))
+            </if>
+        </if>
+
+        <if test="searchYn == 'true'">
+            AND (A.SYS_ID NOT IN ('SHUB','AUTHENTI','INFRA','APPLICATI'))
+            <if test="sysId != null and sysId != ''">
+                AND (A.SYS_ID = #{sysId})
+            </if>
+            <choose>
+                <when test="searchCondition == 'APITPY1010'">
+                    AND (UPPER(B.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <when test="searchCondition == 'APITPY1020'">
+                    AND (UPPER(B.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <otherwise>
+                    <if test="searchKeyword != null and searchKeyword != ''">
+                        AND (
+                            (UPPER(B.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR 
+                            (UPPER(B.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR
+                            (B.API_NO IN (SELECT API_NO FROM KOA_TB_API_PARAM C WHERE C.PARAM_NM LIKE '%' || #{} || '%'))
+                        ) 
+                    </if>
+                </otherwise>
+            </choose>
+            
+            UNION ALL
+            
+            SELECT 
+                B.API_SPC_NO,
+                B.API_SPC_ID,
+                B.VER,
+                C.API_NM,
+                C.API_NO,
+                C.API_PATH,
+                COALESCE(B.API_DESC,'') AS API_DESC,
+                COALESCE(B.AMDR,'') AS AMDR,
+                COALESCE(M.MBR_NM,'') AS AMDR_NM,
+                B.AMD_DT,
+                TO_CHAR(B.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR,
+                B.REG_STTUS_CD,
+                COALESCE(D.CD_NM,'') AS REG_STTUS_CD_NM,
+                AAA.SYS_ID,
+                AAA.SYS_NM AS SYS_ID_NM,
+                B.API_NM AS API_SPC_NM,
+                C.API_DESC AS API_DEF_DESC,
+                C.METHOD_CD,
+                COALESCE(D1.CD_NM,'') AS METHOD_NM,
+                C.SHOW_STATUS_CD,
+                REPLACE(C.API_NM, '@@', '') AS F_API_NM,
+                C.API_DESC AS F_API_DESC
+            FROM KOA_TB_API_SYSTEM AAA 
+            LEFT OUTER JOIN (
+                SELECT AA.*
+                    ,ROW_NUMBER() OVER ( PARTITION BY AA.API_SPC_ID ORDER BY AA.API_SPC_NO DESC ) RN
+                    ,BB.SORT_ODRG
+                    ,BB.API_STATUS_CD
+                    ,BB.API_SUMRY
+                    ,BB.USE_APPY_URL
+                    ,BB.HTM_TAG_NM
+                FROM KOA_TB_API_SPC AA 
+                INNER JOIN V2OA_TB_SPC_INFO BB  ON AA.API_SPC_ID = BB.API_SPC_ID
+                WHERE (AA.DEL_YN = 'N')
+                <choose>
+                    <when test="regSttusCd == null or regSttusCd == ''">
+                        AND (COALESCE(AA.SHOW_YN, 'Y') = 'Y')
+                        AND (AA.REG_STTUS_CD = 'APIREG1030')
+                    </when>
+                    <when test="regSttusCd != 'all'">
+                        AND (AA.REG_STTUS_CD = #{regSttusCd})
+                    </when>
+                </choose>
+                AND NOT((AA.TMPLT_YN != 'N') AND (AA.TMPLT_YN IS NOT NULL))
+            ) B ON AAA.SYS_ID = B.SYS_ID
+            LEFT OUTER JOIN KOA_TB_API_DEF C ON (B.API_SPC_NO = C.API_SPC_NO)
+            LEFT OUTER JOIN KOA_TB_COMN_CD D ON (B.REG_STTUS_CD = D.COMN_CD AND D.GROUP_CD = 'APIREG1000')
+            LEFT OUTER JOIN KOA_TB_COMN_CD D1  ON (C.METHOD_CD = D1.COMN_CD AND D1.GROUP_CD = 'MTHTYP1000')
+            LEFT OUTER JOIN KOA_TB_MBR M ON (B.AMDR = M.MBR_ID)
+            WHERE (AAA.SORT_ODRG > 0)
+              AND (AAA.SORT_ODRG IS NOT NULL)
+              AND (B.RN = 1)
+              AND (C.USE_YN = 'Y')
+              AND (C.SHOW_STATUS_CD != '')
+              AND (AAA.SYS_ID IN ('SHUB','AUTHENTI','INFRA','APPLICATI'))
+            <if test="sysId != null and sysId != ''">
+              AND (AAA.SYS_ID = #{sysId})
+            </if>
+            <choose>
+                <when test="searchCondition == 'APITPY1010'">
+                    AND (UPPER(C.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <when test="searchCondition == 'APITPY1020'">
+                    AND (UPPER(C.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <otherwise>
+                    <if test="searchKeyword != null and searchKeyword != ''">
+                        AND (
+                            (UPPER(C.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR
+                            (UPPER(C.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR
+                            (C.API_NO IN ( 
+                                    SELECT API_NO
+                                    FROM KOA_TB_API_PARAM P 
+                                    WHERE (P.PARAM_NM LIKE '%' || #{} || '%')
+                                )
+                            )
+                        ) 
+                    </if>
+                </otherwise>
+            </choose>
+            ) ZZ
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <!-- 등록완료 전체갯수(regSttusCd없을경우) -->
+    <select id="selMainListTotalCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainSearchVo" resultType="int">
+        <if test="searchYn == 'true'">
+            SELECT SUM(ZZ.CNT) AS CNT
+            FROM (
+        </if>
+        SELECT    /* com.kt.openapi.web.api.dao.ApiSearchDAO.selMainListTotalCnt */
+            COUNT(*) AS CNT
+        FROM KOA_TB_API_SPC A ,
+             KOA_TB_API_DEF B 
+        WHERE (A.API_SPC_NO = B.API_SPC_NO) 
+          AND (COALESCE(A.DEL_YN,'N') = 'N')
+          AND NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL))
+        <choose>
+            <when test="regSttusCd == null or regSttusCd == ''">
+                AND (COALESCE(A.SHOW_YN, 'Y') = 'Y')
+                AND (A.REG_STTUS_CD = 'APIREG1030')
+            </when>
+            <when test="regSttusCd != 'all'">
+                AND (A.REG_STTUS_CD = #{regSttusCd})
+            </when>
+        </choose>
+      
+        <if test="searchYn != 'true'">
+            <if test="schText != null and schText != ''">
+                AND (
+                    (B.API_DESC LIKE '%' || #{} || '%') OR
+                    (B.API_NM LIKE '%' || #{} || '%') OR
+                    (A.API_NM LIKE '%' || #{} || '%') OR
+                    (B.API_NO IN (SELECT API_NO FROM KOA_TB_API_PARAM C WHERE (C.PARAM_NM LIKE '%' || #{} || '%')))
+                )
+            </if>
+            <if test="sysId != null and sysId != ''">
+                <choose>
+                    <when test="sysId == 'ETC'">
+                        AND (A.SYS_ID NOT IN ('SHUB' , 'IOTMAKERS' , 'UCLOUDBIZ' , 'GIGAGENIE' , 'OLLEHMAP'))
+                    </when>
+                    <otherwise>
+                        AND (A.SYS_ID = #{sysId})
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="ctgryNm != null and ctgryNm != ''">
+                AND (A.API_SPC_NO IN (SELECT B.API_SPC_NO FROM KOA_TB_API_CTGRY B WHERE (B.CTGRY_NM = #{ctgryNm})))
+            </if>
+        </if>
+
+        <if test="searchYn == 'true'">
+            AND (A.SYS_ID NOT IN ('SHUB','AUTHENTI','INFRA','APPLICATI'))
+            <if test="sysId != null and sysId != ''">
+                AND (A.SYS_ID = #{sysId})
+            </if>
+            <choose>
+                <when test="searchCondition == 'APITPY1010'">
+                    AND (UPPER(B.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <when test="searchCondition == 'APITPY1020'">
+                    AND (UPPER(B.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                </when>
+                <otherwise>
+                    <if test="searchKeyword != null and searchKeyword != ''">
+                        AND (
+                            (UPPER(B.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR 
+                            (UPPER(B.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%') OR
+                            (B.API_NO IN (SELECT API_NO FROM KOA_TB_API_PARAM C WHERE C.PARAM_NM LIKE '%' || #{} || '%'))
+                        ) 
+                    </if>
+                </otherwise>
+            </choose>
+
+            UNION ALL
+            
+            SELECT COUNT(*) AS CNT
+            FROM KOA_TB_API_SYSTEM AAA 
+            LEFT OUTER JOIN (
+                SELECT AA.*
+                    ,ROW_NUMBER() OVER ( PARTITION BY AA.API_SPC_ID ORDER BY AA.API_SPC_NO DESC ) RN
+                    ,BB.SORT_ODRG
+                    ,BB.API_STATUS_CD
+                    ,BB.API_SUMRY
+                    ,BB.USE_APPY_URL
+                    ,BB.HTM_TAG_NM
+                FROM KOA_TB_API_SPC AA 
+                INNER JOIN V2OA_TB_SPC_INFO BB  ON (AA.API_SPC_ID = BB.API_SPC_ID)
+                WHERE (AA.DEL_YN = 'N')
+                <choose>
+                    <when test="regSttusCd == null or regSttusCd == ''">
+                        AND (COALESCE(AA.SHOW_YN, 'Y') = 'Y')
+                        AND (AA.REG_STTUS_CD = 'APIREG1030')
+                    </when>
+                    <when test="regSttusCd != 'all'">
+                        AND (AA.REG_STTUS_CD = #{regSttusCd})
+                    </when>
+                </choose>
+                AND ((AA.TMPLT_YN = 'N') OR (AA.TMPLT_YN IS NULL))
+            ) B ON (AAA.SYS_ID = B.SYS_ID)
+            LEFT OUTER JOIN KOA_TB_API_DEF C ON (B.API_SPC_NO = C.API_SPC_NO)
+            WHERE (AAA.SORT_ODRG > 0)
+                AND (AAA.SORT_ODRG IS NOT NULL)
+                AND (B.RN = 1)
+                AND (C.USE_YN = 'Y')
+                AND (C.SHOW_STATUS_CD != '')
+                AND AAA.SYS_ID IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+                <if test="sysId != null and sysId != ''">
+                    AND (AAA.SYS_ID = #{sysId})
+                </if>
+                <choose>
+                    <when test="searchCondition == 'APITPY1010'">
+                        AND (UPPER(C.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                    </when>
+                    <when test="searchCondition == 'APITPY1020'">
+                        AND (UPPER(C.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                    </when>
+                    <otherwise>
+                        <if test="searchKeyword != null and searchKeyword != ''">
+                            AND (
+                                UPPER(C.API_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR
+                                UPPER(C.API_DESC) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR
+                                (C.API_NO IN ( 
+                                        SELECT API_NO
+                                        FROM KOA_TB_API_PARAM P 
+                                        WHERE (UPPER(P.PARAM_NM) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+                                    )
+                                )
+                            ) 
+                        </if>
+                    </otherwise>
+                </choose>
+            ) ZZ
+        </if>
+    </select>
+
+    <!-- 카테고리 목록 -->
+    <select id="selMainCateList" parameterType="com.kt.openapi.web.api.vo.ApiMainSearchVo" resultType="com.kt.openapi.web.api.vo.ApiCategoryVO">
+        SELECT  /* com.kt.openapi.web.api.dao.ApiSearchDAO.selMainCateList */
+                A.SYS_ID,
+                B.CTGRY_NM
+        FROM KOA_TB_API_SPC A ,
+             KOA_TB_API_CTGRY B 
+        WHERE A.API_SPC_NO = B.API_SPC_NO
+          AND A.REG_STTUS_CD = 'APIREG1030'
+          AND COALESCE(A.DEL_YN,'N') = 'N'
+          AND COALESCE(A.SHOW_YN,'Y')= 'Y'
+          AND NOT(A.TMPLT_YN != 'N' AND A.TMPLT_YN IS NOT NULL)
+        GROUP BY A.SYS_ID , B.CTGRY_NM
+        ORDER BY A.SYS_ID ASC , B.CTGRY_NM ASC
+    </select>
+    
+    <!-- 시스템 목록 -->
+    <select id="selMainSysList" parameterType="com.kt.openapi.web.api.vo.ApiMainSearchVo" resultType="com.kt.openapi.web.api.vo.ApiSystemVO">
+        SELECT  /* com.kt.openapi.web.api.dao.ApiSearchDAO.selMainSysList */
+                A.*
+        FROM KOA_TB_API_SYSTEM A 
+        ORDER BY A.SYS_ID ASC
+    </select>
+    
+    <!-- 시스템 목록 조회 -->
+    <select id="selSystemList" resultType="com.kt.openapi.web.api.vo.ApiSystemVO">    
+        /* com.kt.openapi.web.api.dao.ApiSearchDAO.selSystemList */ 
+        SELECT SYS_ID
+              ,SYS_NM
+              ,URL
+              ,REG_DT
+              ,REGR
+              ,AMD_DT
+              ,AMDR
+        FROM KOA_TB_API_SYSTEM 
+        ORDER BY SORT_ODRG DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.main.dao.MainDAO">
+
+    <!-- 공지사항 최신글 3개  -->
+    <select id="selRecNotice" parameterType="com.kt.openapi.web.main.vo.MainVO" resultType="com.kt.openapi.web.main.vo.MainBBSVO">
+        <![CDATA[
+        SELECT
+            PSTING_ID,
+            BBS_TYPE_CD,
+            PSTING_NO,
+            TITLE,
+            SBST,
+            RETV_NUM,
+            SHOW_YN,
+            IMPT_YN,
+            DEL_YN,
+            TO_CHAR(REG_DT, 'YYYY.MM.DD') AS REGDATE
+        FROM KOA_TB_BBS 
+        WHERE SHOW_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND BBS_TYPE_CD = 'BBSTYP1010'
+        ORDER BY REG_DT DESC
+        LIMIT 3
+        ]]>
+    </select>
+    
+    <!-- 개발자 포럼 최신글 3개 -->
+    <select id="selRecDevF" parameterType="com.kt.openapi.web.main.vo.MainVO" resultType="com.kt.openapi.web.main.vo.MainBBSVO">
+        <![CDATA[
+        SELECT
+            PSTING_ID,
+            BBS_TYPE_CD,
+            PSTING_NO,
+            TITLE,
+            SBST,
+            RETV_NUM,
+            SHOW_YN,
+            IMPT_YN,
+            DEL_YN,
+            TO_CHAR(REG_DT, 'YYYY.MM.DD') AS REGDATE
+        FROM KOA_TB_BBS 
+        WHERE SHOW_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND BBS_TYPE_CD = 'BBSTYP1020'
+        ORDER BY REG_DT DESC
+        LIMIT 3
+        ]]>
+    </select>
+    
+</mapper>

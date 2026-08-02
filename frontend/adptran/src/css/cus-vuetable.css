@@ -1,0 +1,18 @@
+/*-- [drm][for vuetable component] --*/
+.cus-vuetable .left-aligned { text-align: left !important; }
+.cus-vuetable .center-aligned { text-align: center !important; }
+.cus-vuetable .right-aligned { text-align: right !important; }
+.cus-vuetable .top-aligned { vertical-align: top !important; }
+.cus-vuetable .middle-aligned { vertical-align: middle !important; }
+.cus-vuetable .bottom-aligned { vertical-align: bottom !important; }
+
+/*-- [drm][for cus-vuetable-pagination component] --*/
+.cus-vuetable-pagination {margin:30px auto 0;text-align:center;}
+.cus-vuetable-pagination div{overflow:hidden;width:auto;display:inline-block;vertical-align:top;}
+.cus-vuetable-pagination div>a.link:first-child{margin-left:0;border-radius:2px 0 0 2px;}
+.cus-vuetable-pagination div>a.link:last-child{border-radius:0 2px 2px 0;}
+.cus-vuetable-pagination a.link {overflow:hidden;float:left;width:41px;height:36px;vertical-align:top;margin-left:0;line-height:36px;border:1px solid #e1e3e9;margin-left:-1px;color:#515a6a;}
+.cus-vuetable-pagination a.link.disabled, .vuetable-pagination a.link:disabled { pointer-events: none; cursor: not-allowed; opacity: .65; }
+.cus-vuetable-pagination span.pages {float:left;}
+.cus-vuetable-pagination a.page {overflow:hidden;float:left;width:41px;height:36px;vertical-align:top;margin-left:0;line-height:36px;border:1px solid #e1e3e9;margin-left:-1px;color:#515a6a;}
+.cus-vuetable-pagination a.page.on{background:#737881;border:1px solid #737881;color:#fff;}

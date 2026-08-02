@@ -1,0 +1,29 @@
+# kt/props/prod/adptran.properties
+dev:
+  use:
+    devhome:
+      key: ${DEV_USE_DEVHOME_KEY}
+    js:
+      console:
+        log: y
+    webpack:
+      dev:
+        server: "#y"
+  adptran:
+    api:
+      url: https://apimanager.kt.co.kr/apidev
+  webpack:
+    dev:
+      server: http://localhost:19081
+  runmode:
+    tag: bstgw_mode;2022_prj_mode
+config:
+  runmode: "#dev"
+  js:
+    version: "191028"
+  use:
+    login:
+      ide: y
+  adptran:
+    api:
+      url: https://apimanager.kt.co.kr/apidev

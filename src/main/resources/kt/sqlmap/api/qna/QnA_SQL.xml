@@ -1,0 +1,215 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.qna.dao.QnADAO">
+
+    <!-- QnA 목록 -->
+    <select id="selQnAList" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO" resultType="com.kt.openapi.web.qna.vo.QnAVO">
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY A.REG_DT DESC) rownum,
+            QNA_ID,
+            TITLE,
+            QSTN,
+            ANS,
+            ANSR,
+            QSTNR,
+            COALESCE(M.MBR_NM,'') AS AMDR_NM,
+            TO_CHAR(QSTN_DT, 'YYYY.MM.DD') AS QSTN_DT,
+            QNA_STTUS_CD,
+            COALESCE(D.CD_NM,'') AS QNA_STTUS_NM,
+            SHOW_YN
+        FROM KOA_TB_QNA A 
+        LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.QNA_STTUS_CD = D.COMN_CD AND D.GROUP_CD = 'QNASTS1000')
+        LEFT OUTER JOIN KOA_TB_MBR M ON (A.QSTNR = M.MBR_ID)
+        WHERE SHOW_YN = 'Y'
+        <if test="searchCondition == 'title'">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+            </if>
+        </if>
+        <if test="searchCondition == 'content'">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND UPPER(QSTN) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+            </if>
+        </if>
+        <if test="searchCondition == null or searchCondition == ''">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(QSTN) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+            </if>
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <!-- QnA 목록 개수 -->
+    <select id="selQnaListCnt" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO" resultType="int">
+        SELECT
+            COUNT(*) AS cnt
+        FROM KOA_TB_QNA 
+        WHERE SHOW_YN = 'Y'
+        <if test="searchCondition == 'title'">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+            </if>
+        </if>
+        <if test="searchCondition == 'content'">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND UPPER(QSTN) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+            </if>
+        </if>
+        <if test="searchCondition == null or searchCondition == ''">
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(QSTN) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+            </if>
+        </if>
+    </select>
+
+    <!-- QnA 상세보기 -->
+    <select id="selQnAView" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO" resultType="com.kt.openapi.web.qna.vo.QnAVO">
+        SELECT
+            B.QNA_ID,
+            B.TITLE,
+            B.QSTN,
+            B.ANS,
+            B.ANSR,
+            COALESCE(M.MBR_NM,'') AS AMDR_NM,
+            B.QSTNR AS REGR,
+            TO_CHAR(B.QSTN_DT, 'YYYY.MM.DD') AS QSTN_DT,
+            TO_CHAR(B.ANS_DT, 'YYYY.MM.DD') AS ANS_DT,
+            B.QNA_STTUS_CD,
+            B.SHOW_YN,
+            B.PREV_QNA_ID,
+            B.NEXT_QNA_ID,
+            B.PREV_TITLE,
+            B.NEXT_TITLE
+        FROM (
+            SELECT
+                A.*
+                , LAG(A.QNA_ID, 1, 0) OVER ( ORDER BY A.REG_DT DESC) AS PREV_QNA_ID
+                , LEAD(A.QNA_ID, 1, 0) OVER ( ORDER BY A.REG_DT DESC) AS NEXT_QNA_ID
+                , LAG(A.TITLE, 1, '') OVER ( ORDER BY A.REG_DT DESC) AS PREV_TITLE
+                , LEAD(A.TITLE, 1, '') OVER ( ORDER BY A.REG_DT DESC) AS NEXT_TITLE
+            FROM KOA_TB_QNA A 
+            WHERE SHOW_YN = 'Y'
+        ) B
+        LEFT OUTER JOIN KOA_TB_MBR M ON (B.QSTNR = M.MBR_ID)
+        WHERE 1=1
+          AND B.QNA_ID = #{qnaId}
+    </select>
+
+    <!-- QnA 글쓰기 -->
+    <insert id="saveQna" parameterType="com.kt.openapi.web.qna.vo.QnASaveVO" useGeneratedKeys="true" keyProperty="qnaId">
+        /* com.kt.openapi.web.qna.dao.QnADAO.saveQna */
+        INSERT INTO KOA_TB_QNA
+            (TITLE
+            ,QSTN
+            ,QSTNR
+            ,QSTN_DT
+            ,QNA_STTUS_CD
+            ,REG_DT
+            ,REGR
+            ,AMD_DT
+            ,AMDR
+            ,SHOW_YN)
+        VALUES
+            (#{title}
+            ,#{qstn}
+            ,#{regr}
+            ,NOW()
+            ,'QNASTS1010'
+            ,NOW()
+            ,#{regr}
+            ,NOW()
+            ,#{regr}
+            ,'Y')
+    </insert>
+
+    <!-- QnA 첨부파일 등록 -->
+    <insert id="qnaFileReg" parameterType="com.kt.openapi.web.qna.vo.QnAFileVO" useGeneratedKeys="true" keyProperty="atcFileNo">
+        /* com.kt.openapi.web.qna.dao.QnADAO.qnaFileReg */
+        INSERT INTO KOA_TB_QNA_ATC
+            (QNA_ID
+            ,SAVE_FILE_NM
+            ,ORIGIN_FILE_NM
+            ,FILE_TYPE_CD
+            ,FILE_PATH
+            ,FILE_SIZE
+            ,USE_YN
+            ,DOWNL_CNT
+            ,SHOW_ODRG
+            ,REG_DT
+            ,REGR
+            ,AMD_DT
+            ,AMDR)
+        VALUES
+            (#{qnaId}
+            ,#{saveFileNm}
+            ,#{originFileNm}
+            ,#{fileTypeCd}
+            ,#{filePath}
+            ,#{fileSize}
+            ,'Y'
+            ,0
+            ,1
+            ,NOW()
+            ,#{regr}
+            ,NOW()
+            ,#{regr})
+    </insert>
+
+    <!-- QnA 수정 -->
+    <update id="updQna" parameterType="com.kt.openapi.web.qna.vo.QnASaveVO">
+        UPDATE KOA_TB_QNA
+        SET
+            TITLE = #{title}
+            ,QSTN = #{qstn}
+            ,AMD_DT = NOW()
+            ,AMDR = #{regr}
+        WHERE QNA_ID = #{qnaId}
+    </update>
+
+    <!-- QnA 삭제 -->
+    <delete id="delForumAjax" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO">
+        DELETE FROM KOA_TB_QNA
+        WHERE QNA_ID = #{qnaId}
+    </delete>
+
+    <!-- qna 삭제 시 본인이 등록한 글인지 체크. -->
+    <select id="checkOwnQna" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO" resultType="int">
+        /* com.kt.openapi.web.qna.dao.QnADAO.checkOwnQna */
+        SELECT COUNT(1) AS CNT
+        FROM KOA_TB_QNA 
+        WHERE (AMDR = #{amdr})
+          AND (QNA_ID = #{qnaId})
+    </select>
+
+    <!-- QnA 첨부파일 보기 -->
+    <select id="selQnaFileList" parameterType="com.kt.openapi.web.qna.vo.QnASearchVO" resultType="com.kt.openapi.web.qna.vo.QnAFileVO">
+        SELECT
+            ATC_FILE_NO,
+            QNA_ID,
+            FILE_TYPE_CD,
+            FILE_PATH,
+            FILE_SIZE,
+            ORIGIN_FILE_NM,
+            SAVE_FILE_NM,
+            USE_YN,
+            DOWNL_CNT,
+            SHOW_ODRG,
+            REG_DT,
+            COALESCE(REGR,'') AS REGR,
+            AMD_DT,
+            COALESCE(AMDR,'') AS AMDR
+        FROM KOA_TB_QNA_ATC 
+        WHERE 1=1
+          AND QNA_ID = #{qnaId}
+          AND USE_YN = 'Y'
+    </select>
+
+    <!-- 첨부파일 삭제 -->
+    <delete id="delQnaFile" parameterType="com.kt.openapi.web.qna.vo.QnASaveVO">
+        DELETE FROM KOA_TB_QNA_ATC
+        WHERE ATC_FILE_NO = #{delAtcFileNo}
+    </delete>
+
+</mapper>

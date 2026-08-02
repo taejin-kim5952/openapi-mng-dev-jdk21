@@ -1,0 +1,19 @@
+# Production Environment Main Configuration
+spring:
+  config:
+    import:
+      - optional:classpath:config/prod/common.yml
+      - optional:classpath:config/prod/apigw.yml
+      - optional:classpath:config/prod/adptran.yml
+      - optional:classpath:config/common/beast.yml
+
+  datasource:
+    # [PostgreSQL 마이그레이션] PROD 환경 PG 계정 정보 필요
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://prd_pg_host:5432/openapi_prd?currentSchema=public&stringtype=unspecified
+    username: "prd_pg_user"
+    password: "prd_pg_password"
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 30
+      pool-name: HikariProd

@@ -1,0 +1,1514 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.adptran.dao.BeastDAO">
+
+    <!-- SYSTEM단위 SPC API권한 filter -->
+    <sql id="ref_where_filter_auth_by_spc_sysid">
+        <if test='observerYn != "Y"'>
+            <choose>
+                <when test="authSysIdList != null">
+                    AND SPC.SYS_ID IN 
+                    <foreach item="item" collection="authSysIdList" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </when>
+                <otherwise>
+                    AND (1!=1)
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <!-- api SPC의 최종버전 목록 view -->
+    <sql id="viewApiSpcLatest">
+        SELECT latest_spc.*
+        FROM (
+            SELECT
+                sub_spc.*
+                , ROW_NUMBER() OVER (PARTITION BY sub_spc.API_SPC_ID ORDER BY sub_spc.API_SPC_NO DESC) RN
+            FROM KOA_TB_API_SPC sub_spc 
+            WHERE (COALESCE(sub_spc.DEL_YN, '') != 'Y') AND (COALESCE(sub_spc.TMPLT_YN, '') != 'Y')
+        ) latest_spc
+        WHERE (latest_spc.RN = 1)
+    </sql>
+
+    <sql id="ref_where_select_BST_SYNC_ADM_SYS_DPLY_list">
+        <!-- BEAST-시스템 검색조건 -->
+        <if test="sysId != null and sysId != ''">
+            AND (as_item.SYS_ID = #{sysId})
+        </if>
+        <if test="sysNm != null and sysNm != ''">
+            AND (UPPER(as_item.SYS_NM) LIKE CONCAT('%', UPPER(#{sysNm}), '%'))
+        </if>
+        <if test="dplyType != null and dplyType != ''">
+            AND (as_item.DPLY_TYPE = #{dplyType})
+        </if>
+    </sql>
+
+    <sql id="ref_where_select_BST_SYNC_ADM_API_DPLY_list">
+        <!-- BEAST-API 검색조건 -->
+        <if test="apiId != null and apiId != ''">
+            AND (as_item.API_ID = #{apiId})
+        </if>
+        <if test="sysId != null and sysId != ''">
+            AND (as_item.SYS_ID = #{sysId})
+        </if>
+        <if test="ifNo != null and ifNo != ''">
+            AND (UPPER(as_item.IF_NO) LIKE CONCAT('%', UPPER(#{ifNo}), '%'))
+        </if>
+        <if test="dplyType != null and dplyType != ''">
+            AND (as_item.DPLY_TYPE = #{dplyType})
+        </if>
+        <if test="srcTag != null and srcTag != ''">
+            AND (as_item.SRC_TAG = #{srcTag})
+        </if>
+    </sql>
+
+    <sql id="ref_where_select_BST_SYNC_ADM_SVC_DPLY_list">
+        <!-- BEAST-SVC 검색조건 -->
+        <if test="svcId != null and svcId != ''">
+            AND (as_item.SVC_ID = #{svcId})
+        </if>
+        <if test="svcNm != null and svcNm != ''">
+            AND (UPPER(as_item.SVC_NM) LIKE CONCAT('%', UPPER(#{svcNm}), '%'))
+        </if>
+        <if test="dplyType != null and dplyType != ''">
+            AND (as_item.DPLY_TYPE = #{dplyType})
+        </if>
+        <if test="srcTag != null and srcTag != ''">
+            AND (as_item.SRC_TAG = #{srcTag})
+        </if>
+    </sql>
+
+    <sql id="ref_where_select_BST_SYNC_ADM_API_LINK_DATA_list">
+        <!-- BEAST-API_LINK_DATA 검색조건 -->
+        <if test="aldtType != null and aldtType != ''">
+            AND (as_item.ALDT_TYPE = #{aldtType})
+        </if>
+        <if test="aldtKey != null and aldtKey != ''">
+            AND (as_item.ALDT_KEY = #{aldtKey})
+        </if>
+        <if test="dplyType != null and dplyType != ''">
+            AND (as_item.DPLY_TYPE = #{dplyType})
+        </if>
+        <if test="srcTag != null and srcTag != ''">
+            AND (as_item.SRC_TAG = #{srcTag})
+        </if>
+    </sql>
+    
+    <sql id="ref_where_selApiDeployBeastList">
+        <!-- API배포(BEAST)-검색조건 -->
+        (SPC.BSTGW_YN = 'Y')
+        <if test="sysId != null and sysId != ''">
+            AND (SYS.SYS_ID = #{sysId})
+        </if>
+        <if test="apiSpcNo != null and apiSpcNo != ''">
+            AND (SPC.API_SPC_NO = #{apiSpcNo})
+        </if>
+        <if test="apiNm != null and apiNm != ''">
+            AND (UPPER(DEF.API_NM) LIKE ('%' + UPPER(#{apiNm}) + '%')) 
+        </if>
+        <if test="apiNo != null and apiNo != ''">
+            AND (DEF.API_NO = #{apiNo})
+        </if>
+        <if test="dplyReqFlag != null and dplyReqFlag != ''">
+            AND (DEF.DPLY_REQ_FLAG = #{dplyReqFlag}) 
+        </if>
+        <if test="tbDplyStatus != null and tbDplyStatus != ''">
+            AND (DEF.TB_DPLY_STATUS = #{tbDplyStatus}) 
+        </if>
+        <if test="dplyVeriStatus != null and dplyVeriStatus != ''">
+            AND (DEF.DPLY_VERI_STATUS = #{dplyVeriStatus}) 
+        </if>
+        <if test="prdDplyReqFlag != null and prdDplyReqFlag != ''">
+            AND (DEF.PRD_DPLY_REQ_FLAG = #{prdDplyReqFlag}) 
+        </if>
+        <if test="prdDplyStatus != null and prdDplyStatus != ''">
+            AND (DEF.PRD_DPLY_STATUS = #{prdDplyStatus}) 
+        </if>
+        <if test="dateFlag != null and dateFlag == 'dplyReqFlag'">
+            <if test="fromDate != null and fromDate != ''">
+                <![CDATA[ AND (DEF.DPLY_REQ_FLAG_DATE >= #{fromDate}) ]]>
+            </if>
+            <if test="toDate != null and toDate != ''">
+                <![CDATA[ AND (DEF.DPLY_REQ_FLAG_DATE < #{toDate}) ]]>
+            </if>
+        </if>
+        <if test="dateFlag == 'tbDplyStatus'">
+            <if test="fromDate != null and fromDate != ''">
+                <![CDATA[ AND (DEF.TB_DPLY_STATUS_DATE >= #{fromDate}) ]]>
+            </if>
+            <if test="toDate != null and toDate != ''">
+                <![CDATA[ AND (DEF.TB_DPLY_STATUS_DATE < #{toDate}) ]]>
+            </if>
+        </if>
+        <if test="dateFlag == 'dplyVeriStatus'">
+            <if test="fromDate != null and fromDate != ''">
+                <![CDATA[ AND (DEF.DPLY_VERI_STATUS_DATE >= #{fromDate}) ]]>
+            </if>
+            <if test="toDate != null and toDate != ''">
+                <![CDATA[ AND (DEF.DPLY_VERI_STATUS_DATE < #{toDate}) ]]>
+            </if>
+        </if>
+        <if test="dateFlag == 'prdDplyReqFlag'">
+            <if test="fromDate != null and fromDate != ''">
+                <![CDATA[ AND (DEF.PRD_DPLY_REQ_FLAG_DATE >= #{fromDate}) ]]>
+            </if>
+            <if test="toDate != null and toDate != ''">
+                <![CDATA[ AND (DEF.PRD_DPLY_REQ_FLAG_DATE < #{toDate}) ]]>
+            </if>
+        </if>
+        <if test="dateFlag == 'prdDplyStatus'">
+            <if test="fromDate != null and fromDate != ''">
+                <![CDATA[ AND (DEF.PRD_DPLY_STATUS_DATE >= #{fromDate}) ]]>
+            </if>
+            <if test="toDate != null and toDate != ''">
+                <![CDATA[ AND (DEF.PRD_DPLY_STATUS_DATE < #{toDate}) ]]>
+            </if>
+        </if>
+        <include refid="ref_where_filter_auth_by_spc_sysid"/>
+    </sql>
+
+    <select id="select_BST_SYNC_ADM_SYS_DPLY_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstSyncAdmSysDplyVO">
+        /* beast.select_BST_SYNC_ADM_SYS_DPLY_list */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY as_item.SEQ) rownum
+            , as_item.SEQ
+            , as_item.DPLY_DT
+            , as_item.DPLY_TYPE
+            , as_item.SYS_ID
+            , as_item.SYS_NM
+            , as_item.SYS_CD
+            , as_item.API_LINK_CD
+            , as_item.EDPT_PROT
+            , as_item.EDPT_ATRIB_URL
+            , as_item.EDPT_ATRIB_CERTI
+            , as_item.EDPT_ATRIB_CERTI_KEY
+            , as_item.EDPT_ATRIB_ECOD
+            , as_item.EDPT_ATRIB_ADDR
+            , as_item.EDPT_ATRIB_MIN_POOL
+            , as_item.EDPT_ATRIB_MAX_POOL
+            , as_item.KOA_SYS_ID
+            , TO_CHAR(as_item.UDATE, 'YYYY-MM-DD HH24:MI:SS') AS UDATE
+            , TO_CHAR(as_item.RDATE, 'YYYY-MM-DD HH24:MI:SS') AS RDATE
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_SYS_DPLY_list"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="select_BST_SYNC_ADM_SYS_DPLY_count" parameterType="map" resultType="int">
+        /* beast.select_BST_SYNC_ADM_SYS_DPLY_count */
+        SELECT COUNT(*) AS count
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_SYS_DPLY_list"/>
+        </where>
+    </select>
+
+    <update id="merge_BST_SYNC_ADM_SYS_DPLY" parameterType="map">
+        /* beast.merge_BST_SYNC_ADM_SYS_DPLY */
+        MERGE 
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+        </choose>
+        USING (
+            SELECT
+                #{sysId} AS SYS_ID
+                , #{dplyDt} AS DPLY_DT
+                , #{dplyType} AS DPLY_TYPE
+                , #{sysNm} AS SYS_NM
+                , #{sysCd} AS SYS_CD
+                , #{apiLinkCd} AS API_LINK_CD
+                , #{edptProt} AS EDPT_PROT
+                , #{edptAtribUrl} AS EDPT_ATRIB_URL
+                , #{edptAtribCerti} AS EDPT_ATRIB_CERTI
+                , #{edptAtribCertiKey} AS EDPT_ATRIB_CERTI_KEY
+                , #{edptAtribEcod} AS EDPT_ATRIB_ECOD
+                , #{edptAtribAddr} AS EDPT_ATRIB_ADDR
+                , #{edptAtribMinPool} AS EDPT_ATRIB_MIN_POOL
+                , #{edptAtribMaxPool} AS EDPT_ATRIB_MAX_POOL
+                , #{koaSysId} AS KOA_SYS_ID
+        ) AS src
+        ON (tar.SYS_ID = src.SYS_ID)
+        WHEN MATCHED THEN
+            UPDATE
+                SET tar.UDATE = NOW()
+                , tar.DPLY_DT = src.DPLY_DT
+                , tar.DPLY_TYPE = src.DPLY_TYPE
+                , tar.SYS_NM = src.SYS_NM
+                , tar.SYS_CD = src.SYS_CD
+                , tar.API_LINK_CD = src.API_LINK_CD
+                , tar.EDPT_PROT = src.EDPT_PROT
+                , tar.EDPT_ATRIB_URL = src.EDPT_ATRIB_URL
+                , tar.EDPT_ATRIB_CERTI = src.EDPT_ATRIB_CERTI
+                , tar.EDPT_ATRIB_CERTI_KEY = src.EDPT_ATRIB_CERTI_KEY
+                , tar.EDPT_ATRIB_ECOD = src.EDPT_ATRIB_ECOD
+                , tar.EDPT_ATRIB_ADDR = src.EDPT_ATRIB_ADDR
+                , tar.EDPT_ATRIB_MIN_POOL = (CASE ISNUMERIC(src.EDPT_ATRIB_MIN_POOL) WHEN 1 THEN src.EDPT_ATRIB_MIN_POOL ELSE NULL END) 
+                , tar.EDPT_ATRIB_MAX_POOL = (CASE ISNUMERIC(src.EDPT_ATRIB_MAX_POOL) WHEN 1 THEN src.EDPT_ATRIB_MAX_POOL ELSE NULL END)
+                , tar.KOA_SYS_ID = src.KOA_SYS_ID
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DPLY_DT, DPLY_TYPE, SYS_ID, SYS_NM, SYS_CD, API_LINK_CD, EDPT_PROT, EDPT_ATRIB_URL, EDPT_ATRIB_CERTI, EDPT_ATRIB_CERTI_KEY, EDPT_ATRIB_ECOD, EDPT_ATRIB_ADDR, EDPT_ATRIB_MIN_POOL, EDPT_ATRIB_MAX_POOL, KOA_SYS_ID, UDATE, RDATE
+            ) VALUES (
+                src.DPLY_DT, src.DPLY_TYPE, src.SYS_ID, src.SYS_NM, src.SYS_CD, src.API_LINK_CD, src.EDPT_PROT, src.EDPT_ATRIB_URL, src.EDPT_ATRIB_CERTI, src.EDPT_ATRIB_CERTI_KEY, src.EDPT_ATRIB_ECOD, src.EDPT_ATRIB_ADDR, src.EDPT_ATRIB_MIN_POOL, src.EDPT_ATRIB_MAX_POOL, src.KOA_SYS_ID, NOW(), NOW()
+            );
+    </update>
+
+    <delete id="delete_BST_SYNC_ADM_SYS_DPLY" parameterType="map">
+        /* beast.delete_BST_SYNC_ADM_SYS_DPLY */
+        DELETE FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SYS_DPLY
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SYS_DPLY
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SYS_DPLY
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SYS_DPLY
+            </when>
+        </choose>
+        <where>
+            <if test="sysId != null and sysId != ''">
+                AND (SYS_ID = #{sysId})
+            </if>
+            <if test="seq != null">
+                AND (SEQ = #{seq})
+            </if>
+        </where>
+    </delete>
+
+    <select id="select_BST_SYNC_ADM_API_DPLY_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstSyncAdmApiDplyVO">
+        /* beast.select_BST_SYNC_ADM_API_DPLY_list */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY as_item.SEQ) rownum
+            , as_item.SEQ
+            , as_item.DPLY_DT
+            , as_item.DPLY_TYPE
+            , as_item.API_ID
+            , as_item.SYS_ID
+            , as_item.IF_NO
+            , as_item.VER
+            , as_item.METH
+            , as_item.URI_IN
+            , as_item.URI_OUT
+            , as_item.REQ_HNDLR
+            , as_item.RES_HNDLR
+            , as_item.ERR_HNDLR
+            , as_item.TIME_OUT
+            , as_item.PRNTS
+            , as_item.PRNTS_API_ID
+            , as_item.HNDLR_OPTN
+            , as_item.MASK
+            , as_item.ATRIB_IN_FMT
+            , as_item.ATRIB_OUT_FMT
+            , as_item.ATRIB_IN_COMN_PARAM
+            , as_item.ATRIB_OUT_COMN_PARAM
+            , as_item.SRC_TAG
+            , as_item.SRC_KEY
+            , as_item.DEF_API_NO
+            , TO_CHAR(as_item.UDATE, 'YYYY-MM-DD HH24:MI:SS') AS UDATE
+            , TO_CHAR(as_item.RDATE, 'YYYY-MM-DD HH24:MI:SS') AS RDATE
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_API_DPLY_list"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="select_BST_SYNC_ADM_API_DPLY_count" parameterType="map" resultType="int">
+        /* beast.select_BST_SYNC_ADM_API_DPLY_count */
+        SELECT COUNT(*) AS count
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_API_DPLY_list"/>
+        </where>
+    </select>
+
+    <update id="merge_BST_SYNC_ADM_API_DPLY" parameterType="map">
+        /* beast.merge_BST_SYNC_ADM_API_DPLY */
+        MERGE
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_DPLY AS tar
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_DPLY AS tar
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_DPLY AS tar
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_DPLY AS tar
+            </when>
+        </choose>
+        USING (
+            SELECT
+                #{apiId} AS API_ID
+                , #{dplyDt} AS DPLY_DT
+                , #{dplyType} AS DPLY_TYPE
+                , #{sysId} AS SYS_ID
+                , #{ifNo} AS IF_NO
+                , #{ver} AS VER
+                , #{meth} AS METH
+                , #{uriIn} AS URI_IN
+                , #{uriOut} AS URI_OUT
+                , #{reqHndlr} AS REQ_HNDLR
+                , #{resHndlr} AS RES_HNDLR
+                , #{errHndlr} AS ERR_HNDLR
+                , #{timeOut} AS TIME_OUT
+                , #{prnts} AS PRNTS
+                , #{prntsApiId} AS PRNTS_API_ID
+                , #{hndlrOptn} AS HNDLR_OPTN
+                , #{mask} AS MASK
+                , #{atribInFmt} AS ATRIB_IN_FMT
+                , #{atribOutFmt} AS ATRIB_OUT_FMT
+                , #{atribInComnParam} AS ATRIB_IN_COMN_PARAM
+                , #{atribOutComnParam} AS ATRIB_OUT_COMN_PARAM
+                , #{srcTag} AS SRC_TAG
+                , #{srcKey} AS SRC_KEY
+                , #{defApiNo} AS DEF_API_NO
+        ) AS src
+        ON (tar.API_ID = src.API_ID)
+        WHEN MATCHED THEN
+            UPDATE
+                SET tar.UDATE = NOW()
+                , tar.DPLY_DT = src.DPLY_DT
+                , tar.DPLY_TYPE = src.DPLY_TYPE
+                , tar.SYS_ID = src.SYS_ID
+                , tar.IF_NO = src.IF_NO
+                , tar.VER = src.VER
+                , tar.METH = src.METH
+                , tar.URI_IN = src.URI_IN
+                , tar.URI_OUT = src.URI_OUT
+                , tar.REQ_HNDLR = src.REQ_HNDLR
+                , tar.RES_HNDLR = src.RES_HNDLR
+                , tar.ERR_HNDLR = src.ERR_HNDLR
+                , tar.TIME_OUT = (CASE ISNUMERIC(src.TIME_OUT) WHEN 1 THEN src.TIME_OUT ELSE NULL END)
+                , tar.PRNTS = (CASE LOWER(src.PRNTS) WHEN 'true' THEN src.PRNTS WHEN 'false' THEN src.PRNTS ELSE NULL END)
+                , tar.PRNTS_API_ID = src.PRNTS_API_ID
+                , tar.HNDLR_OPTN = src.HNDLR_OPTN
+                , tar.MASK = src.MASK
+                , tar.ATRIB_IN_FMT = src.ATRIB_IN_FMT
+                , tar.ATRIB_OUT_FMT = src.ATRIB_OUT_FMT
+                , tar.ATRIB_IN_COMN_PARAM = src.ATRIB_IN_COMN_PARAM
+                , tar.ATRIB_OUT_COMN_PARAM = src.ATRIB_OUT_COMN_PARAM
+                , tar.SRC_TAG = src.SRC_TAG
+                , tar.SRC_KEY = src.SRC_KEY
+                , tar.DEF_API_NO = (CASE ISNUMERIC(src.DEF_API_NO) WHEN 1 THEN src.DEF_API_NO ELSE NULL END)
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DPLY_DT, DPLY_TYPE, API_ID, SYS_ID, IF_NO, VER, METH, URI_IN, URI_OUT, REQ_HNDLR, RES_HNDLR, ERR_HNDLR, TIME_OUT, PRNTS, PRNTS_API_ID, HNDLR_OPTN, MASK, ATRIB_IN_FMT, ATRIB_OUT_FMT, ATRIB_IN_COMN_PARAM, ATRIB_OUT_COMN_PARAM, SRC_TAG, SRC_KEY, DEF_API_NO, UDATE, RDATE
+            ) VALUES (
+                src.DPLY_DT, src.DPLY_TYPE, src.API_ID, src.SYS_ID, src.IF_NO, src.VER, src.METH, src.URI_IN, src.URI_OUT, src.REQ_HNDLR, src.RES_HNDLR, src.ERR_HNDLR, src.TIME_OUT, src.PRNTS, src.PRNTS_API_ID, src.HNDLR_OPTN, src.MASK, src.ATRIB_IN_FMT, src.ATRIB_OUT_FMT, src.ATRIB_IN_COMN_PARAM, src.ATRIB_OUT_COMN_PARAM, src.SRC_TAG, src.SRC_KEY, src.DEF_API_NO, NOW(), NOW()
+            );
+    </update>
+
+    <delete id="delete_BST_SYNC_ADM_API_DPLY" parameterType="map">
+        /* beast.delete_BST_SYNC_ADM_API_DPLY */
+        DELETE FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_DPLY
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_DPLY
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_DPLY
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_DPLY
+            </when>
+        </choose>
+        <where>
+            <if test="apiId != null and apiId != ''">
+                AND (API_ID = #{apiId})
+            </if>
+            <if test="seq != null">
+                AND (SEQ = #{seq})
+            </if>
+        </where>
+    </delete>
+
+    <select id="select_BST_SYNC_ADM_SVC_DPLY_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstSyncAdmSvcDplyVO">
+        /* beast.select_BST_SYNC_ADM_SVC_DPLY_list */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY as_item.SEQ) rownum
+            , as_item.SEQ
+            , as_item.DPLY_DT
+            , as_item.DPLY_TYPE
+            , as_item.SVC_ID
+            , as_item.SVC_NM
+            , as_item.USER_NM
+            , as_item.PW
+            , as_item.SLA_SEC
+            , as_item.SLA_MIN
+            , as_item.SLA_HR
+            , as_item.SLA_DAY
+            , as_item.SLA_MON
+            , as_item.SVC_ST_DT
+            , as_item.SVC_END_DT
+            , as_item.API_AUT
+            , as_item.IP_ACES_AUT_ALWD_IP
+            , as_item.IP_ACES_AUT_BLCK_IP
+            , as_item.ATRIB_CP_ID
+            , as_item.ATRIB_SERVICE_ID
+            , as_item.PW_PLAIN
+            , as_item.SRC_TAG
+            , as_item.API_DOMAIN_ACES_AUT
+            , as_item.ALLOW_HTTP
+            , TO_CHAR(as_item.UDATE, 'YYYY-MM-DD HH24:MI:SS') AS UDATE
+            , TO_CHAR(as_item.RDATE, 'YYYY-MM-DD HH24:MI:SS') AS RDATE
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SVC_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_SVC_DPLY_list"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="select_BST_SYNC_ADM_SVC_DPLY_count" parameterType="map" resultType="int">
+        /* beast.select_BST_SYNC_ADM_SVC_DPLY_count */
+        SELECT COUNT(*) AS count
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SVC_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SVC_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_SVC_DPLY_list"/>
+        </where>
+    </select>
+
+    <update id="merge_BST_SYNC_ADM_SVC_DPLY" parameterType="map">
+        /* beast.merge_BST_SYNC_ADM_SVC_DPLY */
+        MERGE
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SVC_DPLY AS tar
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SVC_DPLY AS tar
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SVC_DPLY AS tar
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SVC_DPLY AS tar
+            </when>
+        </choose>
+        USING (
+            SELECT
+                #{svcId} AS SVC_ID
+                , #{dplyDt} AS DPLY_DT
+                , #{dplyType} AS DPLY_TYPE
+                , #{svcNm} AS SVC_NM
+                , #{userNm} AS USER_NM
+                , #{pw} AS PW
+                , #{slaSec} AS SLA_SEC
+                , #{slaMin} AS SLA_MIN
+                , #{slaHr} AS SLA_HR
+                , #{slaDay} AS SLA_DAY
+                , #{slaMon} AS SLA_MON
+                , #{svcStDt} AS SVC_ST_DT
+                , #{svcEndDt} AS SVC_END_DT
+                , #{apiAut} AS API_AUT
+                , #{ipAcesAutAlwdIp} AS IP_ACES_AUT_ALWD_IP
+                , #{ipAcesAutBlckIp} AS IP_ACES_AUT_BLCK_IP
+                , #{atribCpId} AS ATRIB_CP_ID
+                , #{atribServiceId} AS ATRIB_SERVICE_ID
+                , #{pwPlain} AS PW_PLAIN
+                , #{srcTag} AS SRC_TAG
+                , #{apiDomainAcesAut} AS API_DOMAIN_ACES_AUT
+                , #{allowHttp} AS ALLOW_HTTP
+        ) AS src
+        ON (tar.SVC_ID = src.SVC_ID)
+        WHEN MATCHED THEN
+            UPDATE
+                SET tar.UDATE = NOW()
+                , tar.DPLY_DT = src.DPLY_DT
+                , tar.DPLY_TYPE = src.DPLY_TYPE
+                , tar.SVC_NM = src.SVC_NM
+                , tar.USER_NM = src.USER_NM
+                , tar.PW = src.PW
+                , tar.SLA_SEC = (CASE ISNUMERIC(src.SLA_SEC) WHEN 1 THEN src.SLA_SEC ELSE NULL END)
+                , tar.SLA_MIN = (CASE ISNUMERIC(src.SLA_MIN) WHEN 1 THEN src.SLA_MIN ELSE NULL END)
+                , tar.SLA_HR = (CASE ISNUMERIC(src.SLA_HR) WHEN 1 THEN src.SLA_HR ELSE NULL END)
+                , tar.SLA_DAY = (CASE ISNUMERIC(src.SLA_DAY) WHEN 1 THEN src.SLA_DAY ELSE NULL END)
+                , tar.SLA_MON = (CASE ISNUMERIC(src.SLA_MON) WHEN 1 THEN src.SLA_MON ELSE NULL END)
+                , tar.SVC_ST_DT = src.SVC_ST_DT
+                , tar.SVC_END_DT = src.SVC_END_DT
+                , tar.API_AUT = src.API_AUT
+                , tar.IP_ACES_AUT_ALWD_IP = src.IP_ACES_AUT_ALWD_IP
+                , tar.IP_ACES_AUT_BLCK_IP = src.IP_ACES_AUT_BLCK_IP
+                , tar.ATRIB_CP_ID = src.ATRIB_CP_ID
+                , tar.ATRIB_SERVICE_ID = src.ATRIB_SERVICE_ID
+                , tar.PW_PLAIN = src.PW_PLAIN
+                , tar.SRC_TAG = src.SRC_TAG
+                , tar.API_DOMAIN_ACES_AUT = src.API_DOMAIN_ACES_AUT
+                , tar.ALLOW_HTTP = src.ALLOW_HTTP
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DPLY_DT, DPLY_TYPE, SVC_ID, SVC_NM, USER_NM, PW, SLA_SEC, SLA_MIN, SLA_HR, SLA_DAY, SLA_MON, SVC_ST_DT, SVC_END_DT, API_AUT, IP_ACES_AUT_ALWD_IP, IP_ACES_AUT_BLCK_IP, ATRIB_CP_ID, ATRIB_SERVICE_ID, PW_PLAIN, SRC_TAG, API_DOMAIN_ACES_AUT, ALLOW_HTTP, UDATE, RDATE
+            ) VALUES (
+                src.DPLY_DT, src.DPLY_TYPE, src.SVC_ID, src.SVC_NM, src.USER_NM, src.PW, src.SLA_SEC, src.SLA_MIN, src.SLA_HR, src.SLA_DAY, src.SLA_MON, src.SVC_ST_DT, src.SVC_END_DT, src.API_AUT, src.IP_ACES_AUT_ALWD_IP, src.IP_ACES_AUT_BLCK_IP, src.ATRIB_CP_ID, src.ATRIB_SERVICE_ID, src.PW_PLAIN, src.SRC_TAG, src.API_DOMAIN_ACES_AUT, src.ALLOW_HTTP, NOW(), NOW()
+            );
+    </update>
+
+    <delete id="delete_BST_SYNC_ADM_SVC_DPLY" parameterType="map">
+        /* beast.delete_BST_SYNC_ADM_SVC_DPLY */
+        DELETE FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SVC_DPLY
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SVC_DPLY
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SVC_DPLY
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SVC_DPLY
+            </when>
+        </choose>
+        <where>
+            <if test="svcId != null and svcId != ''">
+                AND (SVC_ID = #{svcId})
+            </if>
+            <if test="seq != null">
+                AND (SEQ = #{seq})
+            </if>
+        </where>
+    </delete>
+
+    <select id="select_BST_SYNC_ADM_API_LINK_DATA_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstSyncAdmApiLinkDataVO">
+        /* beast.select_BST_SYNC_ADM_API_LINK_DATA_list */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY as_item.SEQ) rownum
+            , as_item.SEQ
+            , as_item.DPLY_DT
+            , as_item.ALDT_TYPE
+            , as_item.ALDT_KEY
+            , as_item.ALDT_VALUE
+            , as_item.SRC_TAG
+            , as_item.SRC_KEY
+            , as_item.DEF_API_NO
+            , TO_CHAR(as_item.UDATE, 'YYYY-MM-DD HH24:MI:SS') AS UDATE
+            , TO_CHAR(as_item.RDATE, 'YYYY-MM-DD HH24:MI:SS') AS RDATE
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_LINK_DATA as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_API_LINK_DATA_list"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="select_BST_SYNC_ADM_API_LINK_DATA_count" parameterType="map" resultType="int">
+        /* beast.select_BST_SYNC_ADM_API_LINK_DATA_count */
+        SELECT COUNT(*) AS count
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_LINK_DATA as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_LINK_DATA as_item 
+            </when>
+        </choose>
+        <where>
+            <include refid="ref_where_select_BST_SYNC_ADM_API_LINK_DATA_list"/>
+        </where>
+    </select>
+
+    <update id="merge_BST_SYNC_ADM_API_LINK_DATA" parameterType="map">
+        /* beast.merge_BST_SYNC_ADM_API_LINK_DATA */
+        MERGE
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_LINK_DATA AS tar
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_LINK_DATA AS tar
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_LINK_DATA AS tar
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_LINK_DATA AS tar
+            </when>
+        </choose>
+        USING (
+            SELECT
+                #{aldtType} AS ALDT_TYPE
+                , #{aldtKey} AS ALDT_KEY
+                , #{dplyDt} AS DPLY_DT
+                , #{aldtValue} AS ALDT_VALUE
+                , #{srcTag} AS SRC_TAG
+                , #{srcKey} AS SRC_KEY
+                , #{defApiNo} AS DEF_API_NO
+        ) AS src
+        ON (tar.ALDT_TYPE = src.ALDT_TYPE) AND (tar.ALDT_KEY = src.ALDT_KEY)
+        WHEN MATCHED THEN
+            UPDATE
+                SET tar.UDATE = NOW()
+                , tar.DPLY_DT = src.DPLY_DT
+                , tar.ALDT_TYPE = src.ALDT_TYPE
+                , tar.ALDT_VALUE = src.ALDT_VALUE
+                , tar.SRC_TAG = src.SRC_TAG
+                , tar.SRC_KEY = src.SRC_KEY
+                , tar.DEF_API_NO = (CASE ISNUMERIC(src.DEF_API_NO) WHEN 1 THEN src.DEF_API_NO ELSE NULL END)
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DPLY_DT, ALDT_TYPE, ALDT_KEY, ALDT_VALUE, SRC_TAG, SRC_KEY, DEF_API_NO, UDATE, RDATE
+            ) VALUES (
+                src.DPLY_DT, src.ALDT_TYPE, src.ALDT_KEY, src.ALDT_VALUE, src.SRC_TAG, src.SRC_KEY, src.DEF_API_NO, NOW(), NOW()
+            );
+    </update>
+
+    <delete id="delete_BST_SYNC_ADM_API_LINK_DATA" parameterType="map">
+        /* beast.delete_BST_SYNC_ADM_API_LINK_DATA */
+        DELETE FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_API_LINK_DATA
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_API_LINK_DATA
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_API_LINK_DATA
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_API_LINK_DATA
+            </when>
+        </choose>
+        <where>
+            <choose>
+                <when test="aldtType != null and aldtKey != null">
+                    AND (ALDT_TYPE = #{aldtType}) AND (ALDT_KEY = #{aldtKey})
+                </when>
+                <when test="seq != null">
+                    AND (SEQ = #{seq})
+                </when>
+            </choose>
+        </where>
+    </delete>
+    
+    <insert id="insert_BST_IF_EXEC_HIST" parameterType="map" useGeneratedKeys="true" keyProperty="seq">
+        /* beast.insert_BST_IF_EXEC_HIST */
+        INSERT INTO BST_IF_EXEC_HIST (
+            LOG_DATE, LOG_TAG, LOG_MSG, REQ_URI, REQ_METHOD, REQ_HEADER, REQ_BODY, RES_STATUS_CODE, RES_HEADER, RES_BODY
+        )
+        VALUES (
+            NOW(), #{logTag}, #{logMsg}, #{reqUri}, #{reqMethod}, #{reqHeader}, #{reqBody}, #{resStatusCode}, #{resHeader}, #{resBody}
+        )
+    </insert>
+
+    <select id="sel_BST_IF_EXEC_HIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstIfExecHistVO">
+        /* Beast_SQL.sel_BST_IF_EXEC_HIST */
+        SELECT
+            A.SEQ
+            , TO_CHAR(A.LOG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS LOG_DATE
+            , A.LOG_TAG
+            , A.LOG_MSG
+            , A.REQ_URI
+            , A.REQ_METHOD
+            , A.REQ_HEADER
+            , A.REQ_BODY
+            , A.RES_STATUS_CODE
+            , A.RES_HEADER
+            , A.RES_BODY
+        FROM BST_IF_EXEC_HIST A 
+        WHERE (A.SEQ = #{seq})
+    </select>
+
+    <select id="sel_BST_SYNC_ADM_SYS_DPLY" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstSyncAdmSysDplyVO">
+        /* beast.sel_BST_SYNC_ADM_SYS_DPLY */
+        SELECT
+            as_item.DPLY_DT
+            , as_item.DPLY_TYPE
+            , as_item.SYS_ID
+            , as_item.SYS_NM
+            , as_item.SYS_CD
+            , as_item.API_LINK_CD
+            , as_item.EDPT_PROT
+            , as_item.EDPT_ATRIB_URL
+            , as_item.EDPT_ATRIB_CERTI
+            , as_item.EDPT_ATRIB_CERTI_KEY
+            , as_item.EDPT_ATRIB_ECOD
+            , as_item.EDPT_ATRIB_ADDR
+            , as_item.EDPT_ATRIB_MIN_POOL
+            , as_item.EDPT_ATRIB_MAX_POOL
+            , as_item.KOA_SYS_ID
+            , TO_CHAR(as_item.UDATE, 'YYYY-MM-DD HH24:MI:SS') AS UDATE
+            , TO_CHAR(as_item.RDATE, 'YYYY-MM-DD HH24:MI:SS') AS RDATE
+        FROM
+        <choose>
+            <when test="target == 'TB_KTC'">
+                BST_SYNC_TB_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'TB_AZURE'">
+                BST_SYNC_TB_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_KTC'">
+                BST_SYNC_ADM_SYS_DPLY as_item 
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                BST_SYNC_AZURE_ADM_SYS_DPLY as_item 
+            </when>
+        </choose>
+        <where>
+            AND (as_item.DPLY_TYPE = 'DPLY')
+            <if test="sysId != null and sysId != ''">
+                AND (as_item.SYS_ID = #{sysId})
+            </if>
+            <if test="sysNm != null and sysNm != ''">
+                AND (UPPER(as_item.SYS_NM) LIKE CONCAT('%', UPPER(#{sysNm}), '%'))
+            </if>
+            <if test="edptAtribUrl != null and edptAtribUrl != ''">
+                AND (UPPER(as_item.EDPT_ATRIB_URL) LIKE CONCAT('%', UPPER(#{edptAtribUrl}), '%'))
+            </if>
+            <if test="koaSysId != null and koaSysId != ''">
+                AND (as_item.KOA_SYS_ID = #{koaSysId})
+            </if>
+        </where>
+    </select>
+  
+    <select id="sel_T_DEV_APPLY_INFO" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.TDevApplyInfoVO">
+        /* Beast_SQL.sel_T_DEV_APPLY_INFO */
+        SELECT
+            info.DEVAPPLY_SEQ
+            , info.SB_APPINSTID
+            , info.SB_SDP_PW
+            , info.TB_APPINSTID
+            , info.TB_SDP_PW
+            , info.DEV_TITLE
+            , TO_CHAR(info.TBK_V_SDT, 'YYYY-MM-DD HH24:MI:SS') AS tbkVStt
+            , TO_CHAR(info.TBK_V_EDT, 'YYYY-MM-DD HH24:MI:SS') AS tbkVEdt
+            , info.BSTGW_ATRIB_CP_ID
+            , info.BSTGW_ATRIB_SERVICE_ID
+        FROM T_DEV_APPLY_INFO info 
+        WHERE (info.DEVAPPLY_SEQ = #{devapplySeq})
+    </select>
+
+    <select id="sel_T_DEV_APPLY_API_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstDevApplyApiVO">
+        /* Beast_SQL.sel_T_DEV_APPLY_API_list */
+        SELECT
+            A.DEVAPPLY_SEQ
+            , API.API_SEQ
+            , API.API_NM
+            , API.API_CODE
+        FROM T_DEV_APPLY_API A 
+            INNER JOIN T_API_INFO API 
+                ON (API.API_SEQ = A.API_SEQ) AND (API.USE_YN = 'Y') AND (API.PUB_STATUS = '99')
+        WHERE (A.DEVAPPLY_SEQ = #{devapplySeq})
+            AND (A.API_CASE != '3') AND (COALESCE(A.ACTIVE_YN, 'Y') = 'Y')
+        ORDER BY API.API_CODE
+    </select>
+
+    <select id="sel_getIp_list" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstIpListVO">
+        /* Beast_SQL.sel_getIp_list */
+        SELECT
+            #{target} AS target
+            , IP_LIST_SEQ
+            , IP
+        <choose>
+            <when test="target == 'PRD_KTC'">
+                FROM T_DEV_APPLY_IP_REQ_LIST 
+                WHERE 
+                    (TS_GB = 'S')
+                    AND (IP_SEQ = 
+                        (SELECT IP_SEQ
+                        FROM T_DEV_APPLY_IP_REQ 
+                        WHERE (DEVAPPLY_SEQ = #{devapplySeq}) AND (PAGE_GB = 'D')
+                        ORDER BY REG_DT DESC
+                        LIMIT 1
+                        )
+                    )
+            </when>
+            <when test="target == 'PRD_AZURE'">
+                FROM T_DEV_APPLY_IP_REQ_LIST 
+                WHERE 
+                    (TS_GB = 'S')
+                    AND (IP_SEQ = 
+                        (SELECT IP_SEQ
+                        FROM T_DEV_APPLY_IP_REQ 
+                        WHERE (DEVAPPLY_SEQ = #{devapplySeq}) AND (PAGE_GB = 'D')
+                        ORDER BY REG_DT DESC
+                        LIMIT 1
+                        )
+                    )
+            </when>
+            <when test="target == 'TB_KTC'">
+                FROM T_DEV_APPLY_IP_LIST 
+                WHERE 
+                    (TS_GB = 'T')
+                    AND (DEVAPPLY_SEQ = #{devapplySeq})
+            </when>
+            <when test="target == 'TB_AZURE'">
+                FROM T_DEV_APPLY_IP_LIST 
+                WHERE 
+                    (TS_GB = 'T')
+                    AND (DEVAPPLY_SEQ = #{devapplySeq})
+            </when>
+        </choose>
+        ORDER BY IP_LIST_SEQ
+    </select>
+
+    <select id="selApiDeployBeastList" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiDeployVO">
+        /* Beast_SQL.selApiDeployBeastList */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" /> 
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY DEF.AMD_DT DESC) rownum
+            , DEF.API_NO AS API_NO
+            , DEF.API_NM AS API_NM
+            , COALESCE(DEF.API_VER, '') API_VER
+            , TO_CHAR(DEF.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            , DEF.DPLY_REQ_FLAG
+            , TO_CHAR(DEF.DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_REQ_FLAG_DATE
+            , DEF.TB_DPLY_STATUS
+            , TO_CHAR(DEF.TB_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS TB_DPLY_STATUS_DATE
+            , DEF.DPLY_VERI_STATUS
+            , TO_CHAR(DEF.DPLY_VERI_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_VERI_STATUS_DATE
+            , DEF.PRD_DPLY_REQ_FLAG
+            , TO_CHAR(DEF.PRD_DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_REQ_FLAG_DATE
+            , DEF.PRD_DPLY_STATUS
+            , TO_CHAR(DEF.PRD_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_STATUS_DATE
+            , SYS.SYS_NM AS sys_SYS_NM
+            , SPC.API_NM AS spc_API_NM
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_selApiDeployBeastList"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="selApiDeployBeastCount" parameterType="map" resultType="int">
+        /* beast.selApiDeployBeastCount */
+        SELECT COUNT(*) AS count
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_selApiDeployBeastList"/>
+        </where>
+    </select>
+
+    <select id="selDeployView" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiDeployVO">
+        /* beast.selDeployView */
+        SELECT
+            DEF.API_NO
+            , DEF.API_NM
+            , COALESCE(DEF.API_VER, '') AS API_VER
+            , DEF.API_PATH
+            , DEF.API_ID
+            , COALESCE(DEF.ENDPNT_TB_URL,'') AS ENDPNT_TB_URL
+            , TO_CHAR(DEF.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            , DEF.DPLY_REQ_FLAG
+            , TO_CHAR(DEF.DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_REQ_FLAG_DATE
+            , DEF.TB_DPLY_STATUS
+            , TO_CHAR(DEF.TB_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS TB_DPLY_STATUS_DATE
+            , DEF.DPLY_VERI_STATUS
+            , TO_CHAR(DEF.DPLY_VERI_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_VERI_STATUS_DATE
+            , DEF.PRD_DPLY_REQ_FLAG
+            , TO_CHAR(DEF.PRD_DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_REQ_FLAG_DATE
+            , DEF.PRD_DPLY_STATUS
+            , TO_CHAR(DEF.PRD_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_STATUS_DATE
+            , SYS.SYS_NM AS sys_SYS_NM
+            , SPC.API_NM AS spc_API_NM
+            , SPC.API_VERI_BASEURL AS spc_API_VERI_BASEURL
+            , COALESCE((SELECT CD_NM FROM KOA_TB_COMN_CD AS sub  WHERE (sub.COMN_CD = DEF.API_HANDLER_CD )), '') AS API_HANDLER_CD_NM 
+            , (SELECT COUNT(*) 
+                FROM KOA_TB_API_PARAM AS sub 
+                WHERE (sub.API_NO = DEF.API_NO)
+                    AND (sub.PARAM_NM IN ('bizHeader','orderId','cbSvcName','cbFnName')) 
+                    AND (sub.PARAM_TYPE_CD = 'PRMTYP1010')
+                    AND (sub.REQUIRED = 'Y')
+                ) AS fmt_REQUIRED_CNT
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        WHERE 
+            (DEF.API_NO = #{apiNo}) 
+    </select>
+
+    <select id="selBeastApiCountGroupByStatus" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiStatusCountVO">
+        /* beast.selBeastApiCountGroupByStatus */
+        SELECT COUNT(*) AS count
+            , DEF.DPLY_REQ_FLAG
+            , DEF.TB_DPLY_STATUS
+            , DEF.DPLY_VERI_STATUS
+            , DEF.PRD_DPLY_REQ_FLAG
+            , DEF.PRD_DPLY_STATUS
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_selApiDeployBeastList"/>
+        </where>
+        GROUP BY
+            DEF.DPLY_REQ_FLAG
+            , DEF.TB_DPLY_STATUS
+            , DEF.DPLY_VERI_STATUS
+            , DEF.PRD_DPLY_REQ_FLAG
+            , DEF.PRD_DPLY_STATUS
+    </select>
+
+    <sql id="ref_where_select_apitraffic_spc">
+        <!-- API-traffic-조회대상 -SYS,SPC검색조건 -->
+        (SPC.BSTGW_YN = 'Y')  
+        <if test="sysId != null and sysId != ''">
+            AND (SPC.SYS_ID = #{sysId})
+        </if>
+        <if test="apiSpcNo != null and apiSpcNo != ''">
+            AND (SPC.API_SPC_NO = #{apiSpcNo})
+        </if>
+        <include refid="ref_where_filter_auth_by_spc_sysid"/>
+    </sql>
+
+    <sql id="ref_where_select_apitraffic_def">
+        <!-- API-traffic-조회대상 -DEF검색조건 -->
+        <if test="apiNm != null and apiNm != ''">
+            AND (UPPER(DEF.API_NM) LIKE ('%' + UPPER(#{apiNm}) + '%')) 
+        </if>
+        <if test="apiNo != null and apiNo != ''">
+            AND (DEF.API_NO = #{apiNo})
+        </if>
+        <if test="dplyReqFlag != null and dplyReqFlag != ''">
+            AND (DEF.DPLY_REQ_FLAG = #{dplyReqFlag}) 
+        </if>
+        <if test="tbDplyStatus != null and tbDplyStatus != ''">
+            AND (DEF.TB_DPLY_STATUS = #{tbDplyStatus}) 
+        </if>
+        <if test="dplyVeriStatus != null and dplyVeriStatus != ''">
+            AND (DEF.DPLY_VERI_STATUS = #{dplyVeriStatus}) 
+        </if>
+        <if test="prdDplyReqFlag != null and prdDplyReqFlag != ''">
+            AND (DEF.PRD_DPLY_REQ_FLAG = #{prdDplyReqFlag}) 
+        </if>
+        <if test="prdDplyStatus != null and prdDplyStatus != ''">
+            AND (DEF.PRD_DPLY_STATUS = #{prdDplyStatus}) 
+        </if>
+    </sql>
+
+    <select id="select_apitraffic_spclist" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiTrafficVO">
+        /* Beast_SQL.select_apitraffic_spclist */
+        SELECT
+            SPC.API_SPC_NO AS API_SPC_NO
+            , SPC.API_NM AS spc_API_NM
+            , SYS.SYS_ID AS sys_SYS_ID
+            , SYS.SYS_NM AS sys_SYS_NM
+        FROM
+            (<include refid="viewApiSpcLatest"/>) AS SPC
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        WHERE
+            SPC.API_SPC_NO IN (
+                SELECT DEF.API_SPC_NO
+                FROM KOA_TB_API_DEF AS DEF 
+                <where>
+                    <include refid="ref_where_select_apitraffic_def"/>
+                </where>
+            )
+            AND
+            <include refid="ref_where_select_apitraffic_spc"/>
+        ORDER BY SPC.API_NM
+    </select>
+
+    <select id="select_apitraffic_deflist" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiTrafficVO">
+        /* Beast_SQL.select_apitraffic_deflist */
+        SELECT
+            DEF.API_NO AS API_NO
+            , DEF.API_SPC_NO AS API_SPC_NO
+            , DEF.API_NM AS API_NM
+            , SYS.SYS_ID AS sys_SYS_ID
+            , SYS.SYS_NM AS sys_SYS_NM
+            , SPC.API_NM AS spc_API_NM
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            <include refid="ref_where_select_apitraffic_def"/>
+        </where>
+        ORDER BY DEF.API_NM
+    </select>
+
+    <select id="select_apitraffic_api" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiTrafficVO">
+        /* Beast_SQL.select_apitraffic_api */
+        SELECT
+            A.STAT_DT
+            , A.API_NM
+            , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+            , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+            , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="apiNm != null and apiNm != ''">
+                AND (A.API_NM = #{apiNm})
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, A.API_NM
+        ORDER BY A.API_NM, A.STAT_DT 
+    </select>
+
+    <select id="select_apitraffic_defapi" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.BstApiTrafficVO">
+        /* Beast_SQL.select_apitraffic_defapi */
+        SELECT
+            A.STAT_DT
+            , DEF.API_NM AS def_API_NM
+            , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+            , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+            , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="defApiNm != null and defApiNm != ''">
+                AND (DEF.API_NM = #{defApiNm})
+            </if>
+            <if test="top != null">
+                AND DEF.API_NM IN (
+                    SELECT
+                        sub_DEF.API_NM
+                    FROM KOA_TB_STAT_API_SVC sub_A 
+                        INNER JOIN KOA_TB_API_DEF AS sub_DEF  ON (sub_DEF.API_NM = sub_A.API_NM)
+                        INNER JOIN KOA_TB_API_SPC AS sub_SPC  ON (sub_SPC.API_SPC_NO = sub_DEF.API_SPC_NO)
+                    WHERE (sub_SPC.BSTGW_YN = 'Y')
+                        AND (sub_A.SYS_ID = 'SHUB')
+                        AND (sub_A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+                        <if test="authSysIdList != null">
+                            AND sub_SPC.SYS_ID IN 
+                            <foreach item="item" collection="authSysIdList" open="(" separator="," close=")">
+                                #{item}
+                            </foreach>
+                        </if>
+                    GROUP BY sub_DEF.API_NM
+                    ORDER BY SUM(CAST(COALESCE(sub_A.RQT_CNT, 0) AS BIGINT)) DESC
+                    LIMIT #{top}
+                )
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, DEF.API_NM
+        ORDER BY DEF.API_NM, A.STAT_DT 
+    </select>
+
+    <select id="select_apitraffic_defapi_v1" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_defapi_v1 */
+        SELECT
+        A.STAT_DT
+        , DEF.API_NM AS def_API_NM
+        , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+        , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+        , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+        INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+        INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="defApiNm != null and defApiNm != ''">
+                AND (DEF.API_NM = #{defApiNm})
+            </if>
+            <if test="top != null">
+                AND DEF.API_NM IN (
+                    SELECT
+                        sub_DEF.API_NM
+                    FROM KOA_TB_STAT_API_SVC sub_A 
+                        INNER JOIN KOA_TB_API_DEF AS sub_DEF  ON (sub_DEF.API_NM = sub_A.API_NM)
+                        INNER JOIN KOA_TB_API_SPC AS sub_SPC  ON (sub_SPC.API_SPC_NO = sub_DEF.API_SPC_NO)
+                    WHERE (sub_SPC.BSTGW_YN = 'Y')
+                        AND (sub_A.SYS_ID = 'SHUB')
+                        AND (sub_A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+                        <if test="authSysIdList != null">
+                            AND sub_SPC.SYS_ID IN 
+                            <foreach item="item" collection="authSysIdList" open="(" separator="," close=")">
+                                #{item}
+                            </foreach>
+                        </if>
+                    GROUP BY sub_DEF.API_NM
+                    ORDER BY SUM(CAST(COALESCE(sub_A.RQT_CNT, 0) AS BIGINT)) DESC
+                    LIMIT #{top}
+                )
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, DEF.API_NM
+        ORDER BY A.STAT_DT, SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) DESC
+    </select>
+
+    <update id="delete_PORTAL_SVC_TB" parameterType="map">
+        /* beast.delete_PORTAL_SVC */
+        UPDATE T_DEV_APPLY_INFO 
+        SET DEL_YN = 'Y' 
+        WHERE TB_APPINSTID = #{svcId}
+    </update>
+
+    <update id="delete_PORTAL_SVC_SB" parameterType="map">
+        /* beast.delete_PORTAL_SVC */
+        UPDATE T_DEV_APPLY_INFO 
+        SET DEL_YN = 'Y' 
+        WHERE SB_APPINSTID = #{svcId}
+    </update>
+
+    <select id="sel_SB_CHECK" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.TDevApplyInfoVO">
+        /* beast.sel_SB_CHECK */
+        SELECT
+            SB_APPINSTID, DEL_YN, DEVAPPLY_SEQ
+        FROM T_DEV_APPLY_INFO 
+        WHERE TB_APPINSTID = #{svcId}
+    </select>
+
+    <select id="sel_TB_APPINSTID" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.TDevApplyInfoVO">
+        /* beast.sel_TB_APPINSTID */
+        SELECT TB_APPINSTID
+        FROM T_DEV_APPLY_INFO 
+        WHERE SB_APPINSTID = #{svcId}
+    </select>
+
+    <!-- [마이그레이션] KsmCmnDAO.selectQueryList() → BeastDAO로 이전 (Map 기반) -->
+    <select id="selApiDeployBeastList_map" parameterType="map" resultType="map">
+        /* Beast_SQL.selApiDeployBeastList_map */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" /> 
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY DEF.AMD_DT DESC) rownum
+            , DEF.API_NO AS API_NO
+            , DEF.API_NM AS API_NM
+            , COALESCE(DEF.API_VER, '') API_VER
+            , TO_CHAR(DEF.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+            , DEF.DPLY_REQ_FLAG
+            , TO_CHAR(DEF.DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_REQ_FLAG_DATE
+            , DEF.TB_DPLY_STATUS
+            , TO_CHAR(DEF.TB_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS TB_DPLY_STATUS_DATE
+            , DEF.DPLY_VERI_STATUS
+            , TO_CHAR(DEF.DPLY_VERI_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DPLY_VERI_STATUS_DATE
+            , DEF.PRD_DPLY_REQ_FLAG
+            , TO_CHAR(DEF.PRD_DPLY_REQ_FLAG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_REQ_FLAG_DATE
+            , DEF.PRD_DPLY_STATUS
+            , TO_CHAR(DEF.PRD_DPLY_STATUS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PRD_DPLY_STATUS_DATE
+            , SYS.SYS_NM AS sys_SYS_NM
+            , SPC.API_NM AS spc_API_NM
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_selApiDeployBeastList"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+
+    <select id="selBeastApiCountGroupByStatus_map" parameterType="map" resultType="map">
+        /* beast.selBeastApiCountGroupByStatus_map */
+        SELECT COUNT(*) AS count
+            , DEF.DPLY_REQ_FLAG
+            , DEF.TB_DPLY_STATUS
+            , DEF.DPLY_VERI_STATUS
+            , DEF.PRD_DPLY_REQ_FLAG
+            , DEF.PRD_DPLY_STATUS
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_selApiDeployBeastList"/>
+        </where>
+        GROUP BY
+            DEF.DPLY_REQ_FLAG
+            , DEF.TB_DPLY_STATUS
+            , DEF.DPLY_VERI_STATUS
+            , DEF.PRD_DPLY_REQ_FLAG
+            , DEF.PRD_DPLY_STATUS
+    </select>
+
+    <select id="select_apitraffic_spclist_map" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_spclist_map */
+        SELECT
+            SPC.API_SPC_NO AS API_SPC_NO
+            , SPC.API_NM AS spc_API_NM
+            , SYS.SYS_ID AS sys_SYS_ID
+            , SYS.SYS_NM AS sys_SYS_NM
+        FROM
+            (<include refid="viewApiSpcLatest"/>) AS SPC
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        WHERE
+            SPC.API_SPC_NO IN (
+                SELECT DEF.API_SPC_NO
+                FROM KOA_TB_API_DEF AS DEF 
+                <where>
+                    <include refid="ref_where_select_apitraffic_def"/>
+                </where>
+            )
+            AND
+            <include refid="ref_where_select_apitraffic_spc"/>
+        ORDER BY SPC.API_NM
+    </select>
+
+    <select id="select_apitraffic_deflist_map" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_deflist_map */
+        SELECT
+            DEF.API_NO AS API_NO
+            , DEF.API_SPC_NO AS API_SPC_NO
+            , DEF.API_NM AS API_NM
+            , SYS.SYS_ID AS sys_SYS_ID
+            , SYS.SYS_NM AS sys_SYS_NM
+            , SPC.API_NM AS spc_API_NM
+        FROM
+            KOA_TB_API_DEF AS DEF 
+                INNER JOIN (<include refid="viewApiSpcLatest"/>) AS SPC ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+                INNER JOIN KOA_TB_API_SYSTEM AS SYS  ON (SYS.SYS_ID = SPC.SYS_ID)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            <include refid="ref_where_select_apitraffic_def"/>
+        </where>
+        ORDER BY DEF.API_NM
+    </select>
+
+    <select id="select_apitraffic_api_map" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_api_map */
+        SELECT
+            A.STAT_DT
+            , A.API_NM
+            , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+            , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+            , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="apiNm != null and apiNm != ''">
+                AND (A.API_NM = #{apiNm})
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, A.API_NM
+        ORDER BY A.API_NM, A.STAT_DT 
+    </select>
+
+    <select id="select_apitraffic_defapi_map" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_defapi_map */
+        SELECT
+            A.STAT_DT
+            , DEF.API_NM AS def_API_NM
+            , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+            , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+            , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="defApiNm != null and defApiNm != ''">
+                AND (DEF.API_NM = #{defApiNm})
+            </if>
+            <if test="top != null">
+                AND DEF.API_NM IN (
+                    SELECT
+                        sub_DEF.API_NM
+                    FROM KOA_TB_STAT_API_SVC sub_A 
+                        INNER JOIN KOA_TB_API_DEF AS sub_DEF  ON (sub_DEF.API_NM = sub_A.API_NM)
+                        INNER JOIN KOA_TB_API_SPC AS sub_SPC  ON (sub_SPC.API_SPC_NO = sub_DEF.API_SPC_NO)
+                    WHERE (sub_SPC.BSTGW_YN = 'Y')
+                        AND (sub_A.SYS_ID = 'SHUB')
+                        AND (sub_A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+                        <if test="authSysIdList != null">
+                            AND sub_SPC.SYS_ID IN 
+                            <foreach item="item" collection="authSysIdList" open="(" separator="," close=")">
+                                #{item}
+                            </foreach>
+                        </if>
+                    GROUP BY sub_DEF.API_NM
+                    ORDER BY SUM(CAST(COALESCE(sub_A.RQT_CNT, 0) AS BIGINT)) DESC
+                    LIMIT #{top}
+                )
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, DEF.API_NM
+        ORDER BY DEF.API_NM, A.STAT_DT 
+    </select>
+
+    <select id="select_apitraffic_defapi_v1_map" parameterType="map" resultType="map">
+        /* Beast_SQL.select_apitraffic_defapi_v1_map */
+        SELECT
+            A.STAT_DT
+            , DEF.API_NM AS def_API_NM
+            , SUM(CAST(COALESCE(A.SUCES_CNT, 0) AS BIGINT)) AS SUCES_CNT
+            , SUM(CAST(COALESCE(A.FAIL_CNT, 0) AS BIGINT)) AS FAIL_CNT
+            , SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) AS RQT_CNT
+        FROM KOA_TB_STAT_API_SVC A 
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON (DEF.API_NM = A.API_NM)
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON (SPC.API_SPC_NO = DEF.API_SPC_NO)
+        <where>
+            <include refid="ref_where_select_apitraffic_spc"/>
+            AND (A.SYS_ID = 'SHUB')
+            AND (A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+            <if test="defApiNm != null and defApiNm != ''">
+                AND (DEF.API_NM = #{defApiNm})
+            </if>
+            <if test="top != null">
+                AND DEF.API_NM IN (
+                    SELECT
+                        sub_DEF.API_NM
+                    FROM KOA_TB_STAT_API_SVC sub_A 
+                        INNER JOIN KOA_TB_API_DEF AS sub_DEF  ON (sub_DEF.API_NM = sub_A.API_NM)
+                        INNER JOIN KOA_TB_API_SPC AS sub_SPC  ON (sub_SPC.API_SPC_NO = sub_DEF.API_SPC_NO)
+                    WHERE (sub_SPC.BSTGW_YN = 'Y')
+                        AND (sub_A.SYS_ID = 'SHUB')
+                        AND (sub_A.STAT_DT BETWEEN #{fdate} AND #{tdate})
+                        <if test="authSysIdList != null">
+                            AND sub_SPC.SYS_ID IN 
+                            <foreach item="item" collection="authSysIdList" open="(" separator="," close=")">
+                                #{item}
+                            </foreach>
+                        </if>
+                    GROUP BY sub_DEF.API_NM
+                    ORDER BY SUM(CAST(COALESCE(sub_A.RQT_CNT, 0) AS BIGINT)) DESC
+                    LIMIT #{top}
+                )
+            </if>
+        </where>
+        GROUP BY A.STAT_DT, DEF.API_NM
+        ORDER BY A.STAT_DT, SUM(CAST(COALESCE(A.RQT_CNT, 0) AS BIGINT)) DESC
+    </select>
+
+</mapper>

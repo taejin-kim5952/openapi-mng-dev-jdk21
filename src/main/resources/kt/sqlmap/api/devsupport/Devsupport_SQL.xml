@@ -1,0 +1,291 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.devsupport.dao.DevSupportDAO">
+
+    <!-- 공지사항 목록 조회 -->
+    <select id="selDevSupportList" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportList */ 
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT 
+              ROW_NUMBER() OVER (ORDER BY REG_DT DESC) rownum
+              ,[PSTING_ID]
+              ,[BBS_TYPE_CD]
+              ,[PSTING_NO]
+              ,[TITLE]
+              ,[SBST]
+              ,[RETV_NUM]
+              ,[SHOW_YN]
+              ,[IMPT_YN]
+              ,[DEL_YN]
+              ,TO_CHAR(REG_DT, 'YYYY.MM.DD')  REG_DT
+              ,[REGR]
+              ,[AMD_DT]
+              ,COALESCE(AMDR,'') AS AMDR
+              ,[DEVSUPPORT_GB]
+              ,[SERVICEINFRA_NM] AS SERVICEINFRAN 
+              ,[STATUS]
+              ,[DEVSUPPORT_GB] supportgb
+          FROM [dbo].[KOA_TB_DEVSUPPORT_BBS] 
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+    
+    <!-- 개발자 포럼 글 등록 -->
+    <insert id="saveForum" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportSaveVo" useGeneratedKeys="true" keyProperty="pstingId"> 
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.saveForum */ 
+        INSERT INTO KOA_TB_DEVSUPPORT_BBS
+           (TITLE
+           ,SBST
+           ,BBS_TYPE_CD
+           ,IMPT_YN
+           ,REG_DT
+           ,REGR
+           ,AMD_DT
+           ,AMDR
+           ,SHOW_YN
+           ,RETV_NUM
+           ,PSTING_NO
+           ,DEVSUPPORT_GB
+           ,SERVICEINFRA_NM
+           ,SERVICE_BO
+           ,SERVICE_DO
+           ,ADC_ID
+           ,SERVICE_CODE)
+        VALUES
+           (#{title}
+           ,#{sbst}
+           ,#{bbsTypeCd}
+           ,#{imptYn}
+           ,NOW()
+           ,#{regr}
+           ,NOW()
+           ,#{regr}
+           ,'Y'
+           ,0 
+           ,(SELECT COALESCE(MAX(PSTING_NO ) , 1) FROM KOA_TB_DEVSUPPORT_BBS  WHERE BBS_TYPE_CD = #{bbsTypeCd}) + 1
+           ,#{devSupport_GB}
+           ,#{serviceInfra_NM}
+           ,#{service_BO}
+           ,#{service_DO}
+           ,#{adcId}
+           ,#{serviceCode}
+           )
+    </insert>
+    
+    <!-- 공지사항 목록 개수 조회 -->
+    <select id="selDevSupportListCnt" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="int">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportListCnt */ 
+        SELECT
+              COUNT(*) AS cnt
+        FROM KOA_TB_DEVSUPPORT_BBS 
+        WHERE 1=1
+        <if test="bbsTypeCd != null and bbsTypeCd != ''">
+            AND BBS_TYPE_CD = #{bbsTypeCd}
+        </if>
+    </select>
+    
+    <!-- 기술지원 상세보기 -->
+    <select id="selDevSupportVoView" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportVoView */ 
+        SELECT
+              B.PSTING_ID
+              ,B.TITLE
+              ,B.SBST
+              ,B.BBS_TYPE_CD 
+              ,B.IMPT_YN
+              ,TO_CHAR(B.REG_DT, 'YYYY-MM-DD') AS REG_DT
+              ,SUBSTRING(B.REGR, 0 ,  LENGTH(B.REGR)-2) +  REPEAT('*', 3) AS REGR
+              ,TO_CHAR(B.AMD_DT, 'YYYY-MM-DD') AS AMD_DT
+              ,COALESCE(B.AMDR,'') AS AMDR
+              ,'홍길순' AS REGRN  
+              ,B.DEVSUPPORT_GB SUPPORTGB
+              ,B.SHOW_YN
+              ,B.PREV_PSTING_ID
+              ,B.NEXT_PSTING_ID
+              ,B.PREV_TITLE
+              ,B.NEXT_TITLE
+              ,SERVICEINFRA_NM AS SERVINFRAN
+              ,(SELECT USER_NM_C FROM T_USER_INFO AA  WHERE AA.USER_SEQ = B.SERVICE_BO) AS BUSERN
+              ,(SELECT USER_NM_C FROM T_USER_INFO AA  WHERE AA.USER_SEQ = B.SERVICE_DO) AS DUSERN
+              ,ADC_ID AS ADCI
+              ,SERVICE_CODE AS SERVC
+              ,STATUS
+              ,COMMENT
+              ,SERVICE_BO AS SERVBO
+              ,SERVICE_DO AS SERVDO
+              FROM (
+                    SELECT A.*
+                                , LAG(A.PSTING_ID, 1, 0) OVER ( ORDER BY A.REG_DT DESC)  AS PREV_PSTING_ID
+                                , LEAD(A.PSTING_ID, 1, 0) OVER ( ORDER BY A.REG_DT DESC) AS NEXT_PSTING_ID
+                                , LAG(A.TITLE, 1, '') OVER ( ORDER BY A.REG_DT DESC) AS PREV_TITLE
+                                , LEAD(A.TITLE, 1, '') OVER ( ORDER BY A.REG_DT DESC) AS NEXT_TITLE
+                      FROM KOA_TB_DEVSUPPORT_BBS A 
+                    WHERE 1=1
+                        AND SHOW_YN = 'Y'
+                        <if test="imptYn != null and imptYn != ''">
+                            AND IMPT_YN = #{imptYn}
+                        </if>  
+                        <if test="bbsTypeCd != null and bbsTypeCd != ''">
+                            AND BBS_TYPE_CD = #{bbsTypeCd}
+                        </if>
+              ) B
+        WHERE 1=1
+            <if test="pstingId != null and pstingId != ''">
+                AND B.PSTING_ID = #{pstingId}
+            </if>
+    </select>
+    
+    <!-- QnA 첨부파일 보기 -->
+    <select id="selDevSupportFileList" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportFileVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportFileList */
+        SELECT
+            ATC_FILE_NO,
+            DEVSUPPORT_BBS_ID AS PSTING_ID,
+            FILE_TYPE_CD,
+            FILE_PATH,
+            FILE_SIZE,
+            ORIGIN_FILE_NM,
+            SAVE_FILE_NM,
+            USE_YN,
+            DOWNL_CNT,
+            SHOW_ODRG,
+            REG_DT,
+            COALESCE(REGR,'') AS REGR,
+            AMD_DT,
+            COALESCE(AMDR,'') AS AMDR
+        FROM KOA_TB_DEVSUPPORT_BBS_ATC 
+        WHERE 1=1
+        AND DEVSUPPORT_BBS_ID = #{pstingId}
+        AND USE_YN = 'Y'
+    </select>
+    
+    <!-- 기술지원등록 첨부파일 등록 -->
+    <insert id="devSupportFileReg" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportFileVo" useGeneratedKeys="true" keyProperty="atcFileNo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.devSupportFileReg */ 
+        INSERT INTO KOA_TB_DEVSUPPORT_BBS_ATC
+           (DEVSUPPORT_BBS_ID
+           ,SAVE_FILE_NM
+           ,ORIGIN_FILE_NM
+           ,FILE_TYPE_CD
+           ,FILE_PATH
+           ,FILE_SIZE
+           ,USE_YN
+           ,DOWNL_CNT
+           ,SHOW_ODRG
+           ,REG_DT 
+           ,REGR
+           )
+        VALUES
+           (#{pstingId}
+           ,#{saveFileNm}
+           ,#{originFileNm}
+           ,#{fileTypeCd}
+           ,#{filePath}
+           ,#{fileSize}
+           ,'Y'
+           ,0
+           ,1
+           ,NOW()
+           ,#{regr}
+           )
+    </insert>
+    
+    <!-- 서비스명 자동 입력을 위한 이전 신청 내역 조회 -->
+    <select id="selDevSupportMyServiceList" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportMyServiceList */ 
+        SELECT [SERVICEINFRA_NM] myServiceInfraNm
+        FROM [KOA_TB_DEVSUPPORT_BBS] 
+        WHERE [SERVICEINFRA_NM] IS NOT NULL 
+        <if test="regr != null and regr != ''">
+            AND REGR = #{regr}
+        </if>
+        GROUP BY [SERVICEINFRA_NM]
+    </select>
+    
+    <!-- 사업담당자 검색 -->
+    <select id="selDevSupportManagerList" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportManagerVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportManagerVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportManagerList */ 
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT  
+            ROW_NUMBER() OVER (ORDER BY REG_DT DESC) rownum,
+            USER_SEQ, 
+            USER_ID_OLD, 
+            AUTH_SEQ, 
+            USER_NM_OLD, 
+            TEL_NO, 
+            EMAIL, 
+            DEP_NM, 
+            COMPANY_NM, 
+            COMPANY_TEL, 
+            COMPANY_EMAIL, 
+            USE_YN, 
+            DEL_YN, 
+            REG_DT, 
+            LOGIN_DT, 
+            USER_NM_D, 
+            USER_ID_D, 
+            USER_NM_C, 
+            USER_ID_C, 
+            DATA1, 
+            DATA2, 
+            DATA3
+        FROM T_USER_INFO 
+        WHERE DEL_YN = 'N' AND USER_NM_C IS NOT NULL AND USER_ID_C IS NOT NULL 
+        <if test="userIdC != null and userIdC != ''">
+            AND USER_ID_C = #{userIdC}
+        </if>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+    </select>
+    
+    <!-- 사업담당자 개수 조회 -->
+    <select id="selDevSupportManagerCnt" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportManagerVo" resultType="int">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportManagerCnt */ 
+        SELECT  
+            COUNT(*) AS cnt
+        FROM T_USER_INFO 
+        WHERE DEL_YN = 'N'
+        <if test="userIdC != null and userIdC != ''">
+            AND USER_ID_C = #{userIdC}
+        </if>
+    </select>
+    
+    <!-- 기술지원 수정 -->
+    <update id="updateDevSupport" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportSaveVo"> 
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.updateDevSupport */
+        UPDATE KOA_TB_DEVSUPPORT_BBS
+        SET
+           TITLE = #{title}
+           ,SBST = #{sbst}
+           ,AMD_DT = NOW()
+           ,AMDR = #{regr}
+           ,DEVSUPPORT_GB = #{devSupport_GB}
+           ,SERVICEINFRA_NM = #{service_BO}
+           ,SERVICE_DO = #{service_DO}
+           ,ADC_ID  = #{adcId}
+           ,SERVICE_CODE = #{serviceCode}
+        WHERE PSTING_ID = #{pstingId}
+    </update>
+    
+    <!-- 첨부파일 삭제 -->
+    <delete id="delDevSupportFile" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportSaveVo"> 
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.delDevSupportFile */
+        DELETE FROM KOA_TB_DEVSUPPORT_BBS_ATC
+        WHERE ATC_FILE_NO = #{delAtcFileNo}      
+    </delete>
+    
+    <!-- 최신 SDK 조회 -->
+    <select id="selDevSupportSdk" resultType="com.kt.openapi.web.devsupport.vo.DevSupportFileVo">
+        /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportSdk */
+        SELECT 
+            ORIGIN_FILE_NM, 
+            FILE_PATH,
+            FILE_TYPE_CD,
+            SAVE_FILE_NM
+        FROM KOA_TB_DEVSUPPORT_SDK AA 
+        INNER JOIN KOA_TB_DEVSUPPORT_BBS_ATC BB  ON AA.SDKPOST_ID = BB.DEVSUPPORT_BBS_ID 
+        WHERE FILE_TYPE_CD = 'FILTYP6000'
+        ORDER BY SDKPOST_ID DESC 
+        LIMIT 1
+    </select>
+
+</mapper>

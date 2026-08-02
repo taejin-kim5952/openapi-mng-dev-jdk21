@@ -1,0 +1,333 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.api.dao.ApiSensitiveInfoDAO">
+	
+	<!-- 
+		API 민감정보 파라미터 목록 조회
+		- KOA_TB_API_DEF, KOA_TB_API_PARAM, BST_SYNC_ADM_API_DPLY, BST_SYNC_ADM_SYS_DPLY 조인
+		- SYS_NM 이 NULL 인 데이터 제외
+		- 시스템명 기준으로 정렬
+	-->
+	<select id="getParamList" resultType="com.kt.openapi.web.api.vo.ApiSensitiveParamVO">
+		<![CDATA[
+			SELECT 
+				apiId,
+				apiNm,
+				systemId,
+				systemNm,
+				paramNo,
+				paramNm,
+				paramType,
+				paramDesc,
+				currentGrade
+			FROM (
+				SELECT 
+					CAST(A.API_ID AS VARCHAR($n)) as apiId,
+					A.API_NM as apiNm,
+					CAST(MIN(B2.SYS_ID) AS VARCHAR(50)) as systemId,
+					MIN(C.SYS_NM) as systemNm,
+					CAST(MIN(B.PARAM_NO) AS VARCHAR(50)) as paramNo,
+					B.PARAM_NM as paramNm,
+					B.PARAM_TYPE_CD as paramType,
+					B.PARAM_DESC as paramDesc,
+					CASE Latest.SENSITIVITY_LEVEL
+						WHEN '1' THEN '1 등급'
+						WHEN '2' THEN '2 등급'
+						ELSE NULL
+					END as currentGrade,
+					ROW_NUMBER() OVER (PARTITION BY A.API_ID, B.PARAM_NM ORDER BY Latest.CREATED_AT DESC) as RN
+				FROM KOA_TB_API_DEF A
+				INNER JOIN KOA_TB_API_PARAM B ON A.API_NO = B.API_NO
+				LEFT JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+				LEFT JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+				LEFT JOIN LATERAL (
+					SELECT SENSITIVITY_LEVEL, CREATED_AT
+					FROM SENSITIVE_INFO_SURVEY S
+					WHERE S.API_ID = A.API_ID AND S.PARAMETER_NAME = B.PARAM_NM
+					ORDER BY S.CREATED_AT DESC
+					LIMIT 1
+				) Latest ON TRUE
+				WHERE A.USE_YN = 'Y'
+				  AND B.HIDDEN = 'N'
+				  AND C.SYS_NM IS NOT NULL
+				GROUP BY A.API_ID, A.API_NM, B.PARAM_NM, B.PARAM_TYPE_CD, B.PARAM_DESC, C.SYS_NM, Latest.SENSITIVITY_LEVEL, Latest.CREATED_AT
+				
+				UNION ALL
+				
+				SELECT 
+					CAST(S.API_ID AS VARCHAR($n)) as apiId,
+					COALESCE(A.API_NM, '') as apiNm,
+					CAST(S.SYS_ID AS VARCHAR($n)) as systemId,
+					S.SYS_NM as systemNm,
+					'0' as paramNo,
+					S.PARAMETER_NAME as paramNm,
+					S.PARAMETER_TYPE as paramType,
+					S.PARAMETER_DESC as paramDesc,
+					CASE S.SENSITIVITY_LEVEL
+						WHEN '1' THEN '1 등급'
+						WHEN '2' THEN '2 등급'
+						ELSE NULL
+					END as currentGrade,
+					ROW_NUMBER() OVER (PARTITION BY S.API_ID, S.PARAMETER_NAME ORDER BY S.CREATED_AT DESC) as RN
+				FROM SENSITIVE_INFO_SURVEY S
+				LEFT JOIN KOA_TB_API_DEF A ON S.API_ID = A.API_ID
+				WHERE S.SYS_NM IS NOT NULL
+				  AND NOT EXISTS (
+					  SELECT 1 FROM KOA_TB_API_DEF A2
+					  INNER JOIN KOA_TB_API_PARAM B ON A2.API_NO = B.API_NO
+					  WHERE A2.API_ID = S.API_ID AND B.PARAM_NM = S.PARAMETER_NAME
+				  )
+			) T
+			WHERE T.RN = 1
+			ORDER BY systemNm, apiId
+		]]>
+	</select>
+	
+	<!-- 
+		시스템명 필터링으로 파라미터 목록 조회
+		@param sysnm 시스템명 (필터링용)
+	-->
+	<select id="getParamListBySysnm" parameterType="String" resultType="com.kt.openapi.web.api.vo.ApiSensitiveParamVO">
+		<![CDATA[
+			SELECT 
+				A.API_NO as apiNo,
+				A.API_ID as apiId,
+				A.API_NM as apiNm,
+				B2.SYS_ID as systemId,
+				C.SYS_NM as systemNm,
+				B.PARAM_NO as paramNo,
+				B.PARAM_NM as paramNm,
+				B.PARAM_TYPE_CD as paramType,
+				B.PARAM_DESC as paramDesc
+			FROM KOA_TB_API_DEF A
+			INNER JOIN KOA_TB_API_PARAM B ON A.API_NO = B.API_NO
+			LEFT JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+			LEFT JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+			WHERE A.USE_YN = 'Y'
+			  AND B.HIDDEN = 'N'
+			  AND C.SYS_NM IS NOT NULL
+			  AND C.SYS_NM = #{sysnm}
+			ORDER BY C.SYS_NM, A.API_NO
+		]]>
+	</select>
+	
+	<!-- 
+		시스템명 목록 조회 (중복 제거)
+	-->
+	<select id="getSystemNameList" resultType="String">
+		<![CDATA[
+			SELECT DISTINCT C.SYS_NM
+			FROM KOA_TB_API_DEF A
+			INNER JOIN KOA_TB_API_PARAM B ON A.API_NO = B.API_NO
+			LEFT JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+			LEFT JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+			WHERE A.USE_YN = 'Y'
+			  AND B.HIDDEN = 'N'
+			  AND C.SYS_NM IS NOT NULL
+			ORDER BY C.SYS_NM
+		]]>
+	</select>
+	
+	<!-- 
+		통계 정보 조회
+		- 총 파라미터 수, 1 등급 수, 2 등급 수
+	-->
+	<select id="getStatistics" resultType="com.kt.openapi.web.api.vo.SensitiveInfoStatisticsVO">
+		<![CDATA[
+			SELECT 
+				COUNT(*) as TOTAL_PARAMS,
+				SUM(CASE 
+					WHEN B.PARAM_NM LIKE '%imsi%' OR B.PARAM_NM LIKE '%imei%' OR B.PARAM_NM LIKE '%iccid%' 
+					     OR B.PARAM_NM LIKE '%eid%' OR B.PARAM_NM LIKE '%ki%' OR B.PARAM_NM LIKE '%opc%'
+					     OR B.PARAM_DESC LIKE '%단말기식별%' OR B.PARAM_DESC LIKE '%기기식별%' 
+					THEN 1 ELSE 0 END) as GRADE1_COUNT,
+				SUM(CASE 
+					WHEN B.PARAM_NM LIKE '%주민%' OR B.PARAM_NM LIKE '%신용카드%' OR B.PARAM_NM LIKE '%계좌%' 
+					     OR B.PARAM_NM LIKE '%name%' OR B.PARAM_NM LIKE '%이름%' OR B.PARAM_NM LIKE '%address%' 
+					     OR B.PARAM_NM LIKE '%주소%' OR B.PARAM_NM LIKE '%phone%' OR B.PARAM_NM LIKE '%전화%'
+					     OR B.PARAM_NM LIKE '%email%' OR B.PARAM_NM LIKE '%이메일%' OR B.PARAM_NM LIKE '%생년%'
+					     OR B.PARAM_DESC LIKE '%이름%' OR B.PARAM_DESC LIKE '%주소%' OR B.PARAM_DESC LIKE '%전화번호%'
+					THEN 1 ELSE 0 END) as GRADE2_COUNT
+			FROM KOA_TB_API_DEF A
+			INNER JOIN KOA_TB_API_PARAM B ON A.API_NO = B.API_NO
+			WHERE A.USE_YN = 'Y'
+			  AND B.HIDDEN = 'N'
+		]]>
+	</select>
+	
+	<!-- 
+		시스템별 통계 조회
+	-->
+	<select id="getSystemStatistics" resultType="com.kt.openapi.web.api.vo.SystemStatisticsVO">
+		<![CDATA[
+			SELECT 
+				C.SYS_NM,
+				COUNT(*) as TOTAL_PARAMS,
+				SUM(CASE 
+					WHEN B.PARAM_NM LIKE '%imsi%' OR B.PARAM_NM LIKE '%imei%' OR B.PARAM_NM LIKE '%iccid%' 
+					     OR B.PARAM_NM LIKE '%eid%' OR B.PARAM_NM LIKE '%ki%' OR B.PARAM_NM LIKE '%opc%'
+					     OR B.PARAM_DESC LIKE '%단말기식별%' OR B.PARAM_DESC LIKE '%기기식별%' 
+					THEN 1 ELSE 0 END) as GRADE1_COUNT,
+				SUM(CASE 
+					WHEN B.PARAM_NM LIKE '%주민%' OR B.PARAM_NM LIKE '%신용카드%' OR B.PARAM_NM LIKE '%계좌%' 
+					     OR B.PARAM_NM LIKE '%name%' OR B.PARAM_NM LIKE '%이름%' OR B.PARAM_NM LIKE '%address%' 
+					     OR B.PARAM_NM LIKE '%주소%' OR B.PARAM_NM LIKE '%phone%' OR B.PARAM_NM LIKE '%전화%'
+					     OR B.PARAM_NM LIKE '%email%' OR B.PARAM_NM LIKE '%이메일%' OR B.PARAM_NM LIKE '%생년%'
+					     OR B.PARAM_DESC LIKE '%이름%' OR B.PARAM_DESC LIKE '%주소%' OR B.PARAM_DESC LIKE '%전화번호%'
+					THEN 1 ELSE 0 END) as GRADE2_COUNT
+			FROM KOA_TB_API_DEF A
+			INNER JOIN KOA_TB_API_PARAM B ON A.API_NO = B.API_NO
+			LEFT JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+			LEFT JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+			WHERE A.USE_YN = 'Y'
+			  AND B.HIDDEN = 'N'
+			  AND C.SYS_NM IS NOT NULL
+			GROUP BY C.SYS_NM
+			ORDER BY GRADE1_COUNT DESC, GRADE2_COUNT DESC
+		]]>
+	</select>
+	
+	<!-- 
+		API 민감정보 등록 (INSERT)
+		- SENSITIVE_INFO_SURVEY 테이블에 저장
+		- SEQ 는 IDENTITY 자동 증가, CREATED_AT 은 DEFAULT NOW() 사용
+	-->
+	
+	<insert id="insertSensitiveInfoSurvey" parameterType="com.kt.openapi.web.api.vo.SensitiveInfoSurveyVO">
+		INSERT INTO SENSITIVE_INFO_SURVEY (
+			API_ID,
+			SYS_NM,
+			SYS_ID,
+			SENSITIVITY_LEVEL,
+			PARAMETER_TYPE,
+			PARAMETER_NAME,
+			CREATED_BY,
+			PARAMETER_DESC
+		) VALUES (
+			#{apiId, jdbcType=VARCHAR},
+			#{sysNm, jdbcType=VARCHAR},
+			#{sysId, jdbcType=VARCHAR},
+			#{sensitivityLevel, jdbcType=VARCHAR},
+			#{parameterType, jdbcType=VARCHAR},
+			#{parameterName, jdbcType=VARCHAR},
+			#{createdBy, jdbcType=VARCHAR},
+			#{parameterDesc, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<!-- 
+		API 목록 조회 (팝업용 - 페이지네이션)
+		- KOA_TB_API_DEF, BST_SYNC_ADM_API_DPLY, BST_SYNC_ADM_SYS_DPLY 조인
+		- 페이지네이션: ROW_NUMBER() 사용 (MSSQL)
+		- 중복 제거: GROUP BY + MIN() 사용 (성능 최적화)
+	-->
+	<select id="getApiListForPopup" parameterType="java.util.Map" resultType="com.kt.openapi.web.api.vo.ApiListPopupVO">
+		<![CDATA[
+			SELECT 
+				apiId,
+				apiNm,
+				sysId,
+				sysNm
+			FROM (
+				SELECT 
+					A.API_ID as apiId,
+					A.API_NM as apiNm,
+					MIN(B2.SYS_ID) as sysId,
+					MIN(C.SYS_NM) as sysNm,
+					ROW_NUMBER() OVER (ORDER BY MIN(C.SYS_NM), A.API_ID) as RN
+				FROM KOA_TB_API_DEF A
+				INNER JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+				INNER JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+				WHERE A.USE_YN = 'Y'
+				  AND C.SYS_NM IS NOT NULL
+		]]>
+		<if test="searchTerm != null and searchTerm != ''">
+			<![CDATA[
+				  AND (
+				    A.API_ID LIKE '%' || #{} || '%'
+				    OR A.API_NM LIKE '%' || #{} || '%'
+				  )
+			]]>
+		</if>
+		<![CDATA[
+				GROUP BY A.API_ID, A.API_NM
+			) T
+			WHERE T.RN BETWEEN #{offset} + 1 AND #{offset} + #{pageSize}
+			ORDER BY T.RN
+		]]>
+	</select>
+	
+	<!-- 
+		API 목록 총 개수 조회 (팝업용)
+		- getApiListForPopup 와 동일한 GROUP BY 로직 적용 (중복 제거)
+	-->
+	<select id="getApiListForPopupCount" parameterType="java.util.Map" resultType="int">
+		<![CDATA[
+			SELECT COUNT(*)
+			FROM (
+				SELECT 
+					A.API_ID,
+					A.API_NM
+				FROM KOA_TB_API_DEF A
+				INNER JOIN BST_SYNC_ADM_API_DPLY B2 ON A.API_ID = B2.IF_NO AND B2.DPLY_TYPE != 'del'
+				INNER JOIN BST_SYNC_ADM_SYS_DPLY C ON B2.SYS_ID = C.SYS_ID AND C.DPLY_TYPE != 'del'
+				WHERE A.USE_YN = 'Y'
+				  AND C.SYS_NM IS NOT NULL
+		]]>
+		<if test="searchTerm != null and searchTerm != ''">
+			<![CDATA[
+				  AND (
+				    A.API_ID LIKE '%' || #{} || '%'
+				    OR A.API_NM LIKE '%' || #{} || '%'
+				  )
+			]]>
+		</if>
+		<![CDATA[
+				GROUP BY A.API_ID, A.API_NM
+			) T
+		]]>
+	</select>
+	
+	<!-- 
+		등급 업데이트 (UPDATE)
+		- api_id 와 parameter_name 으로 기존 데이터 업데이트
+	-->
+	<update id="updateGrade" parameterType="java.util.Map">
+		<![CDATA[
+			UPDATE SENSITIVE_INFO_SURVEY
+			SET SENSITIVITY_LEVEL = #{sensitivityLevel}
+			WHERE API_ID = #{apiId}
+			  AND PARAMETER_NAME = #{paramNm}
+		]]>
+	</update>
+	
+	<!-- 
+		등급 등록 (INSERT - 존재하지 않을 경우)
+		- api_id 와 parameter_name 으로 기존 데이터 확인 후 INSERT
+	-->
+	<insert id="insertGradeIfNotExists" parameterType="java.util.Map">
+		<![CDATA[
+			INSERT INTO SENSITIVE_INFO_SURVEY (
+			    API_ID,
+			    SYS_ID,
+			    SYS_NM,
+			    PARAMETER_NAME,
+			    PARAMETER_TYPE,
+			    SENSITIVITY_LEVEL,
+			    CREATED_BY,
+			    CREATED_AT
+			) VALUES (
+			    #{apiId, jdbcType=VARCHAR},
+			    #{sysId, jdbcType=VARCHAR},
+			    #{sysNm, jdbcType=VARCHAR},
+			    #{paramNm, jdbcType=VARCHAR},
+			    #{parameterType, jdbcType=VARCHAR},
+			    #{sensitivityLevel, jdbcType=VARCHAR},
+			    #{updatedBy, jdbcType=VARCHAR},
+			    NOW()
+			)
+		]]>
+	</insert>
+	
+</mapper>

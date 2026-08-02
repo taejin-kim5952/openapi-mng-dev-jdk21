@@ -1,0 +1,419 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO">
+
+	<!-- 공지사항 목록 조회 -->
+	<select id="selNoticeList" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="com.kt.openapi.web.bbs.cmn.vo.BbsVo">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selNoticeList */ 
+		(SELECT
+				0 AS rownum
+			  ,Row_number()  OVER( ORDER BY A.PSTING_ID DESC) AS ROW
+			  ,A.PSTING_ID 
+		      ,TITLE
+		      ,SBST
+		      ,PSTING_NO
+		      ,BBS_TYPE_CD
+		      ,IMPT_YN
+		      ,SHOW_YN
+		      ,TO_CHAR(REG_DT, 'YYYY-MM-DD') AS REG_DT
+		      ,COALESCE(REGR,'') AS REGR
+		      ,AMD_DT
+		      ,COALESCE(AMDR,'') AS AMDR
+		      ,COALESCE(B.CNT,0) AS CNT
+		FROM KOA_TB_BBS A 
+			LEFT OUTER JOIN (
+				SELECT COUNT(1) AS CNT, A.PSTING_ID FROM KOA_TB_BBS_ATC A GROUP BY A.PSTING_ID
+			) B ON (B.PSTING_ID = A.PSTING_ID)
+	  WHERE 1=1
+	  	AND IMPT_YN = 'Y'
+	    AND SHOW_YN = 'Y'
+	    AND DEL_YN = 'N'
+	    <if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+		LIMIT 5)
+	    
+	    UNION ALL
+	    
+		<include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+		SELECT
+			  Row_number()  OVER( ORDER BY A.PSTING_ID DESC) rownum
+			  , 0 AS ROW
+			  , A.PSTING_ID 
+		      ,TITLE
+		      ,SBST  
+		      ,PSTING_NO 
+		      ,BBS_TYPE_CD
+		      ,IMPT_YN 
+		      ,SHOW_YN  
+		      ,TO_CHAR(REG_DT, 'YYYY-MM-DD') AS REG_DT
+		      ,COALESCE(REGR,'') AS REGR
+		      ,AMD_DT
+		      ,COALESCE(AMDR,'') AS AMDR
+		      ,COALESCE(B.CNT,0) AS CNT
+		FROM KOA_TB_BBS A 
+			LEFT OUTER JOIN (
+				SELECT COUNT(1) AS CNT, A.PSTING_ID FROM KOA_TB_BBS_ATC A GROUP BY A.PSTING_ID
+			) B ON (B.PSTING_ID = A.PSTING_ID)
+	  WHERE 1=1
+		<if test="searchCondition == 'title'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == 'content'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == null or searchCondition == ''">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+			</if>
+		</if>
+		<if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	  	AND IMPT_YN = 'N'
+	    AND SHOW_YN = 'Y'
+	    AND DEL_YN = 'N'
+		<include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+	</select>
+	
+	<!-- 공지사항 목록 개수 조회 -->
+	<select id="selNoticeListCnt" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="int">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selNoticeListCnt */ 
+		SELECT
+			  COUNT(1) AS cnt
+		FROM KOA_TB_BBS 
+	  WHERE 1=1
+		<if test="searchCondition == 'title'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == 'content'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == null or searchCondition == ''">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+			</if>
+		</if>
+	    AND SHOW_YN = 'Y'
+	    AND IMPT_YN = 'N'
+	    AND DEL_YN = 'N'
+  		<if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	</select>
+	
+	<!-- 공지사항 상세보기 -->
+	<select id="selNoticeView" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="com.kt.openapi.web.bbs.cmn.vo.BbsVo">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selNoticeView */ 
+		SELECT
+			  B.PSTING_ID
+		      ,B.TITLE
+		      ,B.SBST
+		      ,B.BBS_TYPE_CD
+		      ,B.IMPT_YN
+		      ,TO_CHAR(B.REG_DT, 'YYYY-MM-DD') AS REG_DT
+		      ,TO_CHAR(B.AMD_DT, 'YYYY-MM-DD') AS AMD_DT
+		      ,COALESCE(B.AMDR,'') AS AMDR
+		      ,COALESCE(B.REGR,'') AS REGR
+		      ,B.SHOW_YN
+		      ,B.PREV_PSTING_ID
+		      ,B.NEXT_PSTING_ID
+		      ,B.PREV_TITLE
+		      ,B.NEXT_TITLE
+		      FROM (
+					SELECT A.*
+								, LAG(A.PSTING_ID, 1, 0) OVER ( ORDER BY A.PSTING_ID DESC)  AS PREV_PSTING_ID
+						 		, LEAD(A.PSTING_ID, 1, 0) OVER ( ORDER BY A.PSTING_ID DESC) AS NEXT_PSTING_ID
+						 		, LAG(A.TITLE, 1, '') OVER ( ORDER BY A.PSTING_ID DESC) AS PREV_TITLE
+						 		, LEAD(A.TITLE, 1, '') OVER ( ORDER BY A.PSTING_ID DESC) AS NEXT_TITLE
+					  FROM KOA_TB_BBS A 
+					WHERE 1=1
+					    AND SHOW_YN = 'Y'
+					    AND DEL_YN = 'N'
+					    <if test="imptYn != null and imptYn != ''">
+							AND IMPT_YN = #{imptYn}
+						</if>  
+						<if test="bbsTypeCd != null and bbsTypeCd != ''">
+							AND BBS_TYPE_CD = #{bbsTypeCd}
+						</if>
+			  ) B
+		WHERE 1=1
+			<if test="pstingId != null and pstingId != ''">
+				AND B.PSTING_ID = #{pstingId}
+			</if>  
+	</select>
+	
+	<!-- 공지사항 첨부파일 목록 보기 -->
+	<select id="selNoticeFileList" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="com.kt.openapi.web.bbs.cmn.vo.BbsAtcVo">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selNoticeFileList */ 
+		SELECT
+			 	ATC_FILE_NO, 
+			     PSTING_ID,
+				FILE_TYPE_CD  , 
+				FILE_PATH ,
+				FILE_SIZE ,
+				ORIGIN_FILE_NM  ,
+				SAVE_FILE_NM , 
+				USE_YN,
+				DOWNL_CNT  ,
+				SHOW_ODRG,
+				REG_DT,
+				COALESCE(REGR,'') AS REGR ,
+				AMD_DT ,
+				COALESCE(AMDR,'') AS AMDR
+		FROM KOA_TB_BBS_ATC 
+	  WHERE 1=1
+	  	AND PSTING_ID = #{pstingId}
+	    AND USE_YN = 'Y'
+	</select>
+	
+	<!-- 개발자 포럼 목록 조회 -->
+	<select id="selForumList" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="com.kt.openapi.web.bbs.cmn.vo.BbsVo">
+		<include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selForumList */ 
+		SELECT
+			   Row_number()  OVER( ORDER BY A.PSTING_ID DESC) rownum
+			  ,A.PSTING_ID
+		      ,A.TITLE
+		      ,A.PSTING_NO
+		      ,A.SBST
+		      ,A.BBS_TYPE_CD
+		      ,A.IMPT_YN
+		      , TO_CHAR(A.REG_DT, 'YYYY-MM-DD') AS REG_DT
+		      ,COALESCE(A.REGR,'') AS REGR
+		      ,A.AMD_DT
+		      ,COALESCE(A.AMDR,'') AS AMDR
+		      ,A.SHOW_YN
+			  , COALESCE(B.CNT,0) AS REQ_CNT
+		      , TO_CHAR(A.RETV_NUM, 'FM999G999G999G999G990')  as RETV_NUM
+		FROM KOA_TB_BBS A 
+			LEFT OUTER JOIN (
+				SELECT COUNT(1) AS CNT
+					 , A.PSTING_ID
+				  FROM KOA_TB_BBS_REPL A 
+			  WHERE A.DEL_YN='N'
+			  GROUP BY A.PSTING_ID
+			) B ON (B.PSTING_ID = A.PSTING_ID)
+	  WHERE 1=1
+		<if test="searchCondition == 'title'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == 'content'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == null or searchCondition == ''">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+			</if>
+		</if>
+		<if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	    AND SHOW_YN = 'Y'
+	    AND DEL_YN = 'N'
+		<include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+	</select>
+	
+	<!-- 개발자 포럼 전체 카운트 숫자 -->
+	<select id="selForumListCnt" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="int">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selForumListCnt */ 
+		SELECT
+			  COUNT(1) AS cnt
+		FROM KOA_TB_BBS 
+	  WHERE 1=1
+		<if test="searchCondition == 'title'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == 'content'">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%'
+			</if>
+		</if>
+		<if test="searchCondition == null or searchCondition == ''">
+			<if test="searchKeyword != null and searchKeyword != ''">
+				AND (UPPER(TITLE) LIKE '%' + UPPER(#{searchKeyword}) + '%' OR UPPER(SBST) LIKE '%' + UPPER(#{searchKeyword}) + '%')
+			</if>
+		</if>
+	    AND SHOW_YN = 'Y'
+	    AND DEL_YN = 'N'
+		<if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	</select>
+	
+	<!-- 개발자 포럼 답글 목록 조회 -->
+	<select id="selCommentList" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.selCommentList */ 
+		SELECT
+				 REPL_NO ,
+				PSTING_ID ,
+				SBST ,
+				TO_CHAR(REG_DT, 'YYYY-MM-DD') AS REG_DT ,  
+				COALESCE(REGR,'') AS REGR ,
+				AMD_DT ,
+				COALESCE(AMDR,'') AS AMDR
+		FROM KOA_TB_BBS_REPL 
+	  WHERE 1=1
+	  	AND DEL_YN = 'N'
+	  	<if test="pstingId != null and pstingId != ''">
+			AND PSTING_ID = #{pstingId}
+		</if>
+	ORDER BY REG_DT DESC
+	</select>
+	
+	<!-- 개발자 포럼 답글 등록 -->
+	<insert id="saveForumComment" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo">
+		<selectKey keyProperty="replNo" resultType="String" order="AFTER">
+			SELECT SCOPE_IDENTITY()
+		</selectKey>
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.saveForumComment */ 
+		INSERT INTO KOA_TB_BBS_REPL
+           (PSTING_ID
+           ,SBST
+           ,REG_DT
+           ,REGR
+           ,AMD_DT
+           ,AMDR
+           ,DEL_YN)
+     VALUES
+           (#{pstingId}
+           ,#{sbst}
+           ,NOW()
+           ,#{regr}
+           ,NOW()
+           ,#{regr}
+           ,'N')
+	</insert>
+	
+	<!-- 개발자 포럼 답글 수정 -->
+	<update id="updForumComment" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo"> 
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.updForumComment */ 
+		UPDATE KOA_TB_BBS_REPL
+		   SET 
+		      SBST = #{sbst}
+		      ,AMD_DT =NOW()
+		      ,AMDR = #{regr}
+		 WHERE REPL_NO = #{replNo}
+		 	 AND PSTING_ID = #{pstingId}
+	</update>
+	
+	<!-- 개발자 포럼 답글 삭제 -->
+	<update id="delForumCommentAjax" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo"> 
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.delForumCommentAjax */ 
+		UPDATE KOA_TB_BBS_REPL
+		   SET 
+		      DEL_YN = 'Y'
+		      ,AMD_DT =NOW()
+		      ,AMDR = #{regr}
+		 WHERE REPL_NO = #{replNo}
+		 	 AND PSTING_ID = #{pstingId}
+	</update>
+	
+	<!-- 본인 글 여부 체크 -->
+	<select id="checkOwnBbs" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo" resultType="int">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.checkOwnBbs */
+		SELECT COUNT(1) AS CNT
+		FROM KOA_TB_BBS 
+		WHERE (REGR = #{amdr})
+		AND (PSTING_ID = #{pstingId})
+	</select>
+	
+	<!-- 본인 답글 여부 체크 -->
+	<select id="checkBbsComent" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo" resultType="int">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.checkBbsComent */
+		SELECT COUNT(1) AS CNT
+		FROM KOA_TB_BBS_REPL 
+		WHERE (REGR = #{amdr})
+		AND (PSTING_ID = #{pstingId})
+	</select>
+	
+	<!-- 개발자 포럼 글 삭제 -->
+	<update id="delForumAjax" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo">
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.delForumAjax */ 
+		UPDATE KOA_TB_BBS
+		   SET 
+		      DEL_YN = 'Y'
+		      ,AMD_DT =NOW()
+		      ,AMDR = #{regr}
+		WHERE 1=1
+		 	 AND PSTING_ID = #{pstingId}
+		 <if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	</update>
+	
+	<!-- 개발자 포럼 글 등록 -->
+	<insert id="saveForum" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSaveVo">
+		<selectKey keyProperty="pstingId" resultType="String" order="AFTER">
+			SELECT SCOPE_IDENTITY()
+		</selectKey>
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.saveForum */ 
+		INSERT INTO KOA_TB_BBS
+           (TITLE
+           ,SBST
+           ,BBS_TYPE_CD
+      	   ,IMPT_YN
+           ,REG_DT
+           ,REGR
+           ,AMD_DT
+           ,AMDR
+           ,SHOW_YN
+           ,RETV_NUM
+           ,PSTING_NO
+           ,DEL_YN)
+     VALUES
+           (#{title}
+           ,#{sbst}
+           ,#{bbsTypeCd}
+           ,#{imptYn}
+           ,NOW()
+           ,#{regr}
+           ,NOW()
+           ,#{regr}
+           ,'Y'
+           ,0 
+           ,(SELECT COALESCE(MAX(PSTING_NO ) + 1 , 1) FROM KOA_TB_BBS  WHERE BBS_TYPE_CD = #{bbsTypeCd})
+           ,'N'
+           )
+	</insert>
+	
+	<!-- 개발자 포럼 글 수정-->
+	<update id="updForum" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSaveVo"> 
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.updForum */ 
+		UPDATE KOA_TB_BBS
+		   SET 
+		      TITLE =#{title}
+		      ,SBST = #{sbst}
+		      ,AMD_DT = NOW()
+		      ,AMDR = #{regr}
+		 WHERE  PSTING_ID = #{pstingId}
+		<if test="bbsTypeCd != null and bbsTypeCd != ''">
+			AND BBS_TYPE_CD = #{bbsTypeCd}
+		</if>
+	</update>
+	
+	<!-- 조회수 증가 -->
+	<update id="updReadCnt" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSearchVo"> 
+		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.updReadCnt */ 
+		UPDATE KOA_TB_BBS
+		   SET 
+		      RETV_NUM = (SELECT RETV_NUM+1 FROM KOA_TB_BBS  WHERE  PSTING_ID = #{pstingId})
+		 WHERE  PSTING_ID = #{pstingId}
+	</update>
+
+</mapper>

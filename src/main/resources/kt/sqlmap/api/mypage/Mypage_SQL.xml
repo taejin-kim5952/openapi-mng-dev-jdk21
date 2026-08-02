@@ -1,0 +1,273 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.mypage.dao.MypageDAO">
+
+    <!-- api 검토 요청 건수 및 api 개발 요청 건수  -->
+    <select id="getApiRevCnt" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="int">
+        <![CDATA[
+        SELECT  /* com.kt.openapi.web.mypage.dao.MypageDAO.getApiRevCnt */
+            COUNT (*)
+        FROM KOA_TB_REVIEW A 
+        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+        WHERE (A.DEL_YN = 'N')
+          AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
+          AND (A.API_REVIEW_RQT_NO NOT IN (SELECT B.API_REVIEW_RQT_NO FROM KOA_TB_REVIEW_OPIN B WHERE (B.DEL_YN = 'N')))
+        ]]>
+        <if test="reviewRqtTypeCd == 'APIRQT1010'">
+            AND (COALESCE(A.API_SPC_NO, '') != '')
+        </if>
+        <if test="mbrId != null and mbrId != ''">
+            AND (A.REGR = #{mbrId})
+        </if>
+        <if test="userSysIdList == null or userSysIdList.size() == 0">
+            AND (1 = 2)
+        </if>
+        <if test="userSysIdList != null and userSysIdList.size() > 0">
+            AND A.REVIEW_SYS_ID IN
+            <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 작성중 api 상세보기 -->
+    <select id="selWriteApi" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        <![CDATA[
+        SELECT /* com.kt.openapi.web.mypage.dao.MypageDAO.selWriteApi */
+            API_SPC_NO AS "apiSpcNo",
+            A.API_SPC_ID AS "apiSpcId",
+            A.VER AS ver,
+            A.API_NM AS "apiNm",
+            A.API_DESC AS "apiDesc",
+            COALESCE(A.AMDR,'') AS amdr,
+            A.AMD_DT AS "amdDt",
+            COALESCE((SELECT MBR_NM FROM KOA_TB_MBR B WHERE  A.AMDR = B.MBR_ID ),'') AS "amdrNm",
+            TO_CHAR(A.AMD_DT, 'YYYY.MM.DD') AS "amdDtStr",
+            A.REG_STTUS_CD AS "regSttusCd",
+            COALESCE(D.CD_NM,'') AS "regSttusCdNm",
+            A.SYS_ID AS "sysId",
+            COALESCE(S.SYS_NM,'') AS "sysIdNm"
+        FROM KOA_TB_API_SPC A 
+        LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REG_STTUS_CD = D.COMN_CD) AND (D.GROUP_CD = 'APIREG1000')
+        LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+        WHERE (A.DEL_YN = 'N')
+          AND (A.REG_STTUS_CD = 'APIREG1010') /* 작성중 */
+        ]]>
+        <if test="userAutIdList == null or userAutIdList.size() == 0">
+            AND (1 = 2)
+        </if>
+        <if test="userAutIdList != null and userAutIdList.size() > 0">
+            AND A.AUT_ID IN
+            <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        ORDER BY A.AMD_DT DESC
+        LIMIT 1
+    </select>
+  
+    <!-- 나의 개발자 포럼 최신글 1개 -->
+    <select id="selDevFView" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">   
+        SELECT
+            PSTING_ID AS "pstingId",
+            BBS_TYPE_CD AS "bbsTypeCd",
+            PSTING_NO AS "pstingNo",
+            TITLE AS title,
+            SHOW_YN AS "showYn",
+            TO_CHAR(AMD_DT, 'YYYY.MM.DD') AS bp1date
+        FROM KOA_TB_BBS 
+        WHERE (BBS_TYPE_CD = 'BBSTYP1020')
+          AND (SHOW_YN = 'Y')
+          AND (DEL_YN = 'N')
+          AND (AMD_DT = (SELECT MAX(AMD_DT) AS MAXDT FROM KOA_TB_BBS  WHERE (BBS_TYPE_CD = 'BBSTYP1020') AND (SHOW_YN = 'Y') AND (REGR = #{regr}) AND (DEL_YN = 'N')))
+          AND (REGR = #{regr})
+    </select>
+
+    <!-- 나의 개발자 포럼 댓글 개수 -->
+    <select id="selDevFCnt" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="int">
+        SELECT
+            COUNT(*) AS COMMCNT
+        FROM KOA_TB_BBS_REPL 
+        WHERE (PSTING_ID  = #{pstingId})
+          AND (DEL_YN = 'N')
+    </select>
+
+    <!-- 나의 q&a 상세글  -->
+    <select id="selQAView" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        SELECT
+            QNA_ID AS "qnaId",
+            TITLE AS title,
+            QSTN AS qstn,
+            ANS AS ans,
+            QNA_STTUS_CD AS "qnaSttusCd",
+            SHOW_YN AS "showYn",
+            TO_CHAR(AMD_DT, 'YYYY.MM.DD') AS qnaDate
+        FROM KOA_TB_QNA 
+        WHERE (SHOW_YN = 'Y')
+          AND (REGR = #{regr})
+          AND (AMD_DT IN (SELECT MAX(AMD_DT) AS AMDDT FROM KOA_TB_QNA  WHERE (SHOW_YN = 'Y') AND (REGR = #{regr})))
+    </select>
+  
+    <!-- 나의 보유 권한 최대 5개 -->
+    <select id="selAutList" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        <![CDATA[
+        SELECT
+            TA.AUT_ID AS "autId",
+            TA.AUT_NM AS "autNm",
+            TA.SYS_ID AS "sysId",
+            COALESCE(S.SYS_NM,'') AS "sysNm",
+            AM.AUT_STTUS_CD AS "autSttusCd",
+            AM.AUT_APV_DT AS "autApvDt",
+            AM.AUT_APVR AS "autApvr"
+        FROM KOA_TB_AUT TA
+        JOIN KOA_TB_AUT_MPPG AM  ON (TA.AUT_ID = AM.AUT_ID)
+        LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = TA.SYS_ID)
+        WHERE (AM.MBR_ID = #{mbrId})
+          AND (TA.USE_YN = 'Y')
+          AND (AM.AUT_STTUS_CD = 'MBRAUT1020')
+          AND (AM.USE_PERD_ST_DT <= NOW())
+          AND (AM.USE_PERD_FNS_DT >= NOW())
+        ORDER BY AM.AMD_DT DESC
+        ]]>
+    </select>
+    
+    <!-- 권한요청 상태 최대 5개 -->
+    <select id="selAutReq" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        <![CDATA[
+        SELECT
+            TA.AUT_ID AS "autId",
+            TA.AUT_NM AS "autNm",
+            TA.SYS_ID AS "sysId",
+            COALESCE(S.SYS_NM,'') AS "sysNm",
+            AM.AUT_STTUS_CD AS "autSttusCd",
+            AM.AUT_APY_DT AS "autApyDt",
+            AM.AUT_APV_DT AS "autApvDt",
+            AM.AUT_APVR AS "autApvr"
+        FROM KOA_TB_AUT TA
+        JOIN KOA_TB_AUT_MPPG AM  ON (TA.AUT_ID = AM.AUT_ID)
+        LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = TA.SYS_ID)
+        WHERE (AM.MBR_ID = #{mbrId})
+          AND (TA.USE_YN = 'Y')
+          AND (AM.AUT_STTUS_CD != 'MBRAUT1020')
+          AND (AM.USE_PERD_ST_DT <= NOW())
+          AND (AM.USE_PERD_FNS_DT >= NOW())
+        ORDER BY AM.AMD_DT DESC
+        ]]>
+    </select>
+  
+    <!-- 새로운  권한요청  -->
+    <insert id="newAutReq"  parameterType="com.kt.openapi.web.mypage.vo.MypageVO" >
+        INSERT INTO KOA_TB_AUT_MPPG (
+            AUT_ID
+            ,MBR_ID
+            ,AUT_STTUS_CD 
+            ,AUT_APY_DT
+            ,USE_PERD_ST_DT
+            ,USE_PERD_FNS_DT
+            ,REG_DT
+            ,REGR
+            ,AMD_DT
+            ,AMDR)
+        VALUES (
+            #{autId} 
+            ,#{mbrId}
+            ,#{autSttusCd}
+            ,NOW()
+            ,#{usePerdStDt}
+            ,#{userPerdFndDt}
+            ,NOW()
+            ,#{regr}
+            ,NOW()
+            ,#{amdr}
+        )
+    </insert>
+
+    <!-- 권한 중복 체크 -->
+    <select id="chkDupCnt" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) AS CNT
+        FROM KOA_TB_AUT_MPPG 
+        WHERE (AUT_ID = #{autId})
+          AND (MBR_ID = #{mbrId})
+          AND ((AUT_STTUS_CD = 'MBRAUT1010') OR (AUT_STTUS_CD = 'MBRAUT1020'))
+          AND (USE_PERD_ST_DT <= NOW())
+          AND (USE_PERD_FNS_DT >= NOW())
+        ]]>	 
+    </select>
+
+    <!-- 시스템 목록 -->
+    <select id="selboxSysNm" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        SELECT
+            SYS_ID AS "sysId",
+            SYS_NM AS "sysNm"
+        FROM KOA_TB_API_SYSTEM
+        ORDER BY SYS_NM ASC
+    </select>
+
+    <!-- 권한그룹 목록 -->
+    <select id="selboxAGroup" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        SELECT
+            AUT_ID AS "autId",
+            AUT_NM AS "autNm",
+            SYS_ID AS "sysId"
+        FROM KOA_TB_AUT
+        WHERE (USE_YN = 'Y')
+        <if test="sysId != null and sysId != ''">
+            AND (SYS_ID = #{sysId})
+        </if>
+        ORDER BY AUT_NM ASC
+    </select>
+
+    <!-- 반려 사유 -->
+    <select id="selBack" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="java.util.HashMap">
+        SELECT
+            AUT_ID AS "autId",
+            AUT_STTUS_CD AS "autSttusCd",
+            AUT_APV_RCESS_SBST AS "autApvRcessSbst"
+        FROM KOA_TB_AUT_MPPG
+        WHERE (MBR_ID = #{mbrId})
+          AND (AUT_ID = #{autId})
+          AND (AUT_STTUS_CD = #{autSttusCd})
+    </select>
+
+    <!-- 회원 관리 이력  -->
+    <insert id="autHist"  parameterType="com.kt.openapi.web.userJoin.vo.UserHistVO" >
+        INSERT INTO KOA_TB_MBR_MGT_HST (
+            MBR_ID
+            ,AUT_ID 
+            ,MGT_STTUS_CD 
+            ,MEMO
+            ,REG_DT
+            ,REGR)
+        VALUES (
+            #{mbrId}
+            ,#{autId}
+            ,#{mgtSttusCd}
+            ,''
+            ,NOW()
+            ,#{regr}
+        )
+    </insert>
+
+    <!-- 권한신청시 회원 상태 수정 -->
+    <update id="updateMbr"  parameterType="com.kt.openapi.web.mypage.vo.MypageVO" > 
+        UPDATE KOA_TB_MBR
+        SET MBR_STTUS_CD = 'MBRSTS4010'
+        WHERE (MBR_ID = #{mbrId})
+          AND (USE_YN = 'Y')
+    </update>
+
+    <!-- 권한 개수 체크 -->
+    <select id="chkInsCnt" parameterType="com.kt.openapi.web.mypage.vo.MypageVO" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) AS cnt
+        FROM KOA_TB_AUT_MPPG 
+        WHERE (MBR_ID = #{mbrId}) 
+          AND ((AUT_STTUS_CD = 'MBRAUT1010') OR (AUT_STTUS_CD = 'MBRAUT1020'))
+          AND (USE_PERD_ST_DT <= NOW())
+          AND (USE_PERD_FNS_DT >= NOW())
+        ]]>	
+    </select>
+
+</mapper>

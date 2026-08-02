@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.guide.dao.GuideDAO">
+
+    <!-- shub 가이드 페이지에서 shub list 조회 -->
+    <select id="selGuideShubList" resultType="com.kt.openapi.web.guide.vo.GuideShubVO">
+        /* com.kt.openapi.web.guide.dao.GuideDAO.selGuideShubList */
+        SELECT 
+            * 
+        FROM (  
+            SELECT Row_number() OVER(ORDER BY A.AMD_DT DESC) rownum,
+                   A.API_SPC_NO,
+                   A.API_SPC_ID,
+                   A.VER,
+                   A.API_NM,
+                   A.API_DESC,
+                   COALESCE(A.AMDR,'') AS AMDR,
+                   COALESCE(( SELECT MBR_NM 
+                            FROM koa_tb_mbr B 
+                            WHERE A.AMDR = B.MBR_ID ),'') AS AMDR_NM,
+                   A.AMD_DT,
+                   TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AMD_DT_FMT,
+                   TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') as AMD_DT_STR,
+                   A.REG_STTUS_CD,
+                   COALESCE(D.CD_NM,'') AS REG_STTUS_CD_NM,
+                   A.SYS_ID,
+                   COALESCE(S.SYS_NM,'') AS SYS_ID_NM,
+                   B.API_NM AS API_DEF_NM,
+                   B.API_DESC AS API_DEF_DESC,
+                   B.METHOD_CD,
+                   B.API_NO,
+                   COALESCE(C.CD_NM,'') AS METHOD_NM
+            FROM KOA_TB_API_SPC A 
+            INNER JOIN KOA_TB_API_DEF B ON (A.API_SPC_NO = B.API_SPC_NO)
+            LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REG_STTUS_CD = D.COMN_CD AND D.GROUP_CD = 'APIREG1000')
+            LEFT OUTER JOIN KOA_TB_COMN_CD C ON (B.METHOD_CD = C.COMN_CD AND C.GROUP_CD = 'MTHTYP1000')
+            LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+            WHERE A.DEL_YN = 'N'
+                AND A.REG_STTUS_CD = 'APIREG1030'
+                AND A.SYS_ID = 'SHUB'
+            ) A
+            /* [현대화] MS SQL Server 표준 OFFSET/FETCH 적용 */
+            ORDER BY A.rownum ASC
+            OFFSET 0 ROWS FETCH NEXT 6 ROWS ONLY
+            </select>
+</mapper>

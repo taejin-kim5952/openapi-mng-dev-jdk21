@@ -1,0 +1,177 @@
+# kt/props/prod/common.properties
+imageServer:
+  host: /link/attachfile_manager/image
+yamlServer:
+  host: /link/attachfile_manager/yaml
+yaml:
+  file:
+    path: /link/attachfile_manager/yaml
+typeServer:
+  host: /link/attachfile_manager/fileType
+apidocServer:
+  host: /link/attachfile_manager/apidoc
+wsdlServer:
+  host: /link/attachfile_manager/wsdl
+  new:
+    host: /link/attachfile_manager/wsdl/new
+upload:
+  output:
+    path: /link/attachfile_manager/apidoc/yamlDoc
+  image:
+    path: /upload
+  file:
+    path: /upload
+  path:
+    request: /upload/request
+    master: /upload/master
+is:
+  local: true
+server:
+  url: http://localhost:80
+search:
+  pageSize: 20
+editor:
+  tomcat:
+    use: true
+  tomcathost:
+    url: /apieditor/
+  host:
+    url: http://10.214.188.60:8080/#/?
+  defult:
+    host: apimanager.kt.co.kr
+mypage:
+  fileNm: authority.docx
+wsdlImport:
+  js:
+    fileNm: wsdlImport.js
+  yaml:
+    fileNm: service.yaml
+apidocImport:
+  json:
+    fileNm: swagger.json
+apiImport:
+  loop:
+    cnt: 2
+  sleep:
+    cnt: 3000
+psso:
+  logout:
+    url: ""
+  api:
+    login:
+      method: "##iframe"
+      errorUrl: https://psso.show.co.kr/PSSO_WEB/LoginReturnCode.asp
+      clientkey: ""
+      siteUrl: apimanager.kt.co.kr
+      checkurl: https://psso.show.co.kr/PSSO_API/DefaultLogin.asp
+      status:
+        success: "11"
+        fail: "12"
+    sms:
+      checkurl: https://psso.show.co.kr/PSSO_API/SMSCertSend.asp
+  reset:
+    pw: ${PSSO_RESET_PW}
+  aes:
+    key: ${PSSO_AES_KEY}
+apiLink:
+  host:
+    url: http://localhost:9099/rest/procsendMail
+mail:
+  receiver:
+    apilink: apilink@kt.com
+apilink:
+  mail:
+    key: ${APILINK_MAIL_KEY}
+  onm:
+    site: http://172.31.55.90:8088
+  user:
+    terms:
+      form:
+        link: https://apilink.kt.co.kr/login/user/termsForm.do
+  cus:
+    in:
+      auth:
+        test:
+          url: https://cus-in.api.kt.com/AuthTest
+  msg:
+    in:
+      auth:
+        test:
+          url: https://msg-in.api.kt.com/AuthTest
+  find:
+    user:
+      id:
+        link: https://apilink.kt.co.kr/login/findUserId.do
+      pw:
+        link: https://apilink.kt.co.kr/login/findUserPw.do
+apisystem:
+  apidel:
+    authid: ${APISYSTEM_APIDEL_AUTHID}
+  observer:
+    autid: "94"
+    autnm: A/G 운영자 그룹
+    bstmng:
+      userlist: ${APISYSTEM_OBSERVER_BSTMNG_USERLIST}
+    bstviewer:
+      userlist: ${APISYSTEM_OBSERVER_BSTVIEWER_USERLIST}
+  sysid:
+    observer: "94"
+    arsenal: ARSENAL
+    biznaru: BIZNARU
+security:
+  verify:
+    mail: N
+deployapply:
+  mail:
+    list: ${DEPLOYAPPLY_MAIL_LIST}
+shub:
+  api:
+    instauth:
+      tb:
+        url: http://172.31.30.14:8080/instauth
+      prd:
+        url: https://172.31.171.14/instauth
+  authorization:
+    key: ${REST_AUTHORIZATION_SB}
+  2fa:
+    verifysend:
+      url: https://msg-in.api.kt.com/verify/v1.0/verify_send
+    verifycheck:
+      url: https://msg-in.api.kt.com/verify/v1.0/verify_check
+rest:
+  authorization: ${REST_AUTHORIZATION_SB}
+new:
+  psso:
+    api:
+      clientkey: ${NEW_PSSO_API_CLIENTKEY}
+      member:
+        join: https://int-in.api.kt.com/psso/v2.0/psso_defaultJoin
+        idcheck: https://int-in.api.kt.com/psso/v2.0/psso_memberIdCheck
+        logincheck: https://int-in.api.kt.com/psso/v2.0/psso_memberLogin
+        passwordchange: https://int-in.api.kt.com/psso/v2.0/psso_pwdChangeAgainReset
+        certcheck: https://int-in.api.kt.com/psso/v2.0/psso_certCheck
+        joininfo: https://int-in.api.kt.com/psso/v2.0/psso_userInfoByUserName
+        findmember: https://int-in.api.kt.com/psso/v2.0/psso_existByIdPlus
+        memberinfoupdate: https://int-in.api.kt.com/psso/v2.0/psso_userInfoUpdate
+        memberinfosearch: https://int-in.api.kt.com/psso/v2.0/psso_userInfoSearch
+  login:
+    mode: Y
+apimeneger:
+  log:
+    filepath: /var/log/LAMP/
+    service:
+      name: OG081704
+      domain: https://apimanager.kt.co.kr
+  logcenter:
+    channel: AII7120006864QJFCHL
+logcenter:
+  record:
+    mode: Y
+gitlab:
+  arsenal:
+    host: http://gitlab.msa.kt.com/
+    base:
+      path: /tree/master/devops/swagger/
+    token: ""
+  private:
+    token: ""

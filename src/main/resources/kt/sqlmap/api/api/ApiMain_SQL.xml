@@ -1,0 +1,1011 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.api.dao.ApiMainDAO">
+
+  <!-- 작업중 갯수-->
+  <select id="selDevelopeApiTotalCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+    SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selDevelopeApiTotalCnt */
+      COUNT(*)
+    FROM KOA_TB_API_SPC A 
+    WHERE (A.DEL_YN = 'N')
+      AND (NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL)))
+      AND (A.REG_STTUS_CD  != 'APIREG1030') /* 등록완료 아닌것 */
+    <if test="observerYn != null">
+      <if test='observerYn == "N"'>
+        <if test="userAutIdList != null and userAutIdList.size() > 0">
+          AND A.AUT_ID IN
+          <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+            #{item}
+          </foreach>
+        </if>
+      </if>
+    </if>
+    <if test="userAutIdList == null or userAutIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="schText != null and schText != ''">
+      AND (
+        (A.API_NM LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_DESC  LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+            FROM KOA_TB_API_DEF D 
+            WHERE (D.API_SPC_NO = A.API_SPC_NO)
+              AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+          )
+        )
+      )
+    </if>
+  </select>
+
+  <!-- 작업중 목록 -->
+  <select id="selDevelopeApiList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+    SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selDevelopeApiList */
+      ROW_NUMBER() OVER(ORDER BY A.AMD_DT DESC) rownum,
+      A.API_SPC_NO,
+      A.API_SPC_ID,
+      A.VER,
+      COALESCE(A.VER_DESC, '') AS VER_DESC,
+      A.API_NM,
+      A.API_DESC,
+      COALESCE(A.AMDR, '') AS AMDR,
+      COALESCE(M.MBR_NM, '') AS AMDR_NM,
+      A.AMD_DT,
+      TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR,
+      A.REG_STTUS_CD,
+      COALESCE(B.CD_NM, '') AS REG_STTUS_CD_NM,
+      A.SYS_ID,
+      COALESCE(S.SYS_NM, '') AS SYS_ID_NM,
+      COALESCE(A.API_CLASS, '') AS API_CLASS,
+      COALESCE(C.COMPLETE_CNT,0) AS COMPLETE_CNT
+    FROM KOA_TB_API_SPC A 
+      LEFT OUTER JOIN KOA_TB_COMN_CD B ON ((A.REG_STTUS_CD = B.COMN_CD) AND (B.GROUP_CD = 'APIREG1000'))
+      LEFT OUTER JOIN KOA_TB_MBR M ON (A.AMDR = M.MBR_ID)
+      LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+      LEFT OUTER JOIN (
+        SELECT COUNT(*) AS COMPLETE_CNT, API_SPC_ID
+        FROM KOA_TB_API_SPC B 
+        WHERE (B.DEL_YN = 'N')
+          AND (B.SHOW_YN = 'Y')
+          AND (NOT((B.TMPLT_YN != 'N') AND (B.TMPLT_YN IS NOT NULL)))
+          AND (B.REG_STTUS_CD = 'APIREG1030')
+        GROUP BY B.API_SPC_ID
+      ) C ON (C.API_SPC_ID = A.API_SPC_ID)
+    WHERE (A.REG_STTUS_CD != 'APIREG1030')
+      AND (A.DEL_YN = 'N')
+      AND (NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL)))
+    <if test="observerYn != null">
+      <if test='observerYn == "N"'>
+        <if test="userAutIdList != null and userAutIdList.size() > 0">
+          AND A.AUT_ID IN
+          <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+            #{item}
+          </foreach>
+        </if>
+      </if>
+    </if>
+    <if test="userAutIdList == null or userAutIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="schText != null and schText != ''">
+      AND (
+        (A.API_NM LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_DESC LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+            FROM KOA_TB_API_DEF D 
+            WHERE (D.API_SPC_NO = A.API_SPC_NO)
+              AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+          )
+        )
+      )
+    </if>
+    <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+  </select>
+
+  <!-- 등록완료 갯수 -->
+  <select id="selDevelopeCompleteApitotalCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+    SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selDevelopeCompleteApitotalCnt */
+      COUNT(*)
+    FROM KOA_TB_API_SPC A 
+    WHERE (A.REG_STTUS_CD = 'APIREG1030')
+      AND (A.DEL_YN = 'N')
+      AND (A.SHOW_YN = 'Y')
+      AND (NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL)))
+      AND A.VER IN (SELECT MAX(B.VER)
+        FROM KOA_TB_API_SPC B 
+        WHERE (B.API_SPC_ID = A.API_SPC_ID)
+          AND (B.REG_STTUS_CD = 'APIREG1030')
+          AND (NOT((B.TMPLT_YN != 'N') AND (B.TMPLT_YN IS NOT NULL)))
+          GROUP BY API_SPC_ID)
+    <if test="observerYn != null">
+      <if test='observerYn == "N"'>
+        <if test="userAutIdList != null and userAutIdList.size() > 0">
+          AND A.AUT_ID IN
+          <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+            #{item}
+          </foreach>
+        </if>
+      </if>
+    </if>
+    <if test="userAutIdList == null or userAutIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="schText != null and schText != ''">
+      AND (
+        (A.API_NM LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_DESC  LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+            FROM KOA_TB_API_DEF D 
+            WHERE (D.API_SPC_NO = A.API_SPC_NO)
+              AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+          )
+        )
+      )
+    </if>
+  </select>
+
+  <!-- 등록완료 목록 -->
+  <select id="selDevelopeCompleteApiList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+    SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selDevelopeCompleteApiList */
+      ROW_NUMBER() OVER(ORDER BY A.AMD_DT DESC) rownum,
+      A.API_SPC_NO,
+      A.API_SPC_ID,
+      A.VER,
+      COALESCE(A.VER_DESC, '') AS VER_DESC,
+      A.API_NM,
+      A.API_DESC,
+      COALESCE(A.AMDR, '') AS AMDR,
+      COALESCE(M.MBR_NM, '') AS AMDR_NM,
+      A.AMD_DT,
+      TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR,
+      A.REG_STTUS_CD,
+      COALESCE(B.CD_NM, '') AS REG_STTUS_CD_NM,
+      A.SYS_ID,
+      COALESCE(S.SYS_NM, '') AS SYS_ID_NM,
+      COALESCE(A.API_CLASS, '') AS API_CLASS,
+      COALESCE(C.COMPLETE_CNT,0) AS COMPLETE_CNT
+    FROM KOA_TB_API_SPC A 
+      LEFT OUTER JOIN KOA_TB_COMN_CD B ON ((A.REG_STTUS_CD = B.COMN_CD) AND (B.GROUP_CD = 'APIREG1000'))
+      LEFT OUTER JOIN KOA_TB_MBR M ON (A.AMDR = M.MBR_ID)
+      LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+      LEFT OUTER JOIN (
+        SELECT COUNT(*) AS COMPLETE_CNT, API_SPC_ID
+        FROM KOA_TB_API_SPC B 
+        WHERE (B.DEL_YN = 'N')
+          AND (B.SHOW_YN = 'Y')
+          AND (NOT((B.TMPLT_YN != 'N') AND (B.TMPLT_YN IS NOT NULL)))
+          AND (B.REG_STTUS_CD = 'APIREG1030')
+        GROUP BY B.API_SPC_ID
+      ) C ON (C.API_SPC_ID = A.API_SPC_ID)
+    WHERE (A.REG_STTUS_CD = 'APIREG1030')
+      AND (A.DEL_YN = 'N')
+      AND (NOT((A.TMPLT_YN != 'N') AND (A.TMPLT_YN IS NOT NULL)))
+      AND (A.SHOW_YN = 'Y')
+      AND A.VER IN (SELECT MAX(B.VER)
+        FROM KOA_TB_API_SPC B 
+        WHERE (B.API_SPC_ID = A.API_SPC_ID)
+        AND (B.REG_STTUS_CD = 'APIREG1030')
+        AND (NOT((B.TMPLT_YN != 'N') AND (B.TMPLT_YN IS NOT NULL)))
+        GROUP BY API_SPC_ID
+      )
+    <if test="observerYn != null">
+      <if test='observerYn == "N"'>
+        <if test="userAutIdList != null and userAutIdList.size() > 0">
+          AND A.AUT_ID IN
+          <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+            #{item}
+          </foreach>
+        </if>
+      </if>
+    </if>
+    <if test="userAutIdList == null or userAutIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="schText != null and schText != ''">
+      AND (
+        (A.API_NM LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_DESC LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+            FROM KOA_TB_API_DEF D 
+            WHERE (D.API_SPC_NO = A.API_SPC_NO)
+              AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+          )
+        )
+      )
+    </if>
+    <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
+  </select>
+
+  <!-- 검토의견/개발요청 갯수-->
+  <select id="selMainListTotalCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+    SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selMainListTotalCnt */
+      COUNT(*)
+    FROM KOA_TB_REVIEW A 
+      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+    WHERE (A.DEL_YN = 'N')
+      AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
+    <if test='reviewRqtTypeCd == "APIRQT1010"'>
+      AND (D.DEL_YN = 'N')
+      AND (COALESCE(A.API_SPC_NO, '') != '')
+    </if>
+    <if test="regr != null and regr != ''">
+      AND (A.REGR = #{regr})
+    </if>
+    <if test="userSysIdList == null or userSysIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="userSysIdList != null and userSysIdList.size() > 0">
+      AND A.REVIEW_SYS_ID IN
+      <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    <if test="schText != null and schText != ''">
+      AND (
+        (A.API_SPC_NO IN (SELECT B.API_SPC_NO FROM KOA_TB_API_SPC B WHERE (B.DEL_YN = 'N') AND (B.API_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.REVIEW_SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+        (A.REVIEW_RQT_TITLE LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REVIEW_RQT_SBST LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+        (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+            FROM KOA_TB_API_DEF D 
+            WHERE (D.API_SPC_NO = A.API_SPC_NO)
+              AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+          )
+        )
+      )
+    </if>
+  </select>
+
+  <!-- 검토의견/개발요청 목록 -->
+  <select id="selRequestList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiReviewVO">
+    SELECT A.*,
+      COALESCE(B.CNT, 0) AS REPLY_CNT,
+      COALESCE(C.API_SPC_ID, '') AS API_SPC_ID,
+      COALESCE(C.API_NM, '') AS API_NM,
+      COALESCE(C.VER, '') AS VER,
+      COALESCE(D.CD_NM, '') AS REVIEW_RQT_TYPE_CD_NM,
+      COALESCE(M.MBR_NM, '') AS AMDR_NM,
+      COALESCE(M1.MBR_NM, '') AS REGR_NM,
+      COALESCE(S.SYS_NM, '') AS SYS_ID_NM
+    FROM (
+      SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selRequestList */
+        ROW_NUMBER() OVER( ORDER BY A.AMD_DT DESC) rownum,
+        A.API_REVIEW_RQT_NO,
+        A.API_SPC_NO,
+        A.REVIEW_RQT_TITLE,
+        A.REVIEW_RQT_TYPE_CD,
+        A.REVIEW_SYS_ID,
+        A.REVIEW_RQT_SBST,
+        A.AMD_DT,
+        TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR,
+        COALESCE(A.AMDR, '') AS AMDR,
+        COALESCE(A.REGR, '') AS REGR
+      FROM KOA_TB_REVIEW A 
+        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+      WHERE (A.DEL_YN = 'N')
+        AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
+      <if test='reviewRqtTypeCd == "APIRQT1010"'>
+        AND (D.DEL_YN = 'N')
+        AND (COALESCE(A.API_SPC_NO, '') != '')
+      </if>
+      <if test="regr != null and regr != ''">
+        AND (A.REGR = #{regr})
+      </if>
+      <if test="userSysIdList == null or userSysIdList.size() == 0">
+        AND (1 = 2)
+      </if>
+      <if test="userSysIdList != null and userSysIdList.size() > 0">
+        AND A.REVIEW_SYS_ID IN
+        <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+          #{item}
+        </foreach>
+      </if>
+      <if test="schText != null and schText != ''">
+        AND (
+          (A.API_SPC_NO IN (SELECT B.API_SPC_NO FROM KOA_TB_API_SPC B WHERE (B.DEL_YN = 'N') AND (B.API_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+          (A.REVIEW_SYS_ID IN (SELECT SYS_ID FROM KOA_TB_API_SYSTEM B WHERE (B.SYS_NM LIKE CONCAT('%', #{schText}, '%')))) OR
+          (A.REVIEW_RQT_TITLE LIKE CONCAT('%', #{schText}, '%')) OR
+          (A.REVIEW_RQT_SBST LIKE CONCAT('%', #{schText}, '%')) OR
+          (A.AMDR LIKE CONCAT('%', #{schText}, '%')) OR
+          (A.REGR LIKE CONCAT('%', #{schText}, '%')) OR
+          (A.API_SPC_NO IN (SELECT D.API_SPC_NO
+              FROM KOA_TB_API_DEF D 
+              WHERE (D.API_SPC_NO = A.API_SPC_NO)
+                AND (D.API_NM LIKE CONCAT('%', #{schText}, '%'))
+            )
+          )            
+        )
+      </if>
+    ) A
+    LEFT OUTER JOIN (
+      SELECT COUNT(*) AS CNT,
+        B.API_REVIEW_RQT_NO
+      FROM KOA_TB_REVIEW_OPIN  B 
+      WHERE (B.DEL_YN = 'N')
+      GROUP BY B.API_REVIEW_RQT_NO
+    ) B ON (B.API_REVIEW_RQT_NO = A.API_REVIEW_RQT_NO)
+    LEFT OUTER JOIN (
+      SELECT B.API_SPC_ID,
+        B.API_NM,
+        B.VER,
+        B.API_SPC_NO
+      FROM KOA_TB_API_SPC B 
+      WHERE (B.DEL_YN = 'N')
+    ) C ON (C.API_SPC_NO = A.API_SPC_NO)
+    LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REVIEW_RQT_TYPE_CD = D.COMN_CD AND D.GROUP_CD = 'APIRQT1000')
+    LEFT OUTER JOIN KOA_TB_MBR M   ON (A.AMDR = M.MBR_ID)
+    LEFT OUTER JOIN KOA_TB_MBR M1  ON (A.REGR = M1.MBR_ID)
+    LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.REVIEW_SYS_ID)
+    /* [현대화] MS SQL Server 표준 OFFSET/FETCH 적용 */
+    ORDER BY A.rownum ASC
+    OFFSET #{firstIndex} ROWS FETCH NEXT #{recordCountPerPage} ROWS ONLY
+  </select>
+
+  <!-- 메인의 api 하위 버전 목록 -->
+  <select id="selMainApiSubVerList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selMainApiSubVerList */
+         A.API_SPC_NO
+       , A.API_SPC_ID
+       , COALESCE(A.VER, '') AS VER
+       , A.API_NM
+       , A.API_DESC
+       , COALESCE(A.VER_DESC, '') AS VER_DESC
+       , COALESCE(A.AMDR, '') AS AMDR
+       , A.AMD_DT
+       , TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR
+       , COALESCE(M.MBR_NM, '') AS AMDR_NM
+       , COALESCE(M1.MBR_NM, '') AS REGR_NM
+    FROM KOA_TB_API_SPC A 
+       LEFT OUTER JOIN KOA_TB_MBR M   ON (A.AMDR = M.MBR_ID)
+       LEFT OUTER JOIN KOA_TB_MBR M1  ON (A.REGR = M1.MBR_ID)
+    WHERE A.DEL_YN = 'N'
+     AND A.SHOW_YN = 'Y'
+     AND NOT(A.TMPLT_YN != 'N' AND A.TMPLT_YN IS NOT NULL)
+     AND A.REG_STTUS_CD = 'APIREG1030' /* 등록완료 */
+    <if test="apiSpcIdList != null and apiSpcIdList.size() > 0">
+      AND A.API_SPC_ID IN
+      <foreach item="item" collection="apiSpcIdList" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    ORDER BY A.API_SPC_ID DESC , A.AMD_DT DESC
+  </select>
+
+  <!-- 개발요청/검토의견 등록 -->
+  <insert id="savDevReqReg" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="apiReviewRqtNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savDevReqReg */
+    INSERT INTO KOA_TB_REVIEW (
+      API_SPC_NO
+      ,REVIEW_RQT_TYPE_CD
+      ,REVIEW_RQT_TITLE
+      ,REVIEW_RQT_SBST
+      ,REVIEW_SYS_ID
+      ,DEL_YN
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR)
+     VALUES (
+      #{apiSpcNo}
+      ,#{reviewRqtTypeCd}
+      ,#{reviewRqtTitle}
+      ,#{reviewRqtSbst}
+      ,#{reviewSysId}
+      ,'N'
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+    )
+  </insert>
+
+  <!-- 개발요청/검토의견 상세조회 -->
+  <select id="selRegistView" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiReviewVO">
+    <![CDATA[
+    SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selRegistView */
+      A.API_REVIEW_RQT_NO
+      , A.API_SPC_NO
+      , COALESCE(B.API_NM, '') AS API_NM
+      , REVIEW_RQT_TYPE_CD
+      , COALESCE(D.CD_NM, '') AS REVIEW_RQT_TYPE_CD_NM
+      , COALESCE(REVIEW_RQT_TITLE, '') AS REVIEW_RQT_TITLE
+      , REVIEW_RQT_SBST
+      , REVIEW_SYS_ID
+      , COALESCE(S.SYS_NM, '') AS SYS_ID_NM
+      , A.DEL_YN
+      , A.REG_DT
+      , TO_CHAR(A.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT_STR
+      , A.REGR
+      , A.AMD_DT
+      , TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR
+      , COALESCE(A.AMDR, '') AS AMDR
+      , COALESCE(M.MBR_NM, '') AS CMPN_NM
+      , COALESCE(M.MBR_NM, '') AS AMDR_NM
+      , COALESCE(M1.MBR_NM, '') AS REGR_NM
+      , COALESCE(C.CNT, 0) AS REPLY_CNT
+    FROM KOA_TB_REVIEW A 
+      LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REVIEW_RQT_TYPE_CD = D.COMN_CD AND D.GROUP_CD = 'APIRQT1000')
+      LEFT OUTER JOIN KOA_TB_MBR M   ON (A.AMDR = M.MBR_ID)
+      LEFT OUTER JOIN KOA_TB_MBR M1  ON (A.REGR = M1.MBR_ID)
+      LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.REVIEW_SYS_ID)
+      LEFT OUTER JOIN KOA_TB_API_SPC B ON ((A.API_SPC_NO = B.API_SPC_NO) AND (B.DEL_YN='N'))
+      LEFT OUTER JOIN (
+        SELECT COUNT(*) AS CNT, B.API_REVIEW_RQT_NO
+        FROM KOA_TB_REVIEW_OPIN  B 
+        WHERE (B.DEL_YN = 'N')
+        GROUP BY B.API_REVIEW_RQT_NO
+      ) C ON (C.API_REVIEW_RQT_NO = A.API_REVIEW_RQT_NO)
+    WHERE (A.DEL_YN = 'N')
+      AND (A.API_REVIEW_RQT_NO = #{apiReviewRqtNo})
+    ]]>
+  </select>
+
+  <!-- 개발요청/검토의견 답변 등록 -->
+  <insert id="savDevReplyReg" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savDevReplyReg */
+    INSERT INTO KOA_TB_REVIEW_OPIN (
+      API_REVIEW_RQT_NO
+      ,REVIEW_OPIN
+      ,DEL_YN
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+    )
+    VALUES (
+      #{apiReviewRqtNo}
+      ,#{reviewOpin}
+      ,'N'
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+    )
+  </insert>
+
+  <!-- 개발요청/검토의견 의 답글 목록 -->
+  <select id="selReqReplyView" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiReviewOpinVO">
+    <![CDATA[
+      SELECT /* com.kt.openapi.web.api.dao.ApiMainDAO.selReqReplyView */
+        API_REVIEW_ANS_NO
+        , API_REVIEW_RQT_NO
+        , REVIEW_OPIN
+        , DEL_YN
+        , A.REG_DT
+        , TO_CHAR(A.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT_STR
+        , A.REGR
+        , A.AMD_DT
+        , TO_CHAR(A.AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT_STR
+        , COALESCE(A.AMDR, '') AS AMDR
+        , COALESCE(M.MBR_NM, '') AS AMDR_NM
+        , COALESCE(M1.MBR_NM, '') AS REGR_NM
+      FROM KOA_TB_REVIEW_OPIN  A 
+        LEFT OUTER JOIN KOA_TB_MBR M   ON (A.AMDR = M.MBR_ID)
+        LEFT OUTER JOIN KOA_TB_MBR M1  ON (A.REGR = M1.MBR_ID)
+      WHERE (A.DEL_YN = 'N')
+        AND (A.API_REVIEW_RQT_NO = #{apiReviewRqtNo})
+      ORDER BY A.AMD_DT ASC
+    ]]>
+  </select>
+
+  <!-- reply없는 개발요청/검토요청 갯수 -->
+  <select id="selMainRequestCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+    <![CDATA[
+    SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selMainRequestCnt */
+      COUNT(*)
+    FROM KOA_TB_REVIEW A 
+      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+    WHERE (A.DEL_YN = 'N')
+      AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
+      AND (A.API_REVIEW_RQT_NO NOT IN (SELECT B.API_REVIEW_RQT_NO FROM KOA_TB_REVIEW_OPIN B WHERE (B.DEL_YN = 'N')))
+    ]]>
+    <if test='reviewRqtTypeCd == "APIRQT1010"'>
+      AND (D.DEL_YN = 'N')
+      AND (COALESCE(A.API_SPC_NO, '') != '')
+    </if>
+    <if test="regr != null and regr != ''">
+      AND (A.REGR = #{regr})
+    </if>
+    <if test="userSysIdList == null or userSysIdList.size() == 0">
+      AND (1 = 2)
+    </if>
+    <if test="userSysIdList != null and userSysIdList.size() > 0">
+      AND A.REVIEW_SYS_ID IN
+      <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </select>
+
+  <!-- 시스템 목록 -->
+  <select id="selSysList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSystemVO">
+    <![CDATA[
+    SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selSysList */
+      *
+    FROM KOA_TB_API_SYSTEM 
+    ORDER BY SYS_NM ASC
+    ]]>
+  </select>
+
+  <!-- 개발요청/건의 파일 등록 -->
+  <insert id="savReqFile" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savReqFile */
+    INSERT INTO KOA_TB_REVIEW_ATC (
+      API_REVIEW_RQT_NO
+      ,SAVE_FILE_NM
+      ,ORIGIN_FILE_NM
+      ,FILE_TYPE_CD
+      ,FILE_PATH
+      ,FILE_SIZE
+      ,USE_YN
+      ,DOWNL_CNT
+      ,DEL_YN
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+    )
+    VALUES (
+      #{apiReviewRqtNo}
+      ,#{saveFileNm}
+      ,#{originFileNm}
+      ,#{fileTypeCd}
+      ,#{filePath}
+      ,#{fileSize}
+      ,'Y'
+      ,0
+      ,'N'
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+    )
+  </insert>
+
+  <!-- 파일 목록 -->
+  <select id="selFileList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiReviewAtcVO">
+    <![CDATA[
+    SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selFileList */
+      ATC_FILE_NO
+      ,API_REVIEW_RQT_NO
+      ,SAVE_FILE_NM
+      ,ORIGIN_FILE_NM
+      ,FILE_TYPE_CD
+      ,FILE_PATH
+      ,FILE_SIZE
+       ,USE_YN
+       ,DOWNL_CNT
+       ,DEL_YN
+       ,REG_DT
+       ,REGR
+       ,AMD_DT
+       ,TO_CHAR(AMD_DT, 'YYYY-MM-DD HH24:MI:SS') as AMD_DT_STR
+       ,COALESCE(AMDR, '') AS AMDR
+      FROM KOA_TB_REVIEW_ATC 
+      WHERE (USE_YN = 'Y')
+        AND (DEL_YN = 'N')
+        AND (API_REVIEW_RQT_NO = #{apiReviewRqtNo})
+      ORDER BY ATC_FILE_NO ASC
+    ]]>
+  </select>
+
+  <!-- API 명세 정보 조회  -->
+  <select id="selApiSpcInfo" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selApiSpcInfo */
+    SELECT A.YAML_FILE_PATH,
+      A.YAML_FILE_NM
+    FROM KOA_TB_API_SPC  A 
+    WHERE (A.API_SPC_NO = #{apiSpcNo})
+  </select>
+
+  <!-- API 버전업으로 API명세 등록 -->
+  <insert id="savApiVerUpApiSpc" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="apiSpcNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiSpc */
+    INSERT INTO KOA_TB_API_SPC
+    (
+      API_SPC_ID
+      ,VER
+      ,API_NM
+      ,API_DESC
+      ,AUT_ID
+      ,SYS_ID
+      ,VER_DESC
+      ,RFRN_WSDL_URL
+      ,RFRN_TMPLT_NO
+      ,RFRN_API_SPC_NO
+      ,HOST
+      ,BAS_PATH
+      ,YAML_FILE_PATH
+      ,YAML_FILE_NM
+      ,REG_STTUS_CD
+      ,TMPLT_YN
+      ,REG_APVR
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+      ,DEL_YN
+      ,DEL_DT
+      ,DELR
+      ,YAML_SBST
+      ,SHOW_YN
+      ,API_CLASS
+    )
+    SELECT
+      (CASE WHEN #{importType} = '1' THEN API_SPC_ID
+        ELSE (SELECT IDENT_CURRENT('KOA_TB_API_SPC'))
+        END ) AS API_SPC_ID
+      ,#{ver}
+      ,API_NM
+      ,API_DESC
+      ,AUT_ID
+      ,SYS_ID
+      ,#{verDesc}
+      ,RFRN_WSDL_URL
+      ,RFRN_TMPLT_NO
+      ,RFRN_API_SPC_NO
+      ,HOST
+      ,BAS_PATH
+      ,YAML_FILE_PATH
+      ,YAML_FILE_NM
+      ,'APIREG1010'      /* 작성중 */
+      ,'N'
+      ,null
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+      ,'N'
+      ,NULL
+      ,NULL
+      ,#{yamlSbst}
+      ,'N'
+      ,API_CLASS
+    FROM KOA_TB_API_SPC 
+    WHERE (API_SPC_NO = #{apiSpcNo})
+  </insert>
+
+  <update id="updApiSpcFileInfo" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.updApiSpcFileInfo */
+    UPDATE  KOA_TB_API_SPC
+    SET
+      YAML_FILE_PATH = #{yamlFilePath}
+      ,YAML_FILE_NM = #{yamlFileNm}
+    WHERE (API_SPC_NO = #{newApiSpcNo})
+  </update>
+
+  <!-- API 버전업으로 API카테고리 등록 -->
+  <insert id="savApiVerUpApiCtgry" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="apiCtgryNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiCtgry */
+    INSERT INTO KOA_TB_API_CTGRY (
+      API_SPC_NO
+      ,CTGRY_NM
+      ,SORT_ODRG
+      ,CTGRY_DESC
+      ,DEL_YN
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+    )
+    SELECT
+      #{newApiSpcNo}
+      ,CTGRY_NM
+      ,SORT_ODRG
+      ,CTGRY_DESC
+      ,DEL_YN
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+    FROM KOA_TB_API_CTGRY 
+    WHERE (API_CTGRY_NO = #{apiCtgryNo})
+  </insert>
+
+  <!-- API 버전업으로 API정의 등록 -->
+  <insert id="savApiVerUpApiDef" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="apiNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiDef */
+    INSERT INTO KOA_TB_API_DEF (
+      API_SPC_NO
+      ,API_NM
+      ,API_CTGRY_NO
+      ,API_PATH
+      ,METHOD_CD
+      ,API_ID
+      ,API_DESC
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+      ,SORT_ODRG
+      ,SHOW_STATUS_CD
+      ,USE_YN
+      ,API_GUBUN
+      ,API_HANDLER_CD
+      ,ENDPNT_METHOD_CD
+      ,ENDPNT_PRD_URL
+      ,ENDPNT_CLIENT_IP
+      ,ENDPNT_TIMEOUT
+      ,RESMAP_RES_CD_FIELD
+      ,RESMAP_SUCC_VAL
+      ,RESMAP_ERR_CD_FIELD
+      ,RESMAP_ERR_MSG_FIELD
+      ,API_VER
+      ,API_VER_NO
+    )
+    SELECT
+       #{newApiSpcNo}
+      ,API_NM
+      ,#{newApiCtgryNo}
+      ,API_PATH
+      ,METHOD_CD
+      ,API_ID
+      ,API_DESC
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+      ,SORT_ODRG
+      ,SHOW_STATUS_CD
+      ,USE_YN
+      ,API_GUBUN
+      ,API_HANDLER_CD
+      ,ENDPNT_METHOD_CD
+      ,ENDPNT_PRD_URL
+      ,ENDPNT_CLIENT_IP
+      ,ENDPNT_TIMEOUT
+      ,RESMAP_RES_CD_FIELD
+      ,RESMAP_SUCC_VAL
+      ,RESMAP_ERR_CD_FIELD
+      ,RESMAP_ERR_MSG_FIELD
+      ,API_VER
+      ,IDENT_CURRENT('KOA_TB_API_DEF') AS API_VER_NO  /*-- 신규API_NO와 같게 --*/
+    FROM KOA_TB_API_DEF 
+    WHERE (API_NO = #{apiNo})
+  </insert>
+
+  <insert id="savApiVerUpApiParam" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="paramNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiParam */
+    INSERT INTO KOA_TB_API_PARAM (
+      API_NO
+      ,PARAM_TYPE_CD
+      ,SORT_ODRG
+      ,PARAM_NM
+      ,DATA_TYPE_CD
+      ,PARAM_DESC
+      ,EXAM
+      ,PRNTS_PARAM_NO
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+      ,RES_CD
+      ,RES_DESC
+      ,PARAM_LOC
+      ,OBJ_NO
+      ,OBJ_ODRG
+      ,REQUIRED
+      ,PERSONAL_DATA
+      ,DO_NOT_SEND
+      ,FIXED_VALUE
+      ,HIDDEN
+      ,MAPPING_KEY
+      ,HDP_URL_DECODE
+      ,HDP_URL_ENCODE
+      ,HDP_UPLOAD_TARGET
+      ,BIGO
+    )
+    SELECT
+      #{newApiNo}
+      ,PARAM_TYPE_CD
+      ,SORT_ODRG
+      ,PARAM_NM
+      ,DATA_TYPE_CD
+      ,PARAM_DESC
+      ,EXAM
+      ,#{prntsParamNo}
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+      ,RES_CD
+      ,RES_DESC
+      ,PARAM_LOC
+      ,OBJ_NO
+      ,OBJ_ODRG
+      ,REQUIRED
+      ,PERSONAL_DATA
+      ,DO_NOT_SEND
+      ,FIXED_VALUE
+      ,HIDDEN
+      ,MAPPING_KEY
+      ,HDP_URL_DECODE
+      ,HDP_URL_ENCODE
+      ,HDP_UPLOAD_TARGET
+      ,BIGO
+    FROM KOA_TB_API_PARAM 
+    WHERE (API_NO = #{apiNo})
+      AND (PARAM_NO = #{paramNo})
+  </insert>
+
+  <!-- 작업중인 API 삭제 -->
+  <update id="delDevApi" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.delDevApi */
+    UPDATE  KOA_TB_API_SPC
+    SET
+      DEL_YN = 'Y'
+      ,DEL_DT = NOW()
+      ,DELR = #{regr}
+    WHERE (API_SPC_NO = #{apiSpcNo})
+  </update>
+
+  <!-- 버전업/Private전환 등록을 위한 기존에 저장된 API 내역 조회 -->
+  <select id="selApiInfoList1" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selApiInfoList1 */
+    SELECT A.API_SPC_NO ,
+      B.API_CTGRY_NO ,
+      B.API_NO
+    FROM KOA_TB_API_CTGRY A ,
+        KOA_TB_API_DEF B 
+    WHERE (A.API_SPC_NO = #{apiSpcNo})
+      AND (A.API_SPC_NO = B.API_SPC_NO)
+      AND (A.API_CTGRY_NO = B.API_CTGRY_NO)
+    ORDER BY A.API_CTGRY_NO ASC, b.API_NO ASC
+  </select>
+
+  <!-- 버전업/Private전환 등록을 위한 기존에 저장된 API 내역 조회 -->
+  <select id="selApiInfoList2" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selApiInfoList2 */
+    SELECT A.API_NO
+    FROM KOA_TB_API_DEF A 
+    WHERE ((A.API_CTGRY_NO = '') OR (API_CTGRY_NO is NULL))
+      AND (A.API_SPC_NO = #{apiSpcNo})
+    ORDER BY A.API_NO
+  </select>
+
+  <!-- 버전업/Private전환 등록을 위한 기존에 저장된 API 내역 조회 -->
+  <select id="selApiInfoParamList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selApiInfoParamList */
+    SELECT A.PARAM_NO,
+      COALESCE(A.PRNTS_PARAM_NO, '') AS PRNTS_PARAM_NO
+    FROM KOA_TB_API_PARAM  A 
+    WHERE (A.API_NO = #{apiNo})
+    ORDER BY PARAM_NO ASC, PRNTS_PARAM_NO ASC
+  </select>
+
+  <!-- 버전업/Private전환 등록을 위한 기존에 저장된 API 내역 조회 -->
+  <select id="selApiInfoOnlyCateList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selApiInfoOnlyCateList */
+    SELECT A.*
+    FROM KOA_TB_API_CTGRY A 
+      LEFT OUTER JOIN KOA_TB_API_DEF B ON (A.API_CTGRY_NO = B.API_CTGRY_NO)
+    WHERE (A.API_SPC_NO = #{apiSpcNo})
+      AND (B.API_NO IS NULL)
+  </select>
+
+  <select id="selReqInfo1" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selReqInfo1 */
+    SELECT A.*
+       , COALESCE(A.PROJECT_NS,'') AS PROJECT_NAMESPACE
+    FROM KOA_TB_API_SPC A 
+    WHERE (A.API_SPC_NO = #{apiSpcNo})
+  </select>
+
+  <select id="selReqInfo2" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSpcVO">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.selReqInfo2 */
+    SELECT A.*
+    FROM KOA_TB_API_CTGRY A 
+      LEFT OUTER JOIN KOA_TB_API_DEF B ON (A.API_CTGRY_NO = B.API_CTGRY_NO)
+    WHERE (A.API_SPC_NO = #{apiSpcNo})
+      AND (B.API_NO IS NULL)
+  </select>
+
+  <!-- 중복 버전 체크 -->
+  <select id="salApiVerDupCheck" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.salApiVerDupCheck */
+    SELECT COUNT(*)
+    FROM KOA_TB_API_SPC A 
+    WHERE (A.API_SPC_ID IN (SELECT API_SPC_ID FROM KOA_TB_API_SPC  WHERE (API_SPC_NO = #{apiSpcNo})))
+      AND (A.VER = #{ver})
+  </select>
+
+  <!-- API Private 전환으로 API명세 등록 -->
+  <insert id="savApiPrivateApiSpc" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
+    <selectKey keyProperty="apiSpcNo" resultType="string" order="AFTER">
+      SELECT SCOPE_IDENTITY()
+    </selectKey>
+    /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiPrivateApiSpc */
+    INSERT INTO KOA_TB_API_SPC (
+      API_SPC_ID
+      ,VER
+      ,API_NM
+      ,API_DESC
+      ,AUT_ID
+      ,SYS_ID
+      ,VER_DESC
+      ,RFRN_WSDL_URL
+      ,RFRN_TMPLT_NO
+      ,RFRN_API_SPC_NO
+      ,HOST
+      ,BAS_PATH
+      ,YAML_FILE_PATH
+      ,YAML_FILE_NM
+      ,'APIREG1010' /* 작성중 */
+      ,'N'
+      ,null
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+      ,'N'
+      ,NULL
+      ,NULL
+      ,YAML_SBST
+      ,'N'
+      ,'APIGUB1020' /* Private */
+      ,PROJECT_NS
+    )
+    SELECT
+      IDENT_CURRENT('KOA_TB_API_SPC') AS API_SPC_ID
+      ,VER
+      ,API_NM
+      ,API_DESC
+      ,AUT_ID
+      ,SYS_ID
+      ,VER_DESC
+      ,RFRN_WSDL_URL
+      ,RFRN_TMPLT_NO
+      ,RFRN_API_SPC_NO
+      ,HOST
+      ,BAS_PATH
+      ,YAML_FILE_PATH
+      ,YAML_FILE_NM
+      ,'APIREG1010' /* 작성중 */
+      ,'N'
+      ,null
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+      ,'N'
+      ,NULL
+      ,NULL
+      ,YAML_SBST
+      ,'N'
+      ,'APIGUB1020' /* Private */
+      ,PROJECT_NS
+    FROM KOA_TB_API_SPC 
+    WHERE (API_SPC_NO = #{apiSpcNo})
+  </insert>
+</mapper>

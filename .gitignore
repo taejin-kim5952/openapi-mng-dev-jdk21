@@ -1,0 +1,18 @@
+.idea/
+.settings/
+bin/
+classes/
+target/
+.classpath
+.factorypath
+.project
+build.xml
+classpath
+Jenkinsfile
+migration-factory.properties
+project
+server.xml
+
+# Local environment configs (security)
+src/main/resources/config/local/*.yml
+src/main/resources/kt/props/local/*.properties

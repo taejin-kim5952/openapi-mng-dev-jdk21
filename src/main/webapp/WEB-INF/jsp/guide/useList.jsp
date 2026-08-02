@@ -1,0 +1,1039 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<t:layout type="default" title="KT Open API - 이용가이드">
+<script type="text/javascript">
+//api 등록 버튼 클릭
+/*-- [dep][share @top.jsp]
+  var apiReg = function(){
+    var loginStep = '';
+    loginStep = "${ssUserVo.mbrId}";
+    if(!loginStep){
+  		var f = confirm('<spring:message code="top.login.req"/>');
+  		if(f){
+  		  location.href="<c:url value='/login/loginForm.do'/>";
+  		  return;
+  		}else{
+  			return;	
+  		}
+    }
+    var list = new Array(); 
+    <c:forEach items="${ssUserVo.authList}" var="item">
+    	list.push("${item.autId}");
+    </c:forEach>
+    
+    console.log("권한:"+list[0]);
+    
+    if(!list[0]){
+  	  var f = confirm('<spring:message code="top.aut.req"/>');
+  	  if(f){
+  		    location.href="<c:url value='/mypage/mypageInfo.do'/>";
+  	  return;  
+        }	  
+    }else{
+  	  location.href="<c:url value='/api/main/mvMainList.do'/>";
+    }
+  }
+--*/
+
+  // youtube 영상 
+  var tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  // 3. This function creates an <iframe> (and YouTube player) after the API code downloads.
+  var player;
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('mv_boxing', {
+      height: '590',
+      width: '1160',
+      autoplay:'false',
+      //videoId: 'vl05KuTJgDA',
+      videoId: 'c9Dyapqkcnc',
+      events: {
+        // 'onReady': onPlayerReady,
+        // 'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+  // 4. The API will call this function when the video player is ready.
+  function onPlayerReady(event) {
+    event.target.playVideo();
+  }
+  // 5. The API calls this function when the player's state changes.
+  //    The function indicates that when playing a video (state=1),
+  //    the player should play for six seconds and then stop.
+  var done = false;
+  function onPlayerStateChange(event) {
+    if (event.data == YT.PlayerState.PLAYING && !done) {
+      setTimeout(stopVideo, 6000);
+      done = true;
+    }
+  }
+  
+  function stopVideo() {
+    player.stopVideo();
+  }
+  
+  $(".mv_close, .dim_layer").click(function(){
+    player.stopVideo();
+  });
+  
+  $(document).ready(function(){
+  	// 해당 탭으로 이동
+  	var tabCurrent = "${fn:escapeXml(param.tabCurrent)}";
+  	if(tabCurrent != ""){
+  		$(".useguide0"+tabCurrent).addClass("current");
+  		$("#tab"+tabCurrent).addClass("current");
+  	} else {
+  		$(".useguide01").addClass("current");
+  		$("#tab1"+tabCurrent).addClass("current");
+  	};
+  });
+</script>
+<div id="container">
+	<div class="sVisual sv_guide">
+		<div>
+			<h2>이용가이드</h2>
+			<p>플랫폼 비즈니스의 신속한 서비스를 위한 OPEN API를 소개합니다</p>
+		</div>
+	</div>
+	<div class="contents style_gray2 search_only">
+		<div class="conBox">
+			<div class="pg_location"><a>Go home</a> <span>></span> 이용 가이드</div>
+			<div id="content">
+            	<!-- guide_wrap -->
+            	<div class="useguide_wrap">
+	            	<!-- guide_wrap -->
+		            <div class="guide_wrap">
+			            <ul class="tab_list guidetab tab5">
+			                <li data-tab="tab1" class="useguide01" title="Open API 소개"><span>Open API<br> 소개</span></li>
+			                <li data-tab="tab2" class="useguide02" title="Design UI 가이드"><span>Design UI<br> 가이드</span></li>
+			                <li data-tab="tab3" class="useguide03" title="IoTMakers"><span>IoTMakers</span></li>
+			                <li data-tab="tab4" class="useguide04" title="Olleh Map Biz"><span>Olleh Map<br>Biz</span></li>
+			                <li data-tab="tab5" class="useguide05" title="GIGA Genie"><span>GIGA Genie</span></li>
+			            </ul>
+						<div id="tab1" class="tabcontent">
+	                           <h6>Open API 소개</h6>
+	                           <div class="useGuide_content">
+	                               <h4><span>Open API 소개</span></h4>
+	                               <!--  List start -->
+	                               <section>
+	                                  <h5>Open API 개념</h5>
+	                                  <div>
+	                                      <p>세상은 급변하고 있습니다. 새로운 사업영역이 생겨나고, 새로운 기술이 탄생되고 있습니다. 
+	                                       이러한 변화의 물결 속에서 API는 단순한 기술이 아니라 새로운 서비스 및 판매채널을 통한 기업에 새로운 수익을 창출할 수 있는 중요한 비즈니스 모델입니다.
+	                                       kt Open API는 kt에서 보유한 다양한 유무선 기능 및 자원을 API 형태로 제공하여 서비스를 쉽고 빠르게 개발할 수 있도록 하는 인터페이스 입니다. 
+	                                       kt의 다양한 자원을 효율적으로 사용하실 수 있습니다</p>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>Open API 기능</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0101.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>인증</dt>
+	                                               <dd>사용자 및 단말기 인증</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>과금</dt>
+	                                               <dd>서비스에 대한 결제처리</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>LBS</dt>
+	                                               <dd>위치정보</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>부가서비스</dt>
+	                                               <dd>부가서비스 가입/해지</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>메세징</dt>
+	                                               <dd>SMS, MMS 발송</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>OllehMap</dt>
+	                                               <dd>지도서비스</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>OPG</dt>
+	                                               <dd>Push 서비스</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>왜 오픈 API인가?</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0102.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <ul>
+	                                               <li>인증, 결제, 과금 등 서비스 출시를 위해 필수적으로 필요한 기능을 별도 개발 없이 안정적으로 사용 가능합니다.</li>
+	                                               <li>API 개발, 상용화, 버전관리, 정책관리, 유효성 검사, 성능관리, 폐쇄 등 일련의 API LifeCycle을 전문적으로 관리합니다</li>
+	                                               <li>개발 노하우 기반의 IT전문 컨설팅 지원으로 Biz 부서에서 고려하기 어려운 시스템간 연동, 보안 및 연관부서  협조까지 지원합니다.</li>
+	                                               <li>KT의 안정적인 Gateway 및 분배 네트워크를 통하여 지능형 트래픽 라우팅을 지원합니다. 캐시구성, 트래픽할당 및 시스템 보호, 동시속도 제한 등 전문적인 네트워크 지원을 받습니다 </li>
+	                                           </ul>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>API 솔루션의 구성</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0103.png" />"  alt="별" /></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>개발자 포털</dt>
+	                                               <dd>애플리케이션 개발자와 API 를 등록 및 관리하고 개발환경을 제공하며 API를 테스트할 수 있어야 합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>API 게이트웨이</dt>
+	                                               <dd>API 보안 및 사용자와 Enabler의 트래픽을 관리하고 개발자, 고객, 파트너, 회사내부직원들이 API를 사용할 수 있도록 합니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>API life cycle 관리</dt>
+	                                               <dd>API 디자인, 개발, 상용화 및 API 버전관리 등의 프로세스를 관리합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>추가항목</dt>
+	                                               <dd>Backend 서비스(BaaS) - <br> 개발자가 응용프로그램을 확장할 수 있는 기능 (그래프 사용, 사용자 관리, 데이터 스토리지, 푸시알람, 성능 모니터링)을 지원합니다. </dd>
+	                                               <dd>웹 로그분석기(API Analysis) - <br> API의 형태로 제공되며, 사업담당자, 시스템 운영자, 개발자에게 API 분석을 도와줄 수 있습니다. </dd>
+	                                               <dd>API 수익창출(Creating Profit) - <br> 수익창출을 위하여 파트너 및 개발자에게 API를 공개하여 수익을 공유할 수 있습니다.(TBD)</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>개발자 포털</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0104.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>개발자와 파트너사의 개발생산성은 개발자 포털에 따라 크게 향상됩니다. KT Open API는 향상된 기술을 제공하고 내부의 모든 자원을 공개하며 개발자의 요구사항을 완벽하게 제공합니다.</p>
+	                                           <dl>
+	                                               <dt>- 컨설팅(Consulting)</dt>
+	                                               <dd>고객의 Needs를 분석하여 최적의 API 사용이 가능하도록 사전 컨설팅 진행</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 인증(Certification) </dt>
+	                                               <dd>개발자가 간편하게 API 검색 및 생성</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 기술지원(Technical Assistance)</dt>
+	                                               <dd>규격화된 온라인 문서와 API 테스트 Editor 제공</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 커뮤니티(Community) </dt>
+	                                               <dd>개발자가 지식을 공유할 수 있는 포럼 제공</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>개발자 포털</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0105.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>- API 보안</dt>
+	                                               <dd>인증(Authentication), 인가(Authorization), 네트워크 암호화 및 정책구성으로 안정적인 서비스 구성</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- Enabler 접근성</dt>
+	                                               <dd>kt Enabler에 접근하기 위한 단일화된 규격을 제공합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- API 분석</dt>
+	                                               <dd>API 트래픽 사용을 기반으로 비정상검사 및 추세분석을 제공 합니다. 측정대상 데이터는 트래픽, 평균응답시간, 오류 등이며 이에 대한 정보를 분석서비스로 제공합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 안정적인 서비스 제공</dt>
+	                                               <dd>Gateway 이중화 구성(분당센터, 대전센터)으로 Risk없는 Non-Stop  서비스를 제공합니다. </dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>API life Cycle </h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0106.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>API 관리의 핵심은 API Life Cycle 관리입니다. Life Cycle은 API를 소비하는 고객을 고려하여 설계합니다. API Life Cylce 관리 내용으로는 API 디자인, 개발, 상용화, API 버전관리,  API 정책관리, 유효성검사, 성능측정 등이 있습니다.</p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>Backend 서비스</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0107.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>사용자 관리를 통해서 User를 등록하고 로그인하며 사용권한과 권한그룹을 부여합니다. 또한 페이스북, 트위터 인증 및 다른 Oauth 사용계정 인증을 지원합니다.(TBD)</p>
+	                                           <dl>
+	                                               <dt>- 확장 가능한 REST 데이터 스토리지</dt>
+	                                               <dd>NoSQL 형식으로 정보를 저장하고 자동생성된 REST API 데이터를 개발자가 쉽게 생성할 수 있습니다.(TBD)</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 소셜연계기능</dt>
+	                                               <dd>개발자가 쉽고 빠르게 애플리케이션에 소셜 그래프를 사용할 수 있습니다.(TBD)</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 위치기반 서비스 GPS </dt>
+	                                               <dd>위치정보를 활용한 정보를 사용한 서비스를 제공합니다. 위치정보는 사용자를 분석할 수 있는 중요한 데이터 요소 입니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- Push 서비스 </dt>
+	                                               <dd>애플푸시, 알림서비스, 구글클라우드 메시징, 윈도우 푸시 알림서비스입니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>- 임시 Storage 서비스 </dt>
+	                                               <dd>자주 변경되는 임시 데이터를 저장합니다.(TBD)</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>웹 로그분석기(API Analysis) </h5>
+	                                  <div>
+	                                      <p>API 시간별 추이는? 응답시간이 빠른  API는? 개발자 유치는? 어느 지역의 API 트래픽이 상위를 차지할까? <br>
+	                                       위와 같은 질문에 대답하기 위해서 API 관리도구를 사용하여야 합니다. 이를 통하여 궁극적으로 더 나은 API 프로그램에 대한 정책 결정을 내릴 수 있습니다. <br>
+	                                       API 관리솔루션은 API의 분석의 결과를 그래프나 대시보드 및 차트를 통하여 표현합니다. 이 정보는 현재 사용중인 API에 가장  유효한 정보들을 수집, 분석 제공받을 수 있습니다.
+	                                      
+	                                       </p>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>API 수익창출</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0108.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>사용자 관리를 통해서 User를 등록하고 로그인하며 사용권한과 권한그룹을 부여합니다. 또한 페이스북, 트위터 인증 및 다른 Oauth 사용계정 인증을 지원합니다.(TBD)</p>
+	                                           <dl>
+	                                               <dt>요금제</dt>
+	                                               <dd>개발자가 다양한 요금제를 설계할 수 있습니다. 선불, 후불, 고정수수료를 만들 수 있으며 특정개발자와 그룹간 수익을 공유할 수 있습니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>사전결제 </dt>
+	                                               <dd>API를 사전 구입하여 API를 사용하는 프로세스입니다. WorldPay 같은 지불공급자와 개발자가 API 사용에 대한 사전지불을 허용합니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>한도설정</dt>
+	                                               <dd>API 공급자는 API 사용에 대한 제한을 설정 할 수 있습니다. API 사용을 모니터링하고 한도에 도달하면 자동 알림 서비스도 제공합니다.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>유료화 관련 컨텐츠 </dt>
+	                                               <dd>API 공급자가 개발자의 컨텐츠를 포함하여 제공할 경우 수익을 공유할 수 있습니다. 개발자는 개발자 포털에서 수익창출을 이룰 수 있습니다.</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	                           </div>
+	                           
+	                       </div>
+	
+	                       <div id="tab2" class="tabcontent">
+	                           <h6>Design UI 가이드</h6>
+	                           <div class="useGuide_content">
+	                               <h4><span>Design UI 가이드</span></h4>
+	                               <section>
+	                                  <h5>Design UI 란?</h5>
+	                                  <div>
+	                                      <p>Open API를 표준화시켜 쉽게 설계하고 문서화하여 누구라도 KT 플랫폼을 통해 API를 설계 할 수 있는 API 편집기 입니다. <br>설계한 API는 KT플랫폼에서 제공하는 네트워크를 통해 여러 서비스에서 사용됩니다.</p>
+	                                       
+	                                      <div class="btn_set">
+	                                           <a href="javascript:;" title="Design UI 사용방법 보기" class="btn-lg2 btn_black" onclick="showApiMV(this, '.mv-wrap');return false;"><span>Design UI 사용방법 보기</span></a>
+	                                      </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>API의 협업설계</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0201.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>서비스 담당자는 필요한 API를 개발자에게 개발요청을 보내고 피드백을
+	                                           받을 수 있습니다.
+	
+	                                           API 개발자는 같은 권한을 가진 팀원들에게 설계 파일을 공유하고 검토를 
+	                                           받을 수 있습니다.
+	
+	                                           등록 완료된 API는 버전별로 확인 할 수 있으며, 버전업 기능을 통해 
+	                                           동일한 API를 복사하여 새로운 API를 설계 할 수 있습니다.</p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>Design UI를 사용한 손쉬운 API설계</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0202.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>API를 설계하기 위해 등록 완료된 API, WSDL, 템플릿 불러오기 기능으로 
+	                                           많은 예제를 사용할 수 있어 API 설계시간을 단축 할 수 있습니다.
+	
+	                                           별도의 코딩 기술과 JSON / YAML에 대한 이해가 없어도 다양한 API를 
+	                                           설계할 수 있습니다.
+	
+	                                           서로 연결되거나 비슷한 기능의 API를 여러 개 동시에 설계할 수 있습니다.
+	
+	                                           에러에 대한 즉각적인 알림을 제공합니다.</p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>API 테스트 및 자동 문서화</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0203.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>Design UI에서 설계한 API를 에디터에서 수정하고 테스트를 통한 검증을
+	                                           수행 할 수 있습니다.
+	
+	                                           API설계에 필요한 서버 SDK, 클라이언트 SDK 다운과 설치가이드를 제공합니다.
+	
+	                                           API 설계가 완료되면 YAML 또는 JSON으로 다운 할 수 있으며, 규격서는
+	                                           PDF 파일로 확인 할 수 있습니다.</p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                                <div class="btn_set">
+	                                   <a href="javascript:;" title="API 등록 바로가기" class="btn-lg2 btn_black" onclick="apiReg();"><span>API 등록 바로가기</span></a>
+	                               </div>
+	                           </div>
+	                       </div>
+	
+	                       <div id="tab3" class="tabcontent ">
+	                           <h6>IoTMakers</h6>
+	
+	                           <div class="useGuide_content">
+	                               <h4><span>IoTMakers</span></h4>
+	                               
+	                               <section>
+	                                  <h5>IoT (Internet of Things)란?</h5>
+	                                  <div>
+	                                      <p>IoT (Internet of Things)란, 사물들의 인터넷으로 실 세계와 가상 세계에 존재하는 사물들을 네트워크로 연결하여, 사람과 사물, 사물과 사물간에 언제 어디서나 
+	                                       서로 소통할 수 있는 지능적 환경입니다. 인터넷의 탄생으로 수많은 새로운 비즈니스가 생겨나고 산업이 변화하였듯이 모든  사물이 연결된 IoT시대에는 
+	                                       지금은 상상하지 못하는 새로운 기회들이  다가올 것입니다.</p>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>GiGA IoTMakers란?</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0401.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>IoTMakers는 IoT Player들이 쉽게 IoT생태계에 참여할 수 있도록 
+	                                           지원하는 KT의 개방형 IoT 플랫폼입니다. IoTMakers를 통해서 
+	                                           손쉽게 IoT 디바이스를 연결하여 테스트 할 수 있고, 수집된 데이터를 
+	                                           관리할 수 있고, 제공되는 OPEN API를 통하여 IoT 서비스를 만들 수 
+	                                           있습니다.
+	                                           KT는 IoTMakers를 통해 다양한 B2C, B2B, B2G 서비스를 제공하여 
+	                                           왔습니다. 
+	                                           이제는 이러한 축적된 노하우를 바탕으로 다양한 개발자, 스타트업, 
+	                                           중소기업들이 플랫폼에 투자하지  않고도 신속하게 서비스 Idea를 
+	                                           실현하여 IoT의 창조적인 Makers가 되도록 지원하겠습니다.
+	                                           </p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>IoTMakers의 제공기능</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0402.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>손쉬운 디바이스 연동</p>
+	                                           <dl>
+	                                               <dt>표준 통신 프로토콜 지원</dt>
+	                                               <dd>KT 표준 I/F, 국제 표준 프로토콜 및 SDK의 제공으로 다양한 디바이스와 센서의 손쉬운 연동을 지원합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>가상 디바이스 시뮬레이션</dt>
+	                                               <dd>실제 디바이스가 없는 경우에도 가상의 데이터를 발생시켜 디바이스 연결 정보 수집을 테스트할 수 있도록 가상 디바이스 시뮬레이터를 제공합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>디바이스 복제</dt>
+	                                               <dd>디바이스 복제 기능을 통해 동일한 디바이스의 다건 등록이 쉽게 가능해집니다</dd>
+	                                           </dl>
+	
+	                                           <p>IoT 데이터 및 이벤트 관리</p>
+	                                           <dl>
+	                                               <dt>디바이스 관리</dt>
+	                                               <dd>자신이 등록한 디바이스와 태그 스트림을 관리하고 디바이스로부터 수집된 데이터를 로그형식, 차트형식으로 확인 할 수 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>GUI 기반 이벤트 및 워크플로우 설정</dt>
+	                                               <dd>GUI 기반의 에디터를 통해 이벤트와 워크플로우를 쉽게 설정할 수 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>대시보드를 통한 모니터링</dt>
+	                                               <dd>나의 대시보드를 통해 디바이스로부터 수집되는 실시간 데이터를 모니터링 할 수 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>공개 디바이스</dt>
+	                                               <dd>공개 디바이스를 통해 타 이용자가 등록한 디바이스로부터 수집되는 태그 스트림 데이터, 이벤트 정보들을 이용하여 나만의 IoT 서비스를 만들 수 있습니다</dd>
+	                                           </dl>
+	
+	                                           <p>어플리케이션 개발 지원</p>
+	                                           <dl>
+	                                               <dt>Open API</dt>
+	                                               <dd>IoTMakers가 제공하는 OPEN API를 직접 테스트해보고 사용하여 다양한 IoT 서비스를 개발할 수  있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>APP SDK 제공</dt>
+	                                               <dd>IoTMakers가 제공하는 iOS SDK, Android SDK, Web SDK를 통해 나만의 APP을 제작해보세요</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>공개 앱</dt>
+	                                               <dd>공개 앱을 통해 타 이용자의 IoT idea를 경험할 수 있습니다. 나만의 IoT idea도 사람들과 공유해 보세요</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>IoTMakers 용어</h5>
+	                                  <div>
+	                                      <table class="guideTable">
+	                                          <colgroup>
+	                                              <col style="width:20%">
+	                                              <col style="width:80%">
+	                                          </colgroup>
+	
+	                                          <thead>
+	                                              <tr>
+	                                                  <th>용어</th>
+	                                                  <th>정의</th>
+	                                              </tr>
+	                                          </thead>
+	
+	                                          <tbody>
+	                                              <tr>
+	                                                  <td>디바이스명</td>
+	                                                  <td>디바이스를 구분하기 위해 사용자가 정의한 디바이스 이름</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>디바이스 아이디</td>
+	                                                  <td>IoTMakers에 디바이스 연동 시 디바이스 인증 용도로 사용하는 아이디</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>디바이스 패스워드</td>
+	                                                  <td>IoTMakers에 디바이스 연동 시 디바이스 인증 용도로 사용하는 패스워드</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>프로토콜 유형</td>
+	                                                  <td>디바이스 연동을 위한 IoTMakers의 지원 프토토콜 종류 (KT 표준 I/F 프로토콜 , oneM2M)</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>Gateway 연결 ID</td>
+	                                                  <td>IoTMakers에 디바이스 연동 시 사용자 인증 용도로 사용되는 사용자의 고유 ID</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>사용자 정의 모델명</td>
+	                                                  <td>디바이스 복제 시 복제 기준 모델을 구분하기 위해 사용자가 정의한 디바이스 모델 이름</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>태그스트림</td>
+	                                                  <td>디바이스를 통해 수집된, 특정한 측정 유형(습도, 온도 등)의 데이터 타입으로 구성된 데이터 집합</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>이벤트</td>
+	                                                  <td>디바이스의 태그스트림에서 올라오는 값 중 사용자가 설정한 특정 조건에 부합할 때 발생하는 사건</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>디바이스 복제</td>
+	                                                  <td>동일한 사용자 정의 모델명, 태그 스트림을 가지는 디바이스들을 생성</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>APP ID</td>
+	                                                  <td>플랫폼 연동 시 앱 인증을 위한 앱 구분 ID (앱 개발 시 필요)</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>Secret</td>
+	                                                  <td>플랫폼 연동 시 앱 인증을 위한 앱 인증 키 (앱 개발 시 필요)</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>가상 디바이스 시뮬레이터</td>
+	                                                  <td>실제 디바이스를 연동하지 않아도 디바이스에서 값이 올라오는 것처럼 가상의 데이터를 생성해내는 시뮬레이터</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>공개 디바이스</td>
+	                                                  <td>디바이스 공개설정을 하여 태그스트림으로 올라오는 데이터 및 이벤트 발생 이력을 누구나 자유롭게 이용할 수 있는 디바이스</td>
+	                                              </tr>
+	                                              <tr>
+	                                                  <td>공개 앱</td>
+	                                                  <td>앱 공개설정을 하여 누구나 자유롭게 이용이 가능한 앱</td>
+	                                              </tr>
+	                                          </tbody>
+	                                      </table>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>IoTMakers 이용가이드</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0403.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">                                              
+	                                           <p>01. 디바이스 등록</p>
+	                                           <dl>
+	                                               <dt>1. 디바이스 등록</dt>
+	                                               <dd>- 디바이스 정보 입력</dd>
+	                                               <dd>- 프로토콜 선택</dd>
+	                                               <dd>- 태그 스트림 등록</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>2. 디바이스 등록</dt>
+	                                               <dd>- 선택한 프로토콜에 따른 디바이스 연결</dd>
+	                                               <dd>- kt표준 I/F 프로토콜 국제 표준 프로토콜</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>3. 이벤트 등록</dt>
+	                                               <dd>- 이벤트 및 워크플로우 설정</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>4. 대시보드 보기</dt>
+	                                               <dd>- 디바이스 실시간 수집 데이터 확인</dd>
+	                                           </dl>
+	
+	                                           <p>02. 어플리케이션 개발</p>
+	                                           <dl>
+	                                               <dt>1. OPEN API</dt>
+	                                               <dd>- OPEN API 테스트</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>2. 앱 SDK다운로드</dt>
+	                                               <dd>- iOS SDK</dd>
+	                                               <dd>- Android SDK</dd>
+	                                               <dd>- Web SDK</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>3. 앱 개발</dt>
+	                                               <dd>- IoTMarkers에서 제공하는 앱 SDK를 통한 손쉬운 앱 개발</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>4. 앱 등록</dt>
+	                                               <dd>- 앱 정보 입력</dd>
+	                                               <dd>- OAuth 설정</dd>
+	                                               <dd>- Push notification </dd>
+	                                               <dd>인증키/인증서 등록</dd>
+	                                           </dl>
+	
+	                                           <p>03. 공유 및 활용</p>
+	                                           <dl>
+	                                               <dt>1. 디바이스 및 APP 공유</dt>
+	                                               <dd>- 공개여부 설정을 통해 IoTMarkers의 사용자들에게 나의 디바이스와 APP 공유</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>2. 공개 디바이스 및 공개 앱 활용</dt>
+	                                               <dd>- 공개 디바이스와 공개 앱을 통해 디바이스로부터 수집되는 데이터 및 서비스를 자유롭게 활용</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <div class="btn_set">
+	                                   <a href="http://iotmakers.olleh.com/" target="_blank" title="IoTMakers 사이트 바로가기" class="btn-lg2 btn_black"><span>IoTMakers 사이트 바로가기</span></a>
+	                               </div>
+	                           </div>
+	
+	                       </div>
+	
+	                       <div id="tab4" class="tabcontent">
+	                           <h6>Olleh Map Biz</h6>
+	                           
+	                           <div class="useGuide_content">
+	                               <h4><span>Geo master</span></h4>
+	                               
+	                               <section>
+	                                  <h5>Geo master 란?</h5>
+	                                  <div>
+	                                      <p>Geo master 서비스는 정밀하고 풍부한 공간정보 데이터 기반의 고품질 기업용 지도 API서비스를 제공합니다. Web 및 App에 모두 활용 할 수 있으며 부동산 
+	                                       매물 검색 및 주변 거주환경 확인, 호우, 지진 등의 공공 통계정보 기능을 API 형태로 제공하고 있습니다.</p>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>특장점</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0501.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>kt가 자체 구축한 고품질 공간정보를 제공합니다.</p>
+	                                           <dl>
+	                                               <dt>。최신 수치지형도 기반의 상세한 배경 지도</dt>
+	                                               <dd>- 사용자의 경로를 따라 높이를 분석하여 효율적인 경로를 제공</dd>
+	                                               <dd>- 인도, 횡단보도, 육교, 지하철역사, 정류장 등 보행자 정보와 51cm급 해상도의 항공사진</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>。국내 최대 수준의 최신 POI 정보</dt>
+	                                               <dd>- kt의 사업인프라와 폭넓은 제휴를 통해 확보한 380만건 이상의 POI 데이터</dd>
+	                                               <dd>- 전화번호안내DB와 KT 상호DB 연동을 통해 하루 평균 5,000건 이상의 데이터 갱신</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>。실측으로 검증한 도로 네트워크 정보</dt>
+	                                               <dd>- 왕복2차선 이상도로, 차량주행 가능한 이면도로, 페리항로 등을 모두 네트워크로 구축</dd>
+	                                               <dd>- 차선정보, 방면정보, 사고다발지점 등 경로안내를 위한 부가정보와 각종 안전운전정보</dd>
+	                                           </dl>
+	
+	                                           <p>다양한 기능의 차별화된 API를 제공합니다.</p>
+	                                           <dl>
+	                                               <dt>。정확하고 다양한 검색 API</dt>
+	                                               <dd>- 명칭, 주소, 업종검색 등 다양한 지역검색 기능</dd>
+	                                               <dd>- 반경, 다각형, 경로정보 등 지역범위를 검색 조건으로 설정 가능</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>。지도와 같이 사용할 수 있는 부가 API</dt>
+	                                               <dd>- 자동차 경로탐색API, 고도API, Static Map API, 건물DB API 등 kt 데이터 API</dd>
+	                                               <dd>- 초정밀항공영상API, 전화번호검색API, 전국 대중교통API 등 협력사 API</dd>
+	                                               <dd>- 우편번호API, 인구통계API, 기상API, 편집지적도API, 신구주소변환API 등 공공 데이터 API</dd>
+	                                           </dl>
+	
+	                                           <p>고객 맞춤형 API 서비스를 제공합니다.</p>
+	                                           <dl>
+	                                               <dt>。Custom API개발 체계 운영</dt>
+	                                               <dd>- 고객 니즈에 맞춰 기본 API를 수정하거나 신규 API를 개발할 수 있는 지원 체계 운영</dd>
+	                                               <dd>- 고객사의 매쉬업 서비스 개발을 위한 다양한 데이터 수급 지원</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>。 kt클라우드 기반에서 운영되는 올레맵은 서비스운영 안정성(SLA) 보장</dt>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>기대효과</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0502.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>올레맵 API는 기존 원도 기반의 GIS 서비스에 비해 개발비와 유지보수 비용을 획기적으로 절감할 수 있으며, 고객 정보 등의 다양한 지도 Mash-up을 통해 쉽고 빠르게 차별화된 서비스를 개발할 수 있도록 지원합니다.</p>
+	                                           <dl>
+	                                               <dt>AS-IS - 전통적인 GIS시스템 개발</dt>
+	                                               <dd>。높은 초기 투자비 필요(지도Data, 시스템구축 약 2억원)</dd>
+	                                               <dd>。복잡한 개발환경 및 긴 개발일정</dd>
+	                                               <dd>。전문 개발자 부족</dd>
+	                                               <dd>。애플리케이션 확장의 어려움</dd>
+	                                               <dd>。복잡하고 높은 비용의 유지보수(연간 지도 업데이트 비용 및 운영비용) </dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>TO-BE - 올레맵 API 기반의 서비스</dt>
+	                                               <dd>。DB 및 시스템 초기투자비 없음</dd>
+	                                               <dd>。개발일정 최소화(약1~3개월 이내)</dd>
+	                                               <dd>。풍부한 API 개발자 Pool</dd>
+	                                               <dd>。고객 서비스의 N-Screen 지원(다양한 실시간 정보 Mash up가능)</dd>
+	                                               <dd>。고객 맞춤형 비용설계 가능(월납, 연납)</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>이용안내</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0503.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <p>올레맵 API는 기존 원도 기반의 GIS 서비스에 비해 개발비와 유지보수 비용을 획기적으로 절감할 수 있으며, 고객 정보 등의 다양한 지도 Mash-up을 통해 쉽고 빠르게 차별화된 서비스를 개발할 수 있도록 지원합니다.</p>
+	                                           <dl>
+	                                               <dt>Step 1. 이용상담</dt>
+	                                               <dd>서비스담당자와 이용에 대한 협의를 하거나 상품문의 게시판을 이용합니다</dd>
+	                                               <dd>서비스담당자 문의 jh.ban@kt.com</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Step 2. 회원가입</dt>
+	                                               <dd>올레맵 비즈 사이트에 회원가입을  하시면, 서비스담당자가 회원으로 승인처리를 합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Step 3. 인증키 발급</dt>
+	                                               <dd>올레맵 서비스를 이용하시려면 인증키를 발급받으셔야 합니다. 서비스담당자가 인증키를 회원가입 시 기입한 메일로 전달 드립니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Step 4. 어플리케이션 </dt>
+	                                               <dd>지원단말에 맞는 API문서를 다운 받으실 수 있으며, 발급받은 인증키를 적용하여 다양한API를 이용할 수 있습니다</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>활용분야</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0504.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">                                              
+	                                           <p>올레맵 API는 관제, 유통, 물류 등의 민간/공공 사업분야에서 Mobile, LBS, Social 등 다양한 기술과 Mash-up응용이 가능합니다.</p>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <div class="btn_set">
+	                                   <a href="https://www.ollehmap.com" target="_blank" title="Olleh Map Biz 사이트 바로가기 " class="btn-lg2 btn_black"><span>Olleh Map Biz 사이트 바로가기 </span></a>
+	                               </div>
+	                           </div>
+	                       </div>
+	
+	                       <!-- <div id="tab5" class="tabcontent">
+	                           <h6>ucloud biz</h6>
+	                           
+	                           <div class="useGuide_content">
+	                               <h4><span>ucloud biz</span></h4>
+	                               
+	                               <section>
+	                                  <h5>ucloud biz 란?</h5>
+	                                  <div>
+	                                      <p>안정적이고 강력한 기능의 서버와 스토리지 그리고 네트워크의 인프라가 필요하세요? 원하는 것을 가장 빠르고 정확하게 제공하는 ucloud biz의 클라우드 컴퓨팅 서비스를 만나보세요!</p>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>ucloud biz의 특징</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0601.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>손쉬운 서버 세팅</dt>
+	                                               <dd>CPU, 메모리, 네트워크를 자신이 원하는 대로 커스터마이징해서 손쉽게 제공 받습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>빠른 스토리지 확장</dt>
+	                                               <dd>디스크 용량이 필요한 만큼 원하는 대로 빠르게 확장할 수 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>편리한 OS 관리</dt>
+	                                               <dd>서버에서 사용할 운영체제를 편리하게 설치하고 업데이트 및 관리할 수 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>강력한 모니터링</dt>
+	                                               <dd>자체적으로 제공하는 강력한 모니터링 툴로 필요한 정보를 즉시 제공하고 있습니다</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>ucloud biz 서비스 구성</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0602.png" />" alt="별도 첨부"></p>
+	                                  </div>
+	                               </section>
+	
+	
+	                               <section>
+	                                  <h5>ucloud biz 장점</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0603.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">                                              
+	                                           <dl>
+	                                               <dt>안전성/보안성 </dt>
+	                                               <dd>- Global수준 99.95% SLA 품질 보장</dd>
+	                                               <dd>- DDoS, Firewall 등 사전 침입차단 및 네트워크 분리로 보안성 보장, 고객의 귀중한 정보 보호</dd>
+	                                               <dd>- cloud 여유자원으로 전환, 신속한 장애복구</dd>
+	                                               <dd>- System Redundancy 불필요</dd>
+	                                               <dd>- UI 옵션 선택을 통한 간편한 백업 및 복구 지원</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>비용절감 </dt>
+	                                               <dd>- 클라우드 가상 서버(VM) 추가로 간단한 확장 가능</dd>
+	                                               <dd>- 초기 투자 불필요</dd>
+	                                               <dd>- 호스팅 서비스 대비 저렴한 가격</dd>
+	                                               <dd>- 고객 니즈에 맞춘 다양한 사양 및 요금제 제공</dd>
+	                                               <dd>- 자체 전산시스템 운용 불필요에 따른 운용비 절감</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>신속성 </dt>
+	                                               <dd>- 자동화 자원할당으로 5분 내 서비스 제공</dd>
+	                                               <dd>- Hardware Maintenance 자체가 불필요</dd>
+	                                               <dd>- 돌발 수요 및 트래픽 증가에 따른 증설 시간 99% 이상 단축</dd>
+	                                               <dd>- ucloud biz 웹을 통한 간편한 상품신청, 생성, 삭제 제공</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>신축성/확장성  </dt>
+	                                               <dd>- 규모를 예측하기 어려운 신사업 개발/적용</dd>
+	                                               <dd>- 사업확대에 따른 유연한 확장 제공</dd>
+	                                               <dd>- 서비스 종료 시 매몰비용 없음</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>네트워크 품질 </dt>
+	                                               <dd>- 40GB의 대용량 Backbone 상에서 서비스</dd>
+	                                               <dd>- 40GB의 대용량 백본 네트워크 기반 빠른 응답속도</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>ucloud biz 구축 가이드</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0604.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">                                              
+	                                           <dl>
+	                                               <dt>General I (Public Cloud)</dt>
+	                                               <dd>Public Cloud에서 구성하는 기본적인 3-tier 구성. 웹 서비스, 게임, 미디어 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>General II (Hybrid Cloud)</dt>
+	                                               <dd>ucloud biz의 자원과 Custom Server/Storage 혹은 고객Site, IDC를 연동하는 구성. 웹 서비스, 게임, 미디어 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>High Availability I (멀티 계정)</dt>
+	                                               <dd>계정을 여러 개 확장&연동함으로써 성능 및 안정성을 높이는 구성. 웹 서비스, 게임, 미디어 등 </dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>High Availability II (멀티 Zone)</dt>
+	                                               <dd>동일 계정에서 Zone을 분리하여 구성하여 데이터센터 급 이중화 구성. 지역 소산이 필요한 시스템 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Security (Enterprise Cloud,G-Cloud)</dt>
+	                                               <dd>DDoS 방어 및 물리방화벽이 추가된 보안 강화 구성. 높은 수준의 보안이 필요한 대규모 시스템, 공공기관 시스템 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Security+FT (G-Cloud)</dt>
+	                                               <dd>공공기관용 보안 강화 구조에서 재난 복구 시스템을 추가하여 안정성을 강화한 구성. 공공기관 시스템 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>High Performance I (SSD)</dt>
+	                                               <dd>SSD를 사용한 high IOPS 성능을 제공하는 구성. 고성능 DB, 잦은 파일 입출력 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>High Performance II (GPU Server)</dt>
+	                                               <dd>GPU를 통한 계리, 분석 등의 높은 수준의 병렬 계산 처리. 보험, 금융, 주요 시스템 분석 등</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>HPC (Hybrid)</dt>
+	                                               <dd>고사양 서버의 클러스터링을 통한 고성능 컴퓨팅 제공. 각종 공학 연구, 엔지니어링 등</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <div class="btn_set">
+	                                   <a href="https://cloud.kt.com/" target="_blank" title="ucloud biz 사이트 바로가기" class="btn-lg2 btn_black"><span>ucloud biz 사이트 바로가기</span></a>
+	                               </div>
+	                           </div>
+	                       </div>-->
+	
+	                       <div id="tab5" class="tabcontent">
+	                           <h6>GIGA Genie</h6>
+	
+	                           <div class="useGuide_content">
+	                               <h4><span>GIGA Genie</span></h4>
+	                               
+	                               <section>
+	                                  <h5>GiGA Genie AI Kits</h5>
+	                                  <div>
+	                                       <p><img src="<c:url value="/resources/images/guideimg/useguide0701.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>GiGA Genie Service SDK </dt>
+	                                               <dd>개발자가 GiGA Genie에서 인공 지능 서비스를 개발하기 위한 개발 kit 입니다 GiGA Genie의 음성인식, 대화처리, TTS, 영상인식, 등을 이용할 수 있으며, TV 화면으로 고객에게 서비스를 제공할 수  있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>GiGA Genie Voice Kit </dt>
+	                                               <dd>사람의 말소리를 TV, 영화, 음악, IoT제어, 날씨, 시간, 일상대화 등 다양한 도메인의 말소리로 입력받아 이를 인식하고 텍스트를  결과로 제공해 주는 음성인식기술을  제공하고 있습니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>GiGA Genie Dialog Kit </dt>
+	                                               <dd>GiGA Genie Dialog Kit는 GiGA Genie 대화 플랫폼을 통해 자사 서비스 제공을 희망하는 3rd party 사업자에게 대화 인터페이스를 손쉽게 개발할 수 있도록 친절한 도구를 제공합니다</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>GiGA Genie Developer’s 서비스</h5>
+	                                  <div>
+	                                       <p><img src="<c:url value="/resources/images/guideimg/useguide0702.png" />" alt="별도 첨부"></p>
+	                                       <div class="hideText">
+	                                           <dl>
+	                                               <dt>Get Started</dt>
+	                                               <dd>GIGA Genie Developers 적극 활용하기</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Al Kit</dt>
+	                                               <dd>GIGA Genie 서비스 개발을 도와주는 Al Kit를 소개합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>DOCs</dt>
+	                                               <dd>GIGA Genie서비스 개발시 필요한 다양한 가이드를제공합니다</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Partners</dt>
+	                                               <dd>KT와 함께 GIGA Genie 의 새로운 서비스를 만들어 보세요</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>GiGA Genie APP 갤러리</h5>
+	                                  <div>
+	                                       <p><img src="<c:url value="/resources/images/guideimg/useguide0703.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">
+	                                           <dl>
+	                                               <dt>Game</dt>
+	                                               <dd>온 가족이 함께 즐기는 즐거운 서비스</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Education</dt>
+	                                               <dd>인공지능 선생님께 배우는 재미난 학습</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>News</dt>
+	                                               <dd>바쁜 당신을 위한 맞춤형 뉴스/정보</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Finance</dt>
+	                                               <dd>한눈에 파악하는  금융 트랜드</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Entertainment</dt>
+	                                               <dd>지루할 틈이 없는 취향저격 서비스</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Life</dt>
+	                                               <dd>즐거운 삶과 생활의 질을 높이는 서비스</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	
+	                               <section>
+	                                  <h5>GIGA Genie 기능</h5>
+	                                  <div>
+	                                      <p><img src="<c:url value="/resources/images/guideimg/useguide0704.png" />" alt="별도 첨부"></p>
+	                                      <div class="hideText">                                              
+	                                           <p>인공지능 TV 그 이상, 미래를 담은 Spaceship GiGA Genie</p>
+	                                           <dl>
+	                                               <dt>4배 더 선명한 UHD olleh tv 셋톱박스</dt>
+	                                               <dd>국내 최다 UHD와 VOD 콘텐츠를 초고화(HDR)로 즐겨보세요.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>Harman/Kardon 프리미엄 스피커</dt>
+	                                               <dd>하만카돈의 툭화된 튜닝기술로 인위적이지 않고, 자연스러운 사운드 본질을 느껴보세요.</dd>
+	                                           </dl>
+	                                           <dl>
+	                                               <dt>GiGA Genie용 카메라 </dt>
+	                                               <dd>카메라를 추가하여 Full HD급 영상통화, 홈캠 기능을 경험해 보세요.</dd>
+	                                           </dl>
+	                                       </div>
+	                                  </div>
+	                               </section>
+	                               <div class="btn_set">
+	                                   <a href="https://gigagenie.ai/#firstPage" target="_blank" title="GIGA Genie Developers 사이트 바로가기" class="btn-lg2 btn_black"><span>GIGA Genie Developers 사이트 바로가기</span></a>
+	                               </div>
+	                           </div>
+	                           
+	                       </div>
+		                 
+		             </div>
+	            	<!-- // guide_wrap -->
+           		</div>
+            	<!-- // guide_wrap -->
+         	</div>
+ 		</div>
+ 	</div>
+ </div>
+</t:layout>

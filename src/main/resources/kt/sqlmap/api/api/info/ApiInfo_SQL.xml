@@ -1,0 +1,434 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.api.dao.ApiInfoDAO">
+
+    <sql id="apiSpcVersionSch">
+        SELECT  A.*
+          FROM (
+            SELECT  A.API_SPC_NO
+                   ,A.API_SPC_ID
+                   ,A.VER
+                   ,A.API_NM
+                   ,A.API_DESC
+                   ,A.AUT_ID
+                   ,A.SYS_ID
+                   ,COALESCE(A.VER_DESC,'') AS VER_DESC
+                   ,A.RFRN_WSDL_URL
+                   ,A.RFRN_TMPLT_NO
+                   ,A.RFRN_API_SPC_NO
+                   ,A.HOST
+                   ,A.BAS_PATH
+                   ,A.YAML_FILE_PATH
+                   ,A.YAML_FILE_NM
+                   ,A.REG_STTUS_CD
+                   ,A.TMPLT_YN
+                   ,COALESCE(A.REG_APVR,'') AS REG_APVR
+                   ,A.REG_DT
+                   ,COALESCE(A.REGR,'') AS REGR
+                   ,A.AMD_DT
+                   ,COALESCE(A.AMDR,'') AS AMDR
+                   ,A.DEL_YN
+                   ,COALESCE(A.DEL_DT,'') AS DEL_DT
+                   ,COALESCE(A.DELR,'') AS DELR
+                   ,A.YAML_SBST
+                   ,A.SHOW_YN
+                   ,COALESCE(A.API_CLASS,'') AS API_CLASS
+                   ,B.SORT_ODRG
+                   ,B.API_STATUS_CD
+                   ,COALESCE(D.CD_NM,'') AS API_STATUS_CD_NM
+                   ,B.API_SUMRY
+                   ,B.USE_APPY_URL
+                   ,B.HTM_TAG_NM
+                   ,COALESCE(B.NEW_WIN_YN,'') AS NEW_WIN_YN
+                   ,C.TARGET_CD
+                   ,C.SAVE_FILE_NM
+                   ,C.ORIGIN_FILE_NM
+                   ,C.FILE_PATH
+                   ,C.FILE_TYPE_CD
+                   ,C.ON_SAVE_FILE_NM
+                   ,C.ON_ORIGIN_FILE_NM
+                   ,C.ON_FILE_TYPE_CD
+                   ,C.ON_FILE_PATH
+                   ,C.ON_FILE_SIZE
+                   ,ROW_NUMBER() OVER ( PARTITION BY A.API_SPC_ID ORDER BY A.API_SPC_NO DESC ) RN
+              FROM  KOA_TB_API_SPC A 
+                    INNER JOIN V2OA_TB_SPC_INFO B ON (A.API_SPC_ID = B.API_SPC_ID)
+                    INNER JOIN V2OA_TB_API_ICON C ON (B.API_SPC_ID = C.API_SPC_ID)
+                    LEFT OUTER JOIN KOA_TB_COMN_CD D ON (B.API_STATUS_CD = D.COMN_CD)
+             WHERE C.TARGET_CD = #{targetCd}
+               AND COALESCE(A.DEL_YN,'N') = 'N'
+               AND COALESCE(A.SHOW_YN,'Y')= 'Y'
+               AND NOT(A.TMPLT_YN != 'N' AND A.TMPLT_YN IS NOT NULL)
+               AND A.REG_STTUS_CD = 'APIREG1030'
+          ) A
+    </sql>
+
+  <!-- api 기본 정보 조회 -->
+  <select id="selApiDefaultData" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiDefaultVO">
+    SELECT /*com.kt.openapi.web.api.dao.ApiInfoDAO.selApiDefaultData*/
+       A.API_SPC_NO
+      ,A.API_SPC_ID
+      ,A.VER
+      ,A.API_NM
+      ,A.API_DESC
+      ,A.AUT_ID
+      ,A.SYS_ID
+      ,COALESCE(S.SYS_NM,'') AS SYS_NM
+      ,A.VER_DESC
+      ,A.RFRN_WSDL_URL
+      ,A.RFRN_TMPLT_NO
+      ,A.RFRN_API_SPC_NO
+      ,A.HOST
+      ,A.BAS_PATH
+      ,A.YAML_FILE_PATH
+      ,A.YAML_FILE_NM
+      ,A.REG_STTUS_CD
+      ,A.TMPLT_YN
+      ,A.REG_APVR
+      ,A.REG_DT
+      ,COALESCE(A.REGR, '') AS REGR
+      ,A.AMD_DT
+      ,COALESCE(A.AMDR, '') AS AMDR
+      ,A.DEL_YN
+      ,A.DEL_DT
+      ,COALESCE(A.DELR, '') AS DELR
+      ,A.YAML_SBST
+      ,A.SHOW_YN
+      ,A.API_CLASS
+      ,B.API_NM  AS TITLE_NM
+      ,B.API_NO   AS API_NO
+      ,B.API_ID   AS API_ID
+      ,B.API_PATH AS API_PATH
+      ,COALESCE(C.CD_NM,'') AS METHOD
+      ,B.API_GUBUN
+      ,COALESCE(C1.CD_NM,'') AS API_GUBUN_NM
+      ,B.API_HANDLER_CD
+      ,COALESCE(C2.CD_NM,'') AS API_HANDLER_CD_NM
+      ,B.API_VER
+      ,B.API_VER_NO
+    FROM KOA_TB_API_SPC A 
+      INNER JOIN KOA_TB_API_DEF B ON (A.API_SPC_NO = B.API_SPC_NO)
+      LEFT OUTER JOIN KOA_TB_COMN_CD C ON (B.METHOD_CD = C.COMN_CD AND C.GROUP_CD = 'MTHTYP1000')
+      LEFT OUTER JOIN KOA_TB_COMN_CD C1  ON (B.API_GUBUN = C1.COMN_CD AND C1.GROUP_CD = 'APIGUB1000')
+      LEFT OUTER JOIN KOA_TB_COMN_CD C2  ON (B.API_HANDLER_CD = C2.COMN_CD AND C2.GROUP_CD = 'APIHDR1000')
+      LEFT OUTER JOIN KOA_TB_COMN_CD C3  ON (B.ENDPNT_METHOD_CD = C3.COMN_CD AND C3.GROUP_CD = 'MTHTYP1000')
+      LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
+    WHERE (B.API_NO = #{apiNo})
+      AND (B.API_SPC_NO = #{apiSpcNo})
+  </select>
+
+    <!-- api lnb 목록 조회-->
+    <select id="selApiMenuList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiMenuVO">
+        SELECT /*com.kt.openapi.web.api.dao.ApiInfoDAO.selApiMenuList*/
+        <choose>
+            <when test="leftDept == 1"> 
+                 D.SYS_ID
+                ,D.SYS_NM
+            </when>
+            <when test="leftDept == 2"> 
+                 D.API_NM
+                ,D.API_SPC_NO
+                ,D.VER
+            </when>
+            <when test="leftDept == 3"> 
+                 D.C_API_NM
+                ,D.C_API_PATH 
+                ,D.API_NO
+            </when>
+        </choose>
+        FROM (
+            SELECT  
+             A.SYS_ID
+            ,A.SYS_NM
+            ,B.API_NM
+            ,B.BAS_PATH
+            ,B.HOST
+            ,B.AUT_ID
+            ,B.API_SPC_NO
+            ,C.API_NO
+            ,C.API_NM AS C_API_NM
+            ,C.API_PATH AS C_API_PATH
+            ,C.API_ID
+            ,C.SORT_ODRG
+            ,COALESCE(C.API_CTGRY_NO,'') AS API_CTGRY_NO
+            ,COALESCE(D.CD_NM,'') AS METHOD
+            ,B.VER
+        FROM KOA_TB_API_SYSTEM A   
+        INNER JOIN KOA_TB_API_SPC B  
+            ON A.SYS_ID = B.SYS_ID
+            AND B.DEL_YN = 'N'
+            AND B.SHOW_YN = 'Y'
+            AND ( B.TMPLT_YN != 'Y' OR B.TMPLT_YN IS NULL )
+            AND B.REG_STTUS_CD = 'APIREG1030'
+            AND B.SYS_ID NOT IN ('SHUB','AUTHENTI','INFRA','APPLICATI') 
+        INNER JOIN KOA_TB_API_DEF C  
+            ON B.API_SPC_NO = C.API_SPC_NO
+        LEFT OUTER JOIN KOA_TB_COMN_CD D ON (C.METHOD_CD = D.COMN_CD)
+        ) AS D
+        <choose>
+            <when test="leftDept == 2">
+                WHERE D.SYS_ID       = #{sysId}
+            </when>
+            <when test="leftDept == 3">
+                WHERE D.API_SPC_NO   = #{apiSpcNo}
+            </when>
+        </choose>
+        GROUP BY
+        <choose>
+            <when test="leftDept == 1"> 
+                D.SYS_ID, D.SYS_NM
+            </when>
+            <when test="leftDept == 2">
+                D.API_SPC_NO, D.API_NM, D.VER
+            </when>
+            <when test="leftDept == 3">
+                D.C_API_PATH, D.C_API_NM, D.API_NO 
+            </when>
+        </choose>
+        
+        UNION ALL
+        
+        SELECT 
+        <choose>
+            <when test="leftDept == 1"> 
+                 D.SYS_ID
+                ,D.SYS_NM
+            </when>
+            <when test="leftDept == 2"> 
+                 D.API_NM
+                ,D.API_SPC_NO
+                ,D.VER
+            </when>
+            <when test="leftDept == 3"> 
+                 D.C_API_NM
+                ,D.C_API_PATH 
+                ,D.API_NO
+            </when>
+        </choose>
+        FROM (
+            SELECT  
+             A.SYS_ID
+            ,A.SYS_NM
+            ,B.API_NM
+            ,B.BAS_PATH
+            ,B.HOST
+            ,B.AUT_ID
+            ,B.API_SPC_NO
+            ,C.API_NO
+            ,C.API_NM AS C_API_NM
+            ,C.API_PATH AS C_API_PATH
+            ,C.API_ID
+            ,C.SORT_ODRG
+            ,C.API_CTGRY_NO
+            ,COALESCE(D.CD_NM,'') AS METHOD
+            ,ROW_NUMBER() OVER ( PARTITION BY B.API_SPC_ID ORDER BY B.API_SPC_NO DESC ) RN
+            ,B.VER
+        FROM KOA_TB_API_SYSTEM A   
+        INNER JOIN KOA_TB_API_SPC B  
+            ON A.SYS_ID = B.SYS_ID
+            AND B.DEL_YN = 'N'
+            AND B.SHOW_YN = 'Y'
+            AND ( B.TMPLT_YN != 'Y' OR B.TMPLT_YN IS NULL )
+            AND B.REG_STTUS_CD = 'APIREG1030'
+            AND B.SYS_ID IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+        LEFT OUTER JOIN V2OA_TB_API_ICON E  
+            ON B.API_SPC_ID = E.API_SPC_ID
+            AND E.TARGET_CD = #{targetCd}
+        LEFT OUTER JOIN V2OA_TB_SPC_INFO F  
+            ON E.API_SPC_ID = F.API_SPC_ID
+        INNER JOIN KOA_TB_API_DEF C  
+            ON B.API_SPC_NO = C.API_SPC_NO
+        LEFT OUTER JOIN KOA_TB_COMN_CD D ON (C.METHOD_CD = D.COMN_CD)
+        ) AS D
+        WHERE 1=1
+        <choose>
+            <when test="leftDept == 2">
+                AND D.SYS_ID         = #{sysId}
+                AND D.RN = 1
+            </when>
+            <when test="leftDept == 3">
+                AND D.API_SPC_NO     = #{apiSpcNo}
+            </when>
+        </choose>
+        GROUP BY
+        <choose>
+            <when test="leftDept == 1"> 
+                D.SYS_ID, D.SYS_NM
+            </when>
+            <when test="leftDept == 2">
+                D.API_SPC_NO, D.API_NM, D.VER
+            </when>
+            <when test="leftDept == 3">
+                D.C_API_PATH, D.C_API_NM, D.API_NO 
+            </when>
+        </choose>
+        <if test="leftDept == 2">
+            ORDER BY VER
+        </if>
+    </select>
+    
+    <!-- api 검색 리스트 조회 -->
+    <select id="selApiSearchList" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="com.kt.openapi.web.api.vo.ApiSearchVO">
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
+        SELECT  /* com.kt.openapi.web.api.dao.ApiInfoDAO.selApiSearchList */
+            BB.*, ROW_NUMBER() OVER (ORDER BY LOWER(BB.API_NM)) rownum 
+        FROM (
+            SELECT A.API_SPC_NO
+                  ,A.API_SPC_ID
+                  ,A.VER
+                  ,A.API_NM
+                  ,A.API_DESC AS API_SPC_DESC
+                  ,A.AUT_ID
+                  ,A.SYS_ID
+                  ,C.SYS_NM
+                  ,A.VER_DESC
+                  ,A.RFRN_WSDL_URL
+                  ,A.RFRN_TMPLT_NO
+                  ,A.RFRN_API_SPC_NO
+                  ,A.HOST
+                  ,A.BAS_PATH
+                  ,A.YAML_FILE_PATH
+                  ,A.YAML_FILE_NM
+                  ,A.REG_STTUS_CD
+                  ,A.TMPLT_YN
+                  ,A.REG_APVR
+                  ,A.REG_DT
+                  ,COALESCE(A.REGR,'') AS REGR
+                  ,A.AMD_DT
+                  ,COALESCE(A.AMDR,'') AS AMDR
+                  ,A.DEL_YN
+                  ,A.DEL_DT
+                  ,COALESCE(A.DELR,'') AS DELR
+                  ,A.YAML_SBST
+                  ,A.SHOW_YN
+                  ,B.API_NM  AS TITLE_NM
+                  ,B.API_NO   AS API_NO
+                  ,B.API_ID   AS API_ID
+                  ,B.API_PATH AS API_PATH
+                  ,B.API_DESC AS API_DESC
+                  ,B.SORT_ODRG
+                  ,COALESCE(D.CD_NM,'') AS METHOD
+            FROM (
+                 <include refid="apiSpcVersionSch"/>
+                ) A 
+                INNER JOIN KOA_TB_API_DEF B 
+                    ON A.API_SPC_NO = B.API_SPC_NO
+                LEFT OUTER JOIN KOA_TB_API_SYSTEM C 
+                    ON A.SYS_ID = C.SYS_ID          
+                LEFT OUTER JOIN KOA_TB_COMN_CD D ON (B.METHOD_CD = D.COMN_CD)
+            WHERE 1=1
+              AND A.SYS_ID NOT IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+              <if test="searchKeyword != null and searchKeyword != ''">
+              AND (UPPER(B.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') OR UPPER(B.API_DESC) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') )
+              </if>
+              
+            UNION ALL
+              
+            SELECT A.API_SPC_NO
+                  ,A.API_SPC_ID
+                  ,A.VER
+                  ,A.API_NM
+                  ,A.API_DESC AS API_SPC_DESC
+                  ,A.AUT_ID
+                  ,A.SYS_ID
+                  ,C.SYS_NM
+                  ,A.VER_DESC
+                  ,A.RFRN_WSDL_URL
+                  ,A.RFRN_TMPLT_NO
+                  ,A.RFRN_API_SPC_NO
+                  ,A.HOST
+                  ,A.BAS_PATH
+                  ,A.YAML_FILE_PATH
+                  ,A.YAML_FILE_NM
+                  ,A.REG_STTUS_CD
+                  ,A.TMPLT_YN
+                  ,A.REG_APVR
+                  ,A.REG_DT
+                  ,COALESCE(A.REGR,'') AS REGR
+                  ,A.AMD_DT
+                  ,COALESCE(A.AMDR,'') AS AMDR
+                  ,A.DEL_YN
+                  ,A.DEL_DT
+                  ,COALESCE(A.DELR,'') AS DELR
+                  ,A.YAML_SBST
+                  ,A.SHOW_YN
+                  ,B.API_NM  AS TITLE_NM
+                  ,B.API_NO   AS API_NO
+                  ,B.API_ID   AS API_ID
+                  ,B.API_PATH AS API_PATH
+                  ,B.API_DESC AS API_DESC
+                  ,B.SORT_ODRG
+                  ,COALESCE(D.CD_NM,'') AS METHOD
+            FROM (
+                 <include refid="apiSpcVersionSch"/>
+                ) A 
+                INNER JOIN KOA_TB_API_DEF B 
+                    ON A.API_SPC_NO = B.API_SPC_NO
+                LEFT OUTER JOIN KOA_TB_API_SYSTEM C 
+                    ON A.SYS_ID = C.SYS_ID          
+                LEFT OUTER JOIN KOA_TB_COMN_CD D ON (B.METHOD_CD = D.COMN_CD)
+            WHERE 1=1
+              AND A.RN = 1
+              AND A.SYS_ID IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+              <if test="searchKeyword != null and searchKeyword != ''">
+              AND (UPPER(B.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') OR UPPER(B.API_DESC) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') )
+              </if>
+        ) BB
+        WHERE 1=1
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />     
+    </select>
+    
+    <select id="selApiSearchCnt" parameterType="com.kt.openapi.web.api.vo.ApiMainVo" resultType="int">
+        SELECT  /* com.kt.openapi.web.api.dao.ApiInfoDAO.selApiSearchCnt */
+            SUM(AA.cnt)
+        FROM (
+            SELECT
+                  COUNT(*) AS cnt
+            FROM (
+                 <include refid="apiSpcVersionSch"/>
+                ) A 
+                INNER JOIN KOA_TB_API_DEF B 
+                    ON A.API_SPC_NO = B.API_SPC_NO
+                LEFT OUTER JOIN KOA_TB_API_SYSTEM C 
+                    ON A.SYS_ID = C.SYS_ID          
+            WHERE A.SYS_ID NOT IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+              <if test="searchKeyword != null and searchKeyword != ''">
+              AND (UPPER(B.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') OR UPPER(B.API_DESC) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') )
+              </if>
+            
+            UNION ALL
+            
+            SELECT
+                  COUNT(*) AS cnt
+            FROM (
+                 <include refid="apiSpcVersionSch"/>
+                ) A 
+                INNER JOIN KOA_TB_API_DEF B 
+                    ON A.API_SPC_NO = B.API_SPC_NO
+                LEFT OUTER JOIN KOA_TB_API_SYSTEM C 
+                    ON A.SYS_ID = C.SYS_ID          
+            WHERE A.RN = 1
+              AND A.SYS_ID IN ('SHUB','AUTHENTI','INFRA','APPLICATI')
+              <if test="searchKeyword != null and searchKeyword != ''">
+              AND (UPPER(B.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') OR UPPER(B.API_DESC) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') )
+              </if>
+        ) AA
+    </select>
+
+    <!-- testcase 정보조회 -->
+    <select id="select_API_TESTCASE" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.AdptranTestcaseVO">
+        SELECT  /* com.kt.openapi.web.api.dao.ApiInfoDAO.select_API_TESTCASE */
+          TESTCASE_ID
+          ,TESTCASE_NM
+          ,PARAM_HEADER_JSON
+          ,PARAM_BODY_JSON
+          ,TO_CHAR(AMD_DT, 'YYYY-MM-DD HH24:MI:SS') AS AMD_DT
+        FROM KOA_TB_API_TESTCASE 
+        WHERE (API_NO = #{apiNo})
+          AND (INFOVIEW_YN = 'Y')
+          AND (PARAM_GUB = 'json')
+        ORDER BY AMD_DT DESC
+    </select>
+
+</mapper>

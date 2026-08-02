@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.cmm.dao.CmnDAO">
+
+    <!-- [마이그레이션] iBatis SqlFragment를 MyBatis용으로 전환 -->
+    <sql id="pagePrefix">
+        /* [현대화] OFFSET/FETCH 기반 페이징 - Prefix는 서브쿼리 시작점 유지 */
+        SELECT * FROM (
+    </sql>
+
+    <sql id="pageSuffix">
+        ) A
+        /* [현대화] MS SQL Server 표준 OFFSET/FETCH 적용 */
+        ORDER BY rownum ASC
+        OFFSET #{firstIndex} ROWS FETCH NEXT #{recordCountPerPage} ROWS ONLY
+    </sql>
+    <!-- 공통코드 조회 -->
+    <select id="selComnList" parameterType="String" resultType="com.kt.openapi.web.cmm.vo.CmnCdVO">
+        /* com.kt.openapi.web.cmm.dao.CmnDAO.selComnList */
+        SELECT  *
+        FROM    KOA_TB_COMN_CD 
+        WHERE   USE_YN = 'Y'
+        AND     GROUP_CD = #{groupCd}
+        ORDER BY SORT_ODRG ASC
+    </select>
+
+</mapper>

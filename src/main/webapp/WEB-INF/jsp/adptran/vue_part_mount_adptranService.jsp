@@ -1,0 +1,101 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" trimDirectiveWhitespaces="true"%>
+<!--// vue_part_mount_adptranService.jsp -->
+<div>
+  <jsp:include page="/WEB-INF/jsp/adptran/vue_part_mount.jsp" flush="false">
+    <jsp:param name="param_vue_part" value="adptranService" />
+    <jsp:param name="param_vue_part_only" value="N" />
+  </jsp:include>
+</div>
+<script>
+  var g_vue_comp_adptranService = {
+    //-- deploy
+    proc_deploy: (function(a_deploy_api_list, fn_cb_deploy) {
+      var vue_comp = (window['g_vm_comp']||{})['adptranService']; //-- in adptranService.js
+      if ((!vue_comp) || (typeof(vue_comp.proc_deploy) != 'function')) {
+        alert_message('배포 Component가 설치되지 않았습니다.');
+        return;
+      }
+      
+      if (a_deploy_api_list.length == 0) {
+        alert_message('배포대상 API가 선택되지 않았습니다.');
+        return;
+      }
+      vue_comp.proc_deploy(a_deploy_api_list, fn_cb_deploy);
+    }),
+    //-- deploy_delete
+    proc_deploy_delete: (function(gw_profile, api_no, fn_cb_deploy_delete) {
+      var vue_comp = (window['g_vm_comp']||{})['adptranService']; //-- in adptranService.js
+      if ((!vue_comp) || (typeof(vue_comp.proc_deploy) != 'function')) {
+        alert_message('배포삭제 Component가 설치되지 않았습니다.');
+        return;
+      }
+      vue_comp.proc_deploy_delete(gw_profile, api_no, fn_cb_deploy_delete);
+    }),
+    //-- verify view
+    proc_verify_view: (function(verify_seq, fn_cb_verify_view) {
+      var vue_comp = (window['g_vm_comp']||{})['adptranService']; //-- in adptranService.js
+      if ((!vue_comp) || (typeof(vue_comp.proc_verify_view) != 'function')) {
+        alert_message('검증이력조회 Component가 설치되지 않았습니다.');
+        return;
+      }
+      vue_comp.proc_verify_view(verify_seq, fn_cb_verify_view);
+    }), 
+    //-- verify view
+  };
+
+  //-- api search
+  function fn_on_click_searchApi() {
+    var vue_comp = (window['g_vm_comp']||{})['adptranService']; //-- in adptranService.js
+    if ((!vue_comp) || (typeof(vue_comp.proc_apiSearch) != 'function')) {
+      alert_message('API검색 Component가 설치되지 않았습니다.');
+      return;
+    }
+    var fn_cb_apiSearch = (function(o_ret) {
+      var b_ret = $sf_obj_val(o_ret, 'return', false);
+      var data = {};
+      if (b_ret == true) {
+        data = $sf_obj_val(o_ret, 'data');
+        var cmd = $sf_obj_val(data, 'cmd', '');
+        if ('close-dialog' == cmd) { 
+          ;
+        }
+        else if (('click-api_nm' == cmd) || ('click-path' == cmd))  {
+          var rowdata = $sf_obj_val(data, 'rowdata', {});
+          var fn_close = $sf_obj_val(data, 'fn_close', void(0));
+          if ('function' == typeof(fn_close)) { fn_close(); }
+          //-- [ref] rowdata = { 'api_group': '', 'api_nm': '', 'api_no': '', 'path': '', 'method': '', }
+          mvMethodInfo(rowdata['method'], rowdata['path'], rowdata['api_group'], rowdata['api_no']);
+        }
+      }
+    });
+    var a_x_category = $sf_arr(g_x_category);
+    vue_comp.proc_apiSearch(a_x_category, fn_cb_apiSearch);
+  }
+
+  //-- import xlsx
+  function fn_on_click_importXlsx(param, fn_cb_importXlsx) {
+    var vue_comp = (window['g_vm_comp']||{})['adptranService']; //-- in adptranService.js
+    if ((!vue_comp) || (typeof(vue_comp.proc_importXlsx) != 'function')) {
+      alert_message('엑셀 import Component가 설치되지 않았습니다.');
+      return;
+    }
+    /*--[ref]
+      //-- prop_param from cateInfoRegForm.jsp
+      var param = {
+        apiSpcNo: $("#pApiSpcNo").val(),
+        apiCtgryNo: $("#pApiCtgryNo").val(),
+        ctgryNm: $("#ctgryNm").val(),
+        yamlOb: yamlOb,
+      };
+    */
+    var  prop_param = {
+      'api_spc_no': param['apiSpcNo'],
+      'api_ctgry_no': param['apiCtgryNo'],
+      'ctgry_nm': param['ctgryNm'],
+      'yaml_obj': param['yamlOb'],
+    };
+    vue_comp.proc_importXlsx(prop_param, fn_cb_importXlsx);
+  }
+
+</script>
+<!-- vue_part_mount_adptranService.jsp //-->

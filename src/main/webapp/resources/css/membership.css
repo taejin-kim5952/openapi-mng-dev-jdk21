@@ -1,0 +1,51 @@
+@charset "utf-8";
+
+/*-- [tag:login][drm][add][181027][override] { --*/
+input[type="text"],input[type="password"] {height:35px;}
+.login_wrap{background:#fff;}
+/*-- [tag:login] } --*/
+
+/*-- [tag:login][drm][add][181027] { --*/
+.txtCertifyCode {margin-left:-5px;}
+/*-- [tag:login] } --*/
+
+/* Login */
+.login_wrap_2{position:relative;width:700px;margin:0 -140px;}
+.login_wrap_2:after{content:"";display:block;clear:both;width:0px;height:0px}
+
+/* loginLeft */
+.login_wrap_2 > div {min-height:300px;position:relative;padding:0 62px 30px;box-sizing:border-box;margin-top:30px;}
+.login_wrap_2 > div dl{min-height:46px;border:1px solid #dadada;margin-bottom:8px;position:relative;}
+.login_wrap_2 > div dl dt{width:130px;position:absolute;left:0;top:0;height:48px;}
+.login_wrap_2 > div dl dt label{min-height:46px;line-height:44px;margin-left:30px;color:#102e3b;font-size:18px;display:inline-block;box-sizing:border-box;position:relative;width:120px;}
+.login_wrap_2 > div dl dt label .smsInfo{display:inline-block;cursor:pointer;}
+.login_wrap_2 > div dl dt label .smsInfo > img{vertical-align:middle; padding-left:10px;}
+.login_wrap_2 > div dl dt label .smsInfoText{opacity:0;z-index:0;position:absolute;left:115px;top:-1px;font-size:13px;width:430px;height:104px;padding:13px;box-sizing:border-box;border:1px solid #dadada;background:#fff;
+transition:opacity 0.3s ease-out;
+-webkit-transition:opacity 0.3s ease-out;
+-o-transition:opacity 0.3s ease-out;
+-moz-transition:opacity 0.3s ease-out;
+}
+.login_wrap_2 > div dl dt label .smsInfoText ol li {line-height:24px;}
+.login_wrap_2 > div dl dt label .smsInfoText ol li em{color:#06a79f;}
+.login_wrap_2 > div dl dt label .smsInfo:hover ~ .smsInfoText{opacity:1;z-index:1;}
+	
+.login_wrap_2 > div:first-child dl dd{margin-left:140px;padding:5px 10px 5px 20px;}
+.login_wrap_2 > div:first-child dl dd input{border:0;width:100%;background:#f8f8f8;}
+.login_wrap_2 .mem_btn{margin-top:20px;text-align:center;overflow:hidden;}
+.login_wrap_2 .mem_btn a {display:inline-block;font-size:22px;color:#fff;/*--[tag:login][drm]min-width:282px;--*/ width:100%;height:50px;line-height:50px;}
+.login_wrap_2 .mem_btn a.btn_mem-login {/*--[tag:login][drm]float:left;*/background:#102e3b;}
+.login_wrap_2 .mem_btn a.btn_mint  {float:right;background:#06a79f;}
+.login_wrap_2 .btn_blackbg {display:inline-block;min-width:98px;height:35px;line-height:33px;font-size: 15px;}
+
+.phoneNum > span{display:inline-block;width:30%;margin-left:24px;position:relative;}
+.phoneNum > span:before{content:'-';position:absolute;left:-16px;top:8px;}
+.phoneNum > span:first-child ,
+.phoneNum > span.noBlit {margin-left:0;}
+.phoneNum > span:first-child:before,
+.phoneNum > span.noBlit:before{display:none;margin-left:0px;}
+.phoneNum > span select{width:100%;height:35px;}
+.login_wrap_2 .phoneNum > span select {border:none;}
+
+/* btn_set */
+.btn_blackbg {background-color:#102e3b;color:#fff !important;}

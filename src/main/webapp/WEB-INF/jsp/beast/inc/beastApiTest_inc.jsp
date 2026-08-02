@@ -1,0 +1,1656 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" trimDirectiveWhitespaces="true"%>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+<%@ taglib prefix="commonFunc" uri="/WEB-INF/tld/CommonFunc.tld" %>
+
+<%@ page import="com.kt.openapi.web.util.CommonFunc"%>
+<%@ page import="com.kt.openapi.web.beast.apigw.constant.BstgwConstant"%>
+
+<t:layout type="empty">
+<%-- <c:set var="attr_bstgw_api_local_url"><spring:eval expression="@environment.getProperty('bstgw.api.local.url')" /></c:set> --%>
+<%-- <c:set var="attr_bstgw_api_test_url"><spring:eval expression="@environment.getProperty('bstgw.api.test.url')" /></c:set> --%>
+<c:set var="attr_bstgw_api_tb_url"><spring:eval expression="@environment.getProperty('bstgw.api.tb.url')" /></c:set>
+<c:set var="attr_bstgw_api_new_tb_url"><spring:eval expression="@environment.getProperty('bstgw.api.new.tb.url')" /></c:set>
+<c:set var="attr_bstgw_api_prd_url"><spring:eval expression="@environment.getProperty('bstgw.api.prd.url')" /></c:set>
+<c:set var="attr_bstgw_api_new_prd_url"><spring:eval expression="@environment.getProperty('bstgw.api.new.prd.url')" /></c:set>
+
+<c:set var="attr_shub_api_instauth_tb_url"><spring:eval expression="@environment.getProperty('shub.api.instauth.tb.url')" /></c:set>
+<c:set var="attr_shub_api_instauth_prd_url"><spring:eval expression="@environment.getProperty('shub.api.instauth.prd.url')" /></c:set>
+
+<c:set var="bIsBstgwManager" value="${commonFunc:isSpecificUser('bstgw.manager')}" />
+<c:set var="bIsBstgwViewer" value="${commonFunc:isSpecificUser('bstgw.viewer')}" />
+<c:set var="bIsProdProfile" value="${commonFunc:getActiveProfile() eq 'prod'}" />
+<c:set var="bIsLocalProfile" value="${commonFunc:getActiveProfile() eq 'local'}" />
+<%-- <c:set var="bIsTargetTb" value="${attr_target eq 'TB'}" /> --%>
+<c:set var="bIsTargetTb" value="${attr_target eq 'TB' or attr_target eq 'TB_KTC' or attr_target eq 'TB_AZURE'}" />
+<c:set var="bIsAzure" value="${attr_target eq 'TB_AZURE' or attr_target eq 'PRD_AZURE'}" />
+
+<%-- <c:set var="dp_target_text" value="${bIsTargetTb ? '(TB)' : '(운영)'}" /> --%>
+<c:set var="dp_target_text" value="(${attr_target})" />
+<c:set var="dp_is_target_tb_yn" value="${bIsTargetTb ? 'y' : 'n'}" />
+<c:set var="dp_shub_api_instauth_url" value="${bIsTargetTb ? attr_shub_api_instauth_tb_url : attr_shub_api_instauth_prd_url}" />
+
+<!-- beastApiTest_inc.jsp { -->
+<%-- //-- [tag:PRJ-20220901] --%>
+<style>
+  #id_popup_bst_apitest textarea.cid_input:read-only { cursor: pointer; }
+  
+  #id_popup_bst_apitest .cid_act_view_data { cursor: pointer; }
+  
+</style>
+<script>
+  $(document).ready(function() {
+    bstapi_fn_init_handler();
+    bstapi_fn_init_dialog();
+    bstapi_fn_init_page();
+	g_data['azureYn'] = $('input[name=azureYn]').val() == null || $('input[name=azureYn]').val() === 'undefined' ? 'N' || $('input[name=azureYn]').val() == '' : $('input[name=azureYn]').val();
+  });
+  function bstapi_fn_init_handler() {
+    $(document).on('click', '#id_popup_bst_apitest .cid_chk_import_item_sel_all', function(p_evt) {
+      $('#id_popup_bst_apitest .cid_chk_import_item').prop('checked', $(this).prop('checked'));
+    });
+    $(document).on('click', '#id_popup_bst_apitest .cid_extra_data_wrap .cid_chk_extra_data', function(p_evt) {
+      var idx = $('#id_popup_bst_apitest .cid_extra_data_wrap .cid_chk_extra_data').index($(this));
+      $('#id_popup_bst_apitest .cid_extra_data_wrap .cid_extra_data').eq(idx).prop('disabled', !$(this).prop('checked'));
+    });
+    //-- 항목정보보기
+    $(document).on('click', '#id_popup_bst_apitest textarea.cid_input[readonly]', function(p_evt) {
+      var val = $(this).val();
+      if (!$is_empty(val)) {
+        val = val.split('\n').join('\r'); 
+        var s_html = '<textarea style="width: 880px; height: 440px;" readonly>' + val + '</textarea>';
+        alert_message(s_html, '정보조회');
+      }
+    });
+    
+    //-- [i][import data popup]
+    $('#id_popup_bst_apitest').find('.cid_act_import_data').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      bstapi_fn_import_data();
+    });
+    //-- [i][import data popup close]
+    $('#id_popup_bst_apitest').find('.cid_btn_import_data_cancel').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      bstapi_fn_init_import_data_layer();
+    });
+    //-- [i][import data commit]
+    $('#id_popup_bst_apitest').find('.cid_act_import_data_commit').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      var jq_chk_item = $('#id_popup_bst_apitest .cid_chk_import_item:checked');
+      var a_rec = [];
+      jq_chk_item.each(function(idx, item) {
+        var jq_tr = $(item);
+        var rec = jq_tr.closest('tr').data('rec');
+        a_rec.push(rec);
+      });
+      if (a_rec.length == 0) { alert('선택정보가 없습니다.'); return; }
+
+      if (!confirm(a_rec.length + '건의 정보 처리를 진행합니다.\n\n계속 하시겠습니까?')) { return; }
+
+      bstapi_fn_proc_import_data_commit(a_rec);
+    });
+    //-- [i][readonly항목 toggle]
+    $('#id_popup_bst_apitest').find('.cid_act_toggle_readonly').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      if (true == p_evt.ctrlKey) {
+        var jq_input = $(this).parents('th').next('td').find('.cid_input');
+        jq_input.prop('readonly', !jq_input.prop('readonly'));
+      }
+    });
+    //-- [i][svc-get, svc-get-list일시 shub comapre]
+    $('#id_popup_bst_apitest').find('.cid_act_svc_data_shub_compare').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      var jq_chk_item = $('#id_popup_bst_apitest .cid_chk_import_item:checked');
+      var a_tr = [];
+      jq_chk_item.each(function(idx, item) {
+        var jq_tr = $(item).closest('tr');
+        //-- [i][excluce_cmp제외
+        if (jq_tr.find('.cid_chk_exclude_cmp_item:checked').length == 0) {
+          a_tr.push(jq_tr);
+        }
+      });
+      if (a_tr.length == 0) { alert('선택정보가 없습니다.'); return; }
+
+      if (!confirm(a_tr.length + '건의 정보비교를 진행합니다.\n\n계속 하시겠습니까?')) { return; }
+
+      bstapi_fn_proc_svc_data_shub_compare(a_tr);
+    });
+    //-- shub instauth compare
+    $(document).on('user_trigger_compare', '#id_popup_bst_apitest .cid_shub_instauth', function(p_evt, data) {
+      var jq_shub_instauth = $(this);
+      var svcId = $sf_obj_val(data, 'svcId');
+      var idx = $sf_obj_val(data, 'idx');
+      bstapi_fn_proc_user_trigger_compare(jq_shub_instauth, svcId, idx);
+    });
+    //-- shub instauth compare result view
+    $(document).on('click', '#id_popup_bst_apitest .cid_act_view_data', function(p_evt) {
+      var data = $(this).data('data');
+      alert_message(data);
+    });
+    
+    //-- [i][api-get-list일시 API목록 비교]
+    $('#id_popup_bst_apitest').find('.cid_act_svc_data_apilist_compare').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      var jq_chk_item = $('#id_popup_bst_apitest .cid_chk_import_item:checked');
+      var a_tr = [];
+      jq_chk_item.each(function(idx, item) {
+        var jq_tr = $(item).closest('tr');
+        //-- [i][excluce_cmp제외
+        if (jq_tr.find('.cid_chk_exclude_cmp_item:checked').length == 0) {
+          a_tr.push(jq_tr);
+        }
+      });
+      if (a_tr.length == 0) { alert('선택정보가 없습니다.'); return; }
+      
+      var s_method_tag = ''; 
+      s_method_tag = ($(this).hasClass('cid_cmp_method_01') ? '01' : s_method_tag);
+      s_method_tag = ($(this).hasClass('cid_cmp_method_02') ? '02' : s_method_tag);
+      
+      if ($is_empty(s_method_tag)) { alert('비교방식이 지정되지 않았습니다.'); return; }
+
+      if (!confirm(a_tr.length + '건의 정보 비교를 진행합니다.\n\n[method: ' + s_method_tag + ']\n\n계속 하시겠습니까?')) { return; }
+      bstapi_fn_proc_svc_data_apilist_compare(a_tr, s_method_tag);
+    });
+    
+    
+    //-- [i][api-get-list일시 API목록 storage저장]
+    $('#id_popup_bst_apitest').find('.cid_act_api_data_storage_save').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+      var import_data = $('#id_popup_bst_apitest').data('import_data');
+
+      if ('api-get-list' != import_tag) {
+        alert('처리대상 tag가 아닙니다.'); return;
+      }
+
+      var a_beast_api = [];
+      var a_beast_api_raw = [];
+      import_data.forEach(function(item, idx) {
+        var apiId = $sf_str($sf_obj_val(item, 'apiId')).trim();
+        a_beast_api_raw.push(apiId);
+        var n_idx = apiId.lastIndexOf('_v');
+        apiId = ((n_idx != -1) ? apiId.substring(0, n_idx) : apiId);  //-- [i]'' === substring(0, -1)
+        if ((apiId.length > 0) && (a_beast_api.indexOf(apiId) == -1)) {
+          a_beast_api.push(apiId);
+        }
+      });
+      bstapi_fn_save_beast_api_test_data('a_beast_api', a_beast_api.slice().sort());
+      bstapi_fn_save_beast_api_test_data('a_beast_api_raw', a_beast_api_raw.slice().sort());
+      bstapi_fn_load_beast_api_test_data();
+      alert_message('비교검증을 위한 API ID ' + a_beast_api.length + '건 / 전체 ' + a_beast_api_raw.length + '건을 저장 했습니다.');
+    });
+  }
+  
+  //-- [i][svc-get-list일시 exclude compare item save]
+  $(document).on('click', '#id_popup_bst_apitest .cid_act_excluce_cmp_data_storage_save', function(p_evt) {
+    p_evt.preventDefault();
+    var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+
+    if ('svc-get-list' != import_tag) {
+      alert('처리대상 tag가 아닙니다.'); return;
+    }
+
+    var a_beast_api_exclude_cmp = [];
+    $('.cid_chk_exclude_cmp_item:checked').each(function(idx, item) {
+      var o_rec = $(this).closest('tr').data('rec');
+      var svcId = $sf_obj_val(o_rec, 'svcId');
+      a_beast_api_exclude_cmp.push(svcId);
+    });
+
+    bstapi_fn_save_beast_api_test_data('a_beast_api_exclude_cmp', a_beast_api_exclude_cmp.slice().sort());
+    bstapi_fn_load_beast_api_test_data();
+    bstapi_fn_ui_disp_beast_api_exclude_cmp();
+    alert_message('비교검증 제외대상 서비스 ID ' + a_beast_api_exclude_cmp.length + '건을 저장 했습니다.');
+});
+
+  function bstapi_fn_init_dialog() {
+    $('#id_popup_bst_apitest').dialog({
+      autoOpen: false, width: 1280, modal: true,
+    });
+    $('#id_popup_bst_apitest').find('.cid_btn_popup_cancel').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      $('#id_popup_bst_apitest').dialog('close');
+    });
+  }
+  function bstapi_fn_init_page() {
+    bstapi_fn_load_beast_api_test_data();
+  }
+
+  //-- public {
+  //-- [i][test_param // { req_url:, req_method:, req_qstr:, req_body:, req_domain:, direct:}
+  function bstapi_fn_popup(test_param) {
+    //--@@$console_log('o-o', 'test_param: ', test_param);
+
+    var jq_dialog = $('#id_popup_bst_apitest');
+    jq_dialog.data('test_param', test_param);
+    var s_title = 'BEAST API Test' + '${dp_target_text}';
+    jq_dialog.siblings('.ui-dialog-titlebar').find('span.ui-dialog-title').text(s_title);
+    //--@@jq_dialog.find('select').prop('selectedIndex', 0);
+
+    jq_dialog.find('.cid_input').val('');
+
+    jq_dialog.find('.cid_txt_req_method').val($sf_obj_val(test_param, 'req_method'));
+    jq_dialog.find('.cid_txt_req_qstr').val($sf_obj_val(test_param, 'req_qstr'));
+    jq_dialog.find('.cid_txt_req_url').val($sf_obj_val(test_param, 'req_url'));
+	
+//	console.log('bstapi_fn_popup.test_param : ', test_param);
+    var req_body = $sf_str($sf_obj_val(test_param, 'req_body'));
+//	console.log('bstapi_fn_popup.req_body : ', req_body);
+    req_body = ($is_json_str(req_body) ? $sf_json_stringify($sf_json_parse(req_body), null, 2) : req_body);
+    <%-- 
+      //-- [tag:SR-20240205] 
+      //-- [i][json escape문자가 2중 escape되는 issue]
+    --%>
+    req_body = req_body.replace(/\\\\/g, '\\');
+//	console.log('bstapi_fn_popup.req_body.replace : ', req_body);
+    jq_dialog.find('.cid_txt_req_body').val(req_body);
+    jq_dialog.find('.cid_sel_req_domain').val($sf_obj_val(test_param, 'req_domain'));
+    
+    //-- [i][beast domain선택 처리] {
+    var option_cnt = jq_dialog.find('.cid_sel_req_domain option').length;
+    //-- [i][req_domain으로 지정이 안된경우 마지막 option선택]
+    if ($is_empty(jq_dialog.find('.cid_sel_req_domain').val())) {
+      jq_dialog.find('.cid_sel_req_domain').prop('selectedIndex', (option_cnt - 1));
+    }
+    //-- [i][선택적 option이 아닐경우 disable]
+    var is_domain_fixed = (option_cnt <= 2);
+    jq_dialog.find('.cid_sel_req_domain').prop('disabled', is_domain_fixed);
+    //-- [i][beast domain선택 처리] }
+
+    jq_dialog.find('.cid_txt_req_method, .cid_txt_req_qstr, .cid_txt_req_url, .cid_txt_req_body').prop('readonly', true);
+    jq_dialog.find('.cid_txt_res_req_header, .cid_txt_res_req_body, .cid_txt_res_res_header, .cid_txt_res_res_body').prop('readonly', true);
+
+    //-- [i][direct 처리] {
+    //-- [i]초기화
+    var a_direct = $sf_str($sf_obj_val(test_param, 'direct')).split(';');
+    jq_dialog.find('.cid_direct').val(a_direct.join(';'));
+    $('.cid_direct_ui').hide();
+
+    bstapi_fn_init_import_data_layer();	//-- [i][init layer import_data]
+    jq_dialog.find('.cid_txt_res_res_body').off('user_trigger_onchange_res_res_body');	//-- [i][init direct optional handler]
+    $('#id_popup_bst_apitest').removeData('import_tag import_data');
+
+    if (a_direct.indexOf('import_data') != -1) {
+      var import_tag = '';
+
+      import_tag = ((a_direct.indexOf('sys-get') != -1) ? 'sys-get' : import_tag);
+      import_tag = ((a_direct.indexOf('sys-get-list') != -1) ? 'sys-get-list' : import_tag);
+      import_tag = ((a_direct.indexOf('api-get') != -1) ? 'api-get' : import_tag);
+      import_tag = ((a_direct.indexOf('api-get-list') != -1) ? 'api-get-list' : import_tag);
+      import_tag = ((a_direct.indexOf('svc-get') != -1) ? 'svc-get' : import_tag);
+      import_tag = ((a_direct.indexOf('svc-get-list') != -1) ? 'svc-get-list' : import_tag);
+      import_tag = ((a_direct.indexOf('aldt-get') != -1) ? 'aldt-get' : import_tag);
+      import_tag = ((a_direct.indexOf('aldt-get-list') != -1) ? 'aldt-get-list' : import_tag);
+      if (import_tag.length > 0) {
+        var jq_import = $('.cid_txt_res_res_body');
+        jq_import.data('import_tag', import_tag);
+        //-- [i][import data handler설정]
+        jq_import.on('user_trigger_onchange_res_res_body', function(p_evt) {
+          var import_tag = $(this).data('import_tag');
+          var import_val = $(this).val();
+
+          var jq_btn_import_data = $('#id_popup_bst_apitest .cid_act_import_data');
+          var jq_import_data_wrap = $('#id_popup_bst_apitest .cid_direct_wrap_import_data');
+          var jq_import_data_info = jq_import_data_wrap.find('.cid_div_import_data_info');
+
+          //--[i]import data기능 초기화
+          jq_import_data_wrap.hide();
+          jq_import_data_info.html('');
+
+          var ret = bstapi_fn_before_proc_import_data(import_tag, import_val, jq_btn_import_data);
+          if ('string' == typeof(ret)) {
+            if (ret.length > 0) {
+              alert(ret);
+            }
+          }
+          if (Array.isArray(ret)) {
+            var import_data = ret;
+            $('#id_popup_bst_apitest').data('import_tag', import_tag);
+            $('#id_popup_bst_apitest').data('import_data', import_data);
+
+            if (jq_import_data_info.length == 0) {
+              jq_import_data_info = $('<div class="pt10" style="font-weight:normal;"></div>');
+              jq_import_data_info.addClass('cid_div_import_data_info');
+              jq_import_data_wrap.append(jq_import_data_info);
+            }
+            var import_data_info = '<ul>';
+            import_data_info += '<li class="pb05">대상: ' + import_tag + '</li>';
+            import_data_info += '<li class="pb05">' + import_data.length + '건</li>';
+            import_data_info += '</ul>';
+            jq_import_data_info.html(import_data_info);
+
+            jq_import_data_wrap.show();
+          }
+        });
+      }
+      jq_dialog.find('.cid_input.cid_txt_res_res_body').trigger('user_trigger_onchange_res_res_body');
+    }
+    
+    if (('svc-get' == import_tag) || ('svc-get-list' == import_tag)) {
+      //-- [i]SHUB비교
+      $('.cid_act_svc_data_shub_compare').show();
+      $('.cid_act_svc_data_apilist_compare').show();
+    }
+    if ('api-get-list' == import_tag) {
+      //-- [i]API목록저장
+      $('.cid_act_api_data_storage_save').show();
+    }
+    //-- [i][direct 처리] }
+
+    jq_dialog.dialog('open');
+  }
+  //-- public }
+
+  function bstapi_fn_init_import_data_layer() {
+  	$('#id_popup_bst_apitest .cid_wrap_import_data').hide();
+  	$('#id_popup_bst_apitest .cid_board_import_data').empty();
+    $('#id_popup_bst_apitest .cid_svc_shub_compare').hide();
+  }
+
+</script>
+<script>
+	function bstapi_fn_request() {
+    var jq_dialog = $('#id_popup_bst_apitest');
+
+    var req_method = $sf_str(jq_dialog.find('.cid_txt_req_method').val()).trim();
+    var req_qstr = $sf_str(jq_dialog.find('.cid_txt_req_qstr').val()).trim();
+    var req_domain = $sf_str(jq_dialog.find('.cid_sel_req_domain').val()).trim();
+    var req_url = $sf_str(jq_dialog.find('.cid_txt_req_url').val()).trim();
+    var req_body = $sf_str(jq_dialog.find('.cid_txt_req_body').val()).trim();
+//	console.log('bstapi_fn_request.req_body : ', req_body);
+
+    if ($is_empty(req_method)) { alert('[err][method 설정없음]'); return false; };
+    if ($is_empty(req_domain)) { alert('[err][domain 선택없음]'); return false; };
+    if ($is_empty(req_url)) { alert('[err][url 설정없음]'); return false; };
+
+    jq_dialog.find('.cid_txt_res').val('');
+    jq_dialog.find('.cid_input.cid_txt_res_res_body').trigger('user_trigger_onchange_res_res_body');
+
+    var param = new Object();
+    param['cmd'] = 'cmd_api_send';
+    param['api_target'] = '';
+    param['api_domain'] = req_domain;
+    param['api_url'] = (req_url + req_qstr);
+    param['api_method'] = req_method;
+    param['api_body'] = req_body;
+    param['direct'] = 'no_write_hist';
+	//let azureYn = $('input[name=azureYn]').val() == null || $('input[name=azureYn]').val() === 'undefined' ? 'N' : $('input[name=azureYn]').val();
+	param['azureYn'] = g_data['azureYn'];
+	
+	if(req_method == 'POST' && (req_url == '/apilink/v1/svc/svcDplyEnc' || req_url == '/apilink/v1/svc/svcDply')) {
+		param['dplyYn'] = 'Y'
+	}
+	
+    //-- [tag:SR-20231018]
+    if ('function' == typeof(fn_is_enable_beast_api_test)) {
+      if (!fn_is_enable_beast_api_test(param)) { return; }
+    }
+//	console.log('bstapi_fn_request.param : ', param);
+//	console.log('bstapi_fn_request.JSON.param : ', JSON.stringify(param));
+	
+    $.ajax({
+      type: 'POST',
+      url: '<c:url value="/beast/api/common/ajax_proc.do"/>' + '?cmd=' + param['cmd'],
+      data: JSON.stringify(param),
+      contentType: 'application/json',
+      dataType: 'JSON',
+      //--##async: false,
+      success: function(data) {
+        var b_is_valid_data = $has_own(data, 'returnCd');
+        b_is_valid_data &= $has_own(data, 'returnMsg');
+        if (!b_is_valid_data) { alert_message('유효하지 않은 처리 결과 입니다.');  return; }
+
+        var returnCd = $sf_obj_val(data, 'returnCd');
+        var returnMsg = $sf_obj_val(data, 'returnMsg');
+        var result = $sf_obj_val(data, 'result', '#N/A#');
+        var s_msg = '';
+        if ('OK' == returnCd) {
+          s_msg = '처리 되었습니다.';
+          var httpEntity = $sf_obj_val(result, 'httpEntity');
+          var responseEntity = $sf_obj_val(result, 'responseEntity');
+
+          var req_headers = $sf_obj($sf_obj_val(httpEntity, 'headers'));
+          var req_body = $sf_obj_val(httpEntity, 'body');
+          req_body = ($is_json_str(req_body) ? $sf_json_stringify($sf_json_parse(req_body), null, 2) : req_body);
+          var res_headers = $sf_obj($sf_obj_val(responseEntity, 'headers'));
+          var res_body = $sf_obj_val(responseEntity, 'body');
+          res_body = ($is_json_str(res_body) ? $sf_json_stringify($sf_json_parse(res_body), null, 2) : res_body);
+
+          jq_dialog.find('.cid_txt_res_req_header').val($sf_json_stringify(req_headers, null, 2));
+          jq_dialog.find('.cid_txt_res_req_body').val(req_body);
+          jq_dialog.find('.cid_txt_res_res_header').val($sf_json_stringify(res_headers, null, 2));
+          jq_dialog.find('.cid_txt_res_res_body').val(res_body);
+          jq_dialog.find('.cid_txt_res_res_body').trigger('user_trigger_onchange_res_res_body');
+        }
+        else {
+          s_msg = '[err][returnCd: ' + returnCd + ']\n[returnMsg: ' + returnMsg + ']';
+        }
+        if (s_msg.length > 0) {
+          window.setTimeout(function() { alert_message(s_msg); }, 100);
+        }
+      },
+      error: function(request, status, error) {
+	      //--@@console.log('code: ' + request.status + '\n' + 'error: ' + error);
+      }
+    });
+  }
+
+  function bstapi_fn_itemview(rec) {
+    alert_message('<pre>' + $sf_json_stringify(rec, null, 2) + '</pre>');
+  }
+  
+  //-- [tag:SR-20231018]
+  //-- [i][request 실행여부 점검]
+  function fn_is_enable_beast_api_test(param) {
+    var api_url = $sf_obj_val(param, 'api_url');
+    var cur_hhmmss = (new Date()).getHours().toString().padStart(2, '0') + (new Date()).getMinutes().toString().padStart(2, '0') + (new Date()).getSeconds().toString().padStart(2, '0');
+
+    <%-- //-- [tag:SR-20231106] --%>
+    var is_target_tb = ('${dp_is_target_tb_yn}' == 'y');
+    var is_working_hours = (('090000' <= cur_hhmmss) && ('180000' >= cur_hhmmss));
+    var is_sys_dply = ('/apilink/v1/sys/sysDply' == api_url);
+    
+    var s_msg = '';
+    //-- [i][실행조건처리]
+    if ((!is_target_tb) && is_working_hours && is_sys_dply) {
+      s_msg = '시스템 정보의 PROD에 대한 배포 실행 제한 시간입니다.\n\n(배포 제한 시간: 09:00 ~ 18:00)';
+    }
+    
+    if (!$is_empty(s_msg)) {
+      alert_message(s_msg);
+      return false;
+    }
+    
+    return true;
+  }
+</script>
+
+<script>
+	//-- [i]!import data
+	function bstapi_fn_before_proc_import_data(import_tag, import_val, jq_btn_import_data) {
+	  import_tag = $sf_str(import_tag);
+	  import_val = $sf_str(import_val);
+    jq_btn_import_data.hide();
+
+	  if (import_val.length == 0) { return ''; }	//-- no-data
+	  if (!$is_json_str(import_val)) { return '[err][import_val is not json]'; }
+
+	  var o_respose =$sf_json_parse(import_val);
+	  if (!$has_own(o_respose, 'common')) { return '[err][response.common not found]'; }
+	  var o_res_common = $sf_obj_val(o_respose, 'common');
+	  if (!$has_own(o_res_common, 'code')) { return '[err][response.common.code not found]'; }
+	  var res_common_code = $sf_int($sf_obj_val(o_res_common, 'code'));
+	  if (200 != res_common_code) {
+	    return '[err][common.code: ' + res_common_code + ']';
+	  }
+	  if (!$has_own(o_respose, 'data')) { return '[err][response.data not found]'; }
+	  var o_res_data = $sf_obj_val(o_respose, 'data');
+	  if (!$has_own(o_res_data, 'value')) { return '[err][response.data.value not found]'; }
+	  var res_data_value = $sf_obj_val(o_res_data, 'value');
+
+	  if ('sys-get' == import_tag) {
+	    if (!$has_own(res_data_value, 'sysId')) { return '[err][resposne.data.value {sysId} not found]'; }
+	    res_data_value = [res_data_value];
+	  }
+	  else if ('sys-get-list' == import_tag) {
+	    if (!Array.isArray(res_data_value)) { return '[err][resposne.data.value is not array]'; }
+	    if (res_data_value.length == 0) { return ''; }	//-- no-data
+	    for (var n_ii in res_data_value) {
+		    if (!$has_own(res_data_value[n_ii], 'sysId')) { return '[err][resposne.data.value {sysId} not found][index: ' + n_ii + ']'; }
+	    }
+	  }
+	  else if ('api-get' == import_tag) {
+	    if (!$has_own(res_data_value, 'apiId')) { return '[err][resposne.data.value {apiId} not found]'; }
+	    res_data_value = [res_data_value];
+	  }
+	  else if ('api-get-list' == import_tag) {
+	    if (!Array.isArray(res_data_value)) { return '[err][resposne.data.value is not array]'; }
+	    if (res_data_value.length == 0) { return ''; }	//-- no-data
+	    for (var n_ii in res_data_value) {
+		    if (!$has_own(res_data_value[n_ii], 'apiId')) { return '[err][resposne.data.value {apiId} not found][index: ' + n_ii + ']'; }
+	    }
+	  }
+	  else if ('svc-get' == import_tag) {
+	    if (!$has_own(res_data_value, 'svcId')) { return '[err][resposne.data.value {svcId} not found]'; }
+	    res_data_value = [res_data_value];
+	  }
+	  else if ('svc-get-list' == import_tag) {
+	    if (!Array.isArray(res_data_value)) { return '[err][resposne.data.value is not array]'; }
+	    if (res_data_value.length == 0) { return ''; }	//-- no-data
+	    for (var n_ii in res_data_value) {
+		    if (!$has_own(res_data_value[n_ii], 'svcId')) { return '[err][resposne.data.value {svcId} not found][index: ' + n_ii + ']'; }
+	    }
+	  }
+	  else if ('aldt-get' == import_tag) {
+	    if (!$has_own(res_data_value, 'type')) { return '[err][resposne.data.value {type} not found]'; }
+	    if (!$has_own(res_data_value, 'key')) { return '[err][resposne.data.value {key} not found]'; }
+	    res_data_value = [res_data_value];
+	  }
+	  else if ('aldt-get-list' == import_tag) {
+	    if (!Array.isArray(res_data_value)) { return '[err][resposne.data.value is not array]'; }
+	    if (res_data_value.length == 0) { return ''; }	//-- no-data
+	    for (var n_ii in res_data_value) {
+		    if (!$has_own(res_data_value[n_ii], 'type')) { return '[err][resposne.data.value {type} not found][index: ' + n_ii + ']'; }
+		    if (!$has_own(res_data_value[n_ii], 'key')) { return '[err][resposne.data.value {key} not found][index: ' + n_ii + ']'; }
+	    }
+	  }
+	  else {
+	    return '[err][invalid import_tag: ' + import_tag + ']';
+	  }
+
+    jq_btn_import_data.show();
+
+    return res_data_value;
+	}
+
+  function bstapi_fn_import_data() {
+    var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+    var import_data = $('#id_popup_bst_apitest').data('import_data');
+
+    var jq_board = $('#id_popup_bst_apitest .cid_board_import_data');
+    jq_board.append('<div class="brd_title">' + import_tag + '</div>');
+
+    var html = '';
+
+    if (('sys-get' == import_tag) || ('sys-get-list' == import_tag)) {
+      html += '<div><table class="table-list">';
+      html += '<colgroup>';
+      html += '  <col style="width:40px" />';
+      html += '  <col style="width:60px" />';
+      html += '  <col style="width:25%" />';
+      html += '  <col style="width:auto">';
+      html += '  <col style="width:120px" />';
+      html += '  <col style="width:170px" />';
+      html += '  <col style="width:80px" />';
+      html += '</colgroup>';
+      html += '<thead>';
+      html += '  <tr>';
+      html += '    <th><a href="javascript:void(0)"><input type="checkbox" class="cid_chk_import_item_sel_all" id="id_chk_import_item_sel_all" title="목록선택"><label for="id_chk_import_item_sel_all"><span></span></label></a></th>';
+      html += '    <th>#</th>';
+      html += '    <th>시스템 ID</th>';
+      html += '    <th>시스템 명</th>';
+      html += '    <th>시스템 CD</th>';
+      html += '    <th>배포 일자</th>';
+      html += '    <th>배포 유형</th>';
+      html += '  </tr>';
+      html += '</thead>';
+      html += '<tbody></tbody>';
+      html += '</table></div>';
+      jq_board.append(html);
+      var jq_tbody = jq_board.find('tbody');
+      import_data.forEach(function(item, idx) {
+        var jq_tr = $('<tr></tr>');
+        jq_tr.data('rec', item);
+        var html = '';
+        html += '<td><input type="checkbox" class="cid_chk_import_item" id="id_chk_import_item_' + idx + '"><label for="id_chk_import_item_' + idx + '"><span></span></label>';
+        html += '<td><a href="javascript:void(0)" onclick="bstapi_fn_itemview($(this).closest(\'tr\').data(\'rec\'));">' + (idx + 1) + '</a></td>';
+        html += '<td>' + $sf_obj_val(item, 'sysId') + '</td>';
+        html += '<td>' + $sf_obj_val(item, 'sysNm') + '</td>';
+        html += '<td>' + $sf_obj_val(item, 'sysCd') + '</td>';
+        html += '<td>' + $sf_obj_val(item, 'dplyDt') + '</td>';
+        html += '<td>' + $sf_obj_val(item, 'dplyType') + '</td>';
+        jq_tr.append(html);
+        jq_tbody.append(jq_tr);
+      });
+    }
+    else if (('api-get' == import_tag) || ('api-get-list' == import_tag)) {
+//      html += '<div class="searching_wrap"><div class="select_form">';
+//      html += '<span class="pr10">정보출처</span><span class="input_txt wx120"><input class="cid_extra_data" type="text" name="srcTag" disabled></span>';
+//      html += '<span class="pl05"><input type="checkbox" id="id_chk_extra_data_01" class="cid_chk_extra_data" title="enable"><label for="id_chk_extra_data_01"><span></span></label></span>';
+//      html += '</div></div>';
+      
+      html += '<div><table class="table-list">';
+      html += '<colgroup>';
+      html += '  <col style="width:40px" />';
+      html += '  <col style="width:60px" />';
+      html += '  <col style="width:25%" />';
+      html += '  <col style="width:200px" />';
+      html += '  <col style="width:auto">';
+      html += '  <col style="width:170px" />';
+      html += '  <col style="width:80px" />';
+      html += '</colgroup>';
+      html += '<thead>';
+      html += '  <tr>';
+      html += '    <th><a href="javascript:void(0)"><input type="checkbox" class="cid_chk_import_item_sel_all" id="id_chk_import_item_sel_all" title="목록선택"><label for="id_chk_import_item_sel_all"><span></span></label></a></th>';
+      html += '    <th>#</th>';
+      html += '    <th>API ID</th>';
+      html += '    <th>시스템 ID</th>';
+      html += '    <th>URI IN</th>';
+      html += '    <th>배포 일자</th>';
+      html += '    <th>배포 유형</th>';
+      html += '  </tr>';
+      html += '</thead>';
+      html += '<tbody></tbody>';
+      html += '</table></div>';
+      jq_board.append(html);
+      var jq_tbody = jq_board.find('tbody');
+      import_data.forEach(function(item, idx) {
+        var jq_tr = $('<tr></tr>');
+        jq_tr.data('rec', item);
+        var html = '';
+        html += '<td><input type="checkbox" class="cid_chk_import_item" id="id_chk_import_item_' + idx + '"><label for="id_chk_import_item_' + idx + '"><span></span></label>';
+        html += '<td><a href="javascript:void(0)" onclick="bstapi_fn_itemview($(this).closest(\'tr\').data(\'rec\'));">' + (idx + 1) + '</a></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'apiId') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'sysId') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'in') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'dplyDt') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'dplyType') + '</span></td>';
+        jq_tr.append(html);
+        jq_tbody.append(jq_tr);
+      });
+      $('.cid_svc_shub_compare').show();
+    }
+    else if (('svc-get' == import_tag) || ('svc-get-list' == import_tag)) {
+//      html += '<div class="searching_wrap"><div class="select_form cid_extra_data_wrap">';
+//      html += '<span class="pr10">정보출처</span><span class="input_txt wx120"><input class="cid_extra_data" type="text" name="srcTag" disabled></span>';
+//      html += '<span class="pl05"><input type="checkbox" id="id_chk_extra_data_01" class="cid_chk_extra_data" title="enable"><label for="id_chk_extra_data_01"><span></span></label></span>';
+//      html += '</div></div>';
+      
+      html += '<div><table class="table-list">';
+      html += '<colgroup>';
+      html += '  <col style="width:40px" />';
+//      if ('svc-get-list' == import_tag) {
+//        html += '  <col style="width:100px" />';
+//      }
+      html += '  <col style="width:60px" />';
+      html += '  <col style="width:25%" />';
+      html += '  <col style="width:auto">';
+      html += '  <col style="width:170px" />';
+      html += '  <col style="width:80px" />';
+      html += '  <col style="width:80px" />';
+      html += '</colgroup>';
+      html += '<thead>';
+      html += '  <tr>';
+      html += '    <th><a href="javascript:void(0)"><input type="checkbox" class="cid_chk_import_item_sel_all" id="id_chk_import_item_sel_all" title="목록선택"><label for="id_chk_import_item_sel_all"><span></span></label></a></th>';
+//      if ('svc-get-list' == import_tag) {
+//        html += '    <th><div class="cid_exclude_cmp_item_info">제외: -건</div>';
+//        html += '<button style="padding: 5px; border-radius: 5px;" class="btn_gray cid_act_excluce_cmp_data_storage_save">저장</button></th>';
+//      }
+      html += '    <th>#</th>';
+      html += '    <th>서비스 ID</th>';
+      html += '    <th>서비스 명</th>';
+      html += '    <th>배포 일자</th>';
+      html += '    <th>배포 유형</th>';
+      html += '    <th>SHUB</th>';
+      html += '  </tr>';
+      html += '</thead>';
+      html += '<tbody></tbody>';
+      html += '</table></div>';
+      jq_board.append(html);
+      var jq_tbody = jq_board.find('tbody');
+      import_data.forEach(function(item, idx) {
+        var jq_tr = $('<tr></tr>');
+        jq_tr.data('rec', item);
+        var html = '';
+        html += '<td><input type="checkbox" class="cid_chk_import_item" id="id_chk_import_item_' + idx + '"><label for="id_chk_import_item_' + idx + '"><span></span></label>';
+//        if ('svc-get-list' == import_tag) {
+//          html += '<td><input type="checkbox" class="cid_chk_exclude_cmp_item" id="id_chk_exclude_cmp_item_' + idx + '"><label for="id_chk_exclude_cmp_item_' + idx + '"><span></span></label>';
+//        }
+        html += '<td><a href="javascript:void(0)" onclick="bstapi_fn_itemview($(this).closest(\'tr\').data(\'rec\'));">' + (idx + 1) + '</a></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'svcId') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'svcNm') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'dplyDt') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'dplyType') + '</span></td>';
+        html += '<td><span class="cid_td_shub"></span></td>';
+        jq_tr.append(html);
+        jq_tbody.append(jq_tr);
+      });
+    }
+    else if (('aldt-get' == import_tag) || ('aldt-get-list' == import_tag)) {
+//      html += '<div class="searching_wrap"><div class="select_form">';
+//      html += '<span class="pr10">정보출처</span><span class="input_txt wx120"><input class="cid_extra_data" type="text" name="srcTag" disabled></span>';
+//      html += '<span class="pl05"><input type="checkbox" id="id_chk_extra_data_01" class="cid_chk_extra_data" title="enable"><label for="id_chk_extra_data_01"><span></span></label></span>';
+//      html += '</div></div>';
+      
+      html += '<div><table class="table-list">';
+      html += '<colgroup>';
+      html += '  <col style="width:40px" />';
+      html += '  <col style="width:60px" />';
+      html += '  <col style="width:70px" />';
+      html += '  <col style="width:120px" />';
+      html += '  <col style="width:auto">';
+      html += '  <col style="width:170px" />';
+      html += '</colgroup>';
+      html += '<thead>';
+      html += '  <tr>';
+      html += '    <th><a href="javascript:void(0)"><input type="checkbox" class="cid_chk_import_item_sel_all" id="id_chk_import_item_sel_all" title="목록선택"><label for="id_chk_import_item_sel_all"><span></span></label></a></th>';
+      html += '    <th>#</th>';
+      html += '    <th>정보-유형</th>';
+      html += '    <th>정보-키</th>';
+      html += '    <th>정보-값</th>';
+      html += '    <th>배포 일자</th>';
+      html += '  </tr>';
+      html += '</thead>';
+      html += '<tbody></tbody>';
+      html += '</table></div>';
+      jq_board.append(html);
+      var jq_tbody = jq_board.find('tbody');
+      import_data.forEach(function(item, idx) {
+        var jq_tr = $('<tr></tr>');
+        jq_tr.data('rec', item);
+        var html = '';
+        html += '<td><input type="checkbox" class="cid_chk_import_item" id="id_chk_import_item_' + idx + '"><label for="id_chk_import_item_' + idx + '"><span></span></label>';
+        html += '<td><a href="javascript:void(0)" onclick="bstapi_fn_itemview($(this).closest(\'tr\').data(\'rec\'));">' + (idx + 1) + '</a></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'type') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'key') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'value') + '</span></td>';
+        html += '<td><span class="txt_elps">' + $sf_obj_val(item, 'dplyDt') + '</span></td>';
+        jq_tr.append(html);
+        jq_tbody.append(jq_tr);
+      });
+    }
+    else {
+      alert('[err][invalid import_tag: ' + import_tag + ']'); return;
+    }
+    
+    //-- after import_data {
+    if ('svc-get-list' == import_tag) {
+      bstapi_fn_ui_disp_beast_api_exclude_cmp();
+    }
+    //-- after import_data }
+
+    $('#id_popup_bst_apitest .cid_wrap_import_data').show();
+  }
+  
+  //-- [i]!commit시 추가 공통정보
+  function bstapi_fn_get_commit_extra_data() {
+    var o_extra_data = new Object();
+    $('#id_popup_bst_apitest .cid_board_import_data input.cid_extra_data[name]').not(':disabled').each(function() {
+      o_extra_data[$(this).attr('name')] = $(this).val();
+    });
+    return o_extra_data;
+  }
+
+  //-- [i]!선택정보 import 처리
+  function bstapi_fn_proc_import_data_commit(a_rec) {
+    var s_cmd, s_proc_url, fn_build_rec;
+
+    var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+    s_cmd = 'cmd_db_tran';
+    if (('sys-get' == import_tag) || ('sys-get-list' == import_tag)) {
+			s_proc_url = '<c:url value="/beast/api/bstAdmSysDply/ajax_proc.do"/>';
+			fn_build_rec = bstapi_fn_build_rec_from_beast_sys;
+    }
+    else if (('api-get' == import_tag) || ('api-get-list' == import_tag)) {
+			s_proc_url = '<c:url value="/beast/api/bstAdmApiDply/ajax_proc.do"/>';
+			fn_build_rec = bstapi_fn_build_rec_from_beast_api;
+    }
+    else if (('svc-get' == import_tag) || ('svc-get-list' == import_tag)) {
+			s_proc_url = '<c:url value="/beast/api/bstAdmSvcDply/ajax_proc.do"/>';
+			//let azureYn = $('input[name=azureYn]').val() == null || $('input[name=azureYn]').val() === 'undefined' ? 'N' : $('input[name=azureYn]').val();
+			//console.log('azureYn : ', azureYn);
+			if(g_data['azureYn'] == 'N') {
+				fn_build_rec = bstapi_fn_build_rec_from_beast_svc;	
+			} else {
+				fn_build_rec = bstapi_fn_build_rec_from_beast_svc_azure;
+			}
+    }
+    else if (('aldt-get' == import_tag) || ('aldt-get-list' == import_tag)) {
+			s_proc_url = '<c:url value="/beast/api/bstAdmApiLinkData/ajax_proc.do"/>';
+			fn_build_rec = bstapi_fn_build_rec_from_beast_api_link_data;
+    }
+    else {
+      alert('[err][invalid import_tag: ' + import_tag + ']'); return;
+    }
+
+    var succ_cnt = 0;
+    var fail_cnt = 0;
+    var err_cnt = 0;
+    var skip_cnt = 0;
+    var a_result_data = [];
+    for (var n_ii in a_rec) {
+      var result_data;
+      var param = new Object();
+      param['cmd'] = s_cmd;
+      param['target'] =  g_data['target'];
+      param['mode'] = 'update';
+      param['rec'] = fn_build_rec(a_rec[n_ii], bstapi_fn_get_commit_extra_data());
+
+      if ('string' == typeof(param['rec'])) {
+        alert('[idx: ' + n_ii + ']\n' + param['rec']);
+        skip_cnt++;
+        continue;
+      }
+      //--##alert_message('<pre>' + $sf_json_stringify(param['rec'], null, 2) + '</pre>');
+
+      $.ajax({
+        type: 'POST',
+        url: s_proc_url + '?cmd=' + param['cmd'],
+        data: JSON.stringify(param),
+        contentType: 'application/json',
+        dataType: 'JSON',
+        async: false,
+        success: function(data){
+          var b_is_valid_data = $has_own(data, 'returnCd');
+          b_is_valid_data &= $has_own(data, 'returnMsg');
+          if (!b_is_valid_data) { alert_message('유효하지 않은 처리 결과 입니다.');  return; }
+
+          result_data = data;
+          var returnCd = $sf_obj_val(data, 'returnCd');
+          var returnMsg = $sf_obj_val(data, 'returnMsg');
+          var result = $sf_obj_val(data, 'result', '#N/A#');
+          var s_msg = '';
+          if ('OK' == returnCd) {
+            succ_cnt++;
+          }
+          else {
+            fail_cnt++;
+          }
+        },
+        error: function(request, status, error) {
+          err_cnt++;
+	        //--@@console.log('code: ' + request.status + '\n' + 'error: ' + error);
+        }
+      });
+      a_result_data.push(result_data);
+    }
+    var s_msg = '';
+    s_msg += '호출: ' + a_result_data.length + ' 건<br\>';
+    s_msg += 'SUCC: ' + succ_cnt + ' 건<br\>';
+    s_msg += 'FAIL: ' + fail_cnt + ' 건<br\>';
+    s_msg += 'ERROR: ' + err_cnt + ' 건<br\>';
+    s_msg += 'SKIP: ' + skip_cnt + ' 건<br\>';
+
+    alert_message(s_msg);
+
+    if ('function' == typeof(fn_query_list)) {
+    	fn_query_list();
+    }
+  }
+  
+  //-- [i]beast item -> rec // build + valid check
+  function bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix) {
+    var o_rec = {};
+    var s_msg = '';
+    is_invalid = a_item_key.some(function(elem) {
+      var new_key = new_key_prefix + ($has_own(o_renkey, elem) ? o_renkey[elem] : elem);
+      new_key = new_key.replace(/(_.)/g, function(c) { return c.slice(1).toUpperCase(); } );
+      var val = o_item[elem];
+      s_msg = elem;
+      if (a_arr_type.indexOf(elem) != -1) {
+        if ((null != val) && !Array.isArray(val)) { return s_msg; }
+        val = ((null != val) ? val.join(';') : val);
+      }
+      if (a_obj_type.indexOf(elem) != -1) {
+        if ((null != val) && !$is_json_obj(val)) { return s_msg; }
+        val = ((null != val) ? $sf_json_stringify(val) : val);
+      }
+      if (null != val) {
+        o_rec[new_key] = val;
+      }
+      return ((a_item_nn.indexOf(elem) != -1) && (false == $has_own(o_item, elem)));
+    });
+    if (is_invalid) { return s_msg; }
+
+    return o_rec;
+  }
+
+  //-- [i]
+  /*
+      o_rec: return rec object
+      mix_ret: returned string(message) or object(built rec)
+      o_item: root item object
+      a_item_key: item key entry
+      a_item_nn: not null item key entry
+      a_arr_type: array type key entry
+      o_renkey: rename key info
+      new_key_prefix: new key prefix
+  */
+  //-- [i][build beast-item-sys
+  function bstapi_fn_build_rec_from_beast_sys(item, o_extra_data) {
+    var o_rec = Object.assign({}, o_extra_data);
+    var mix_ret, o_item, a_item_key, a_item_nn, a_arr_type, o_renkey, new_key_prefix;
+
+    //-- [i][root]
+    o_item = $sf_obj(item);
+    a_item_key = 'dplyDt;dplyType;sysId;sysNm;sysCd;apiLinkCd'.split(';');
+    a_item_nn = 'dplyDt;dplyType;sysId;sysNm'.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = '';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][edpt]
+    if (!$has_own(item, 'edpt')) { return 'edpt'; }
+
+    o_item = $sf_obj_val(item, 'edpt');
+    a_item_key = 'prot'.split(';');
+    a_item_nn = 'prot'.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'edpt_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][edpt.atrib]
+    if (!$has_own($sf_obj_val(item, 'edpt'), 'atrib')) { return 'atrib'; }
+
+    o_item = $sf_obj_val($sf_obj_val(item, 'edpt'), 'atrib');
+    a_item_key = 'url;certi;certiKey;ecod;addr;minPool;maxPool'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = 'url;addr'.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'edpt_atrib_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    return o_rec;
+  }
+
+  //-- [i][build beast-item-api
+  function bstapi_fn_build_rec_from_beast_api(item, o_extra_data) {
+    var o_rec = Object.assign({}, o_extra_data);
+    var mix_ret, o_item, a_item_key, a_item_nn, a_arr_type, o_renkey, new_key_prefix;
+
+    //-- [i][root]
+    o_item = $sf_obj(item);
+    a_item_key = 'dplyDt;dplyType;sysId;apiId;ifNo;ver;meth;in;out;reqHndlr;resHndlr;errHndlr;timeOut;prnts;prntsApiId;hndlrOptn;mask'.split(';');
+    a_item_nn = 'dplyDt;dplyType;sysId;apiId;ifNo'.split(';');
+    a_arr_type = 'meth;reqHndlr;resHndlr;prntsApiId;mask'.split(';');
+    a_obj_type = 'hndlrOptn'.split(';');
+    o_renkey = {'in':'uriIn', 'out':'uriOut'};
+    new_key_prefix = '';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][atrib]
+    if (!$has_own(item, 'atrib')) { return 'atrib'; }
+
+    o_item = $sf_obj_val(item, 'atrib');
+    a_item_key = 'inFmt;outFmt;inComnParam;outComnParam'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'atrib_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    return o_rec;
+  }
+
+  //-- [i][build beast-item-svc
+  function bstapi_fn_build_rec_from_beast_svc(item, o_extra_data) {
+    var o_rec = Object.assign({}, o_extra_data);
+    var mix_ret, o_item, a_item_key, a_item_nn, a_arr_type, o_renkey, new_key_prefix;
+
+    //-- [i][root]
+    o_item = $sf_obj(item);
+    a_item_key = 'dplyDt;dplyType;svcId;svcNm;userNm;pw;svcStDt;svcEndDt;apiAut;'.split(';');
+    a_item_nn = 'dplyDt;dplyType;svcId;svcNm;userNm;pw;svcStDt;svcEndDt'.split(';');
+    a_arr_type = 'apiAut'.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = '';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][sla]
+    if (!$has_own(item, 'sla')) { return 'sla'; }
+
+    o_item = $sf_obj_val(item, 'sla');
+    a_item_key = 'sec;min;hr;day;mon'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'sla_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][ipAcesAut]
+    if (!$has_own(item, 'ipAcesAut')) { return 'ipAcesAut'; }
+
+    o_item = $sf_obj_val(item, 'ipAcesAut');
+    a_item_key = 'alwdIp;blckIp'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = 'alwdIp;blckIp'.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'ipAcesAut_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    //-- [i][atrib]
+    if (!$has_own(item, 'atrib')) { return 'atrib'; }
+
+    o_item = $sf_obj_val(item, 'atrib');
+    a_item_key = 'cpId;serviceId'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'atrib_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    return o_rec;
+  }
+  
+  //-- [i][build beast-item-svc-azure
+  function bstapi_fn_build_rec_from_beast_svc_azure(item, o_extra_data) {
+//	console.log('## bstapi_fn_build_rec_from_beast_svc_azure ##');
+//	console.log('item : ', item);
+//	console.log('o_extra_data : ', o_extra_data);
+    var o_rec = Object.assign({}, o_extra_data);
+    var mix_ret, o_item, a_item_key, a_item_nn, a_arr_type, o_renkey, new_key_prefix;
+//	console.log('o_rec : ', o_rec);
+    //-- [i][root]
+    o_item = $sf_obj(item);
+    a_item_key = 'dplyDt;dplyType;svcId;svcNm;userNm;pw;svcStDt;svcEndDt;apiDomainAcesAut;allowHttp'.split(';');
+    a_item_nn = 'dplyDt;dplyType;svcId;svcNm;userNm;pw;svcStDt;svcEndDt;apiDomainAcesAut;allowHttp'.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = '';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret);
+//	console.log('## root ##');
+//	console.log('mix_ret : ', mix_ret); 
+//	console.log('o_rec : ', o_rec);
+    //-- [i][sla]
+    if (!$has_own(item, 'sla')) { return 'sla'; }
+
+    o_item = $sf_obj_val(item, 'sla');
+    a_item_key = 'sec;min;hr;day;mon'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'sla_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+//	console.log('## sla ##');
+//	console.log('mix_ret : ', mix_ret); 
+//	console.log('o_rec : ', o_rec);
+    //-- [i][ipAcesAut]
+    if (!$has_own(item, 'ipAcesAut')) { return 'ipAcesAut'; }
+
+    o_item = $sf_obj_val(item, 'ipAcesAut');
+    a_item_key = 'alwdIp;blckIp'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = 'alwdIp;blckIp'.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'ipAcesAut_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+//	console.log('## ipAcesAut ##');
+//	console.log('mix_ret : ', mix_ret); 
+//	console.log('o_rec : ', o_rec);
+    //-- [i][atrib]
+    if (!$has_own(item, 'atrib')) { return 'atrib'; }
+
+    o_item = $sf_obj_val(item, 'atrib');
+    a_item_key = 'cpId;serviceId'.split(';');
+    a_item_nn = ''.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {};
+    new_key_prefix = 'atrib_';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+//	console.log('## atrib ##');
+//	console.log('mix_ret : ', mix_ret); 
+//	console.log('o_rec : ', o_rec);
+    return o_rec;
+  }
+
+  //-- [i][build beast-item-api_link_data
+  function bstapi_fn_build_rec_from_beast_api_link_data(item, o_extra_data) {
+    var o_rec = Object.assign({}, o_extra_data);
+    var mix_ret, o_item, a_item_key, a_item_nn, a_arr_type, o_renkey, new_key_prefix;
+
+    //-- [i][root]
+    o_item = $sf_obj(item);
+    a_item_key = 'dplyDt;type;key;value'.split(';');
+    a_item_nn = 'dplyDt;type;key;value'.split(';');
+    a_arr_type = ''.split(';');
+    a_obj_type = ''.split(';');
+    o_renkey = {'type':'aldtType', 'key':'aldtKey', 'value':'aldtValue'};
+    new_key_prefix = '';
+    mix_ret = bstapi_fn_build_valid_rec(o_item, a_item_key, a_item_nn, a_arr_type, a_obj_type, o_renkey, new_key_prefix)
+    if ('string' == typeof(mix_ret)) { return mix_ret; }
+    o_rec = Object.assign(o_rec, mix_ret); 
+
+    return o_rec;
+  }
+  
+  //-- [i]선택정보 shub compare처리 
+  function bstapi_fn_proc_svc_data_shub_compare(a_tr) {
+    var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+    if (('svc-get' == import_tag) || ('svc-get-list' == import_tag)) {
+      //-- [2023:codeeyes][empty_block issue]
+    }
+    else {
+      alert('[err][invalid import_tag: ' + import_tag + ']'); return;
+    }
+    
+    var jq_board = $('#id_popup_bst_apitest .cid_board_import_data');
+    var jq_tbody = jq_board.find('tbody');
+
+    //-- [i][init for shub compare]
+    jq_tbody.find('tr').each(function() {
+      var jq_tr = $(this);
+      jq_tr.removeData('rec_shub');
+      jq_tr.find('.cid_td_shub').empty();
+    });
+
+    for (var n_ii in a_tr) {
+      var jq_tr = a_tr[n_ii];
+      var rec = jq_tr.data('rec');
+      var svcId = $sf_str($sf_obj_val(rec, 'svcId'));
+      var jq_td_shub = jq_tr.find('.cid_td_shub');
+      var jq_shub_instauth = $('<span class="cid_shub_instauth"></span>');
+      jq_td_shub.append(jq_shub_instauth);
+      if (svcId.length > 0) {
+        jq_shub_instauth.trigger('user_trigger_compare', {'svcId': svcId, 'idx': n_ii});
+      }
+      else {
+        jq_shub_instauth.empty().append('<p>[no svcId]</p>');
+      }
+    }
+  }
+  
+  function bstapi_fn_proc_user_trigger_compare(jq_shub_instauth, svcId, idx) {
+    //--##$console_log('trace', 'bstapi_fn_proc_user_trigger_compare()::[svcId][idx]', svcId, idx);
+    jq_shub_instauth.text('...');
+
+    var shub_api_instauth_url = '${dp_shub_api_instauth_url}' + '/' + svcId;
+
+    var param = new Object();
+    param['cmd'] = 'cmd_api_shub_instauth';
+    param['api_url'] = shub_api_instauth_url;
+    param['api_method'] = 'GET';
+    param['api_body'] = '';
+    param['direct'] = '';
+
+    $.ajax({
+      type: 'POST',
+      url: '<c:url value="/beast/api/common/ajax_proc.do"/>' + '?cmd=' + param['cmd'],
+      data: JSON.stringify(param),
+      contentType: 'application/json',
+      dataType: 'JSON',
+      async: true,
+      success: function(data) {
+        var s_msg = '';
+
+        var b_is_valid_data = $has_own(data, 'returnCd');
+        b_is_valid_data &= $has_own(data, 'returnMsg');
+        if (!b_is_valid_data) { 
+          s_msg = 'invalid';
+        }
+        else {
+          var returnCd = $sf_obj_val(data, 'returnCd');
+          var returnMsg = $sf_obj_val(data, 'returnMsg');
+          var result = $sf_obj_val(data, 'result', '#N/A#');
+          if ('OK' == returnCd) {
+            s_msg = '';
+            var httpEntity = $sf_obj_val(result, 'httpEntity');
+            var responseEntity = $sf_obj_val(result, 'responseEntity');
+  
+            var req_headers = $sf_obj($sf_obj_val(httpEntity, 'headers'));
+            var req_body = $sf_obj_val(httpEntity, 'body');
+  
+            var res_headers = $sf_obj($sf_obj_val(responseEntity, 'headers'));
+            var res_body = $sf_obj_val(responseEntity, 'body');
+            var o_res_body = $sf_json_parse(res_body);
+  
+            var jq_tr = jq_shub_instauth.closest('tr');
+            jq_tr.data('rec_shub', o_res_body);
+
+            var rec = jq_tr.data('rec');
+            //-- [i][compare source data array]
+            var a_apiAut = $sf_arr($sf_obj_val(rec, 'apiAut'));
+            var a_alwdIp = $sf_arr($sf_obj_val($sf_obj_val(rec, 'ipAcesAut'), 'alwdIp'));
+            //-- [i][compare target data array]
+            var a_apiLists = $sf_obj_val(o_res_body, 'apiLists').split(',');
+            var a_ipLists = $sf_obj_val(o_res_body, 'ipLists').split(',');
+            
+            var src_a = a_apiAut.slice().sort().join(',');
+            var tar_a = a_apiLists.slice().sort().join(',');
+
+            var src_a_ic = src_a.toLowerCase().split(',').sort().join(',');
+            var tar_a_ic = tar_a.toLowerCase().split(',').sort().join(',');
+
+            var src_b = a_alwdIp.slice().sort().join(',');
+            var tar_b = a_ipLists.slice().sort().join(',');
+
+            //-- [i][api compare case sensitive]
+            var jq_api_ne = $((src_a == tar_a) ? '' : ('<p class="cid_act_view_data">[api ne]</p>'));
+            jq_api_ne.data('data', '[beast:' + src_a + ']\n\n[shub:' + tar_a + ']');
+            //-- [i][api compare case ignore]
+            var jq_api_ic_ne = $((src_a_ic == tar_a_ic) ? '' : ('<p class="cid_act_view_data">[api ic ne]</p>'));
+            jq_api_ic_ne.data('data', '[beast:' + src_a_ic + ']\n\n[shub:' + tar_a_ic + ']');
+            //-- [i][ip compare]
+            var o_ret = bstapi_fn_ip_list_compare(src_b, tar_b);
+            //-- [i]{'shub_ip_list':, 'beast_ip_list':, 'nk_shub_ip_list':}
+            var shub_ip_list = $sf_obj_val(o_ret, 'shub_ip_list');
+            var beast_ip_list = $sf_obj_val(o_ret, 'beast_ip_list');
+            var nk_shub_ip_list = $sf_obj_val(o_ret, 'nk_shub_ip_list');
+            var b_is_ip_ne = (nk_shub_ip_list.length == 0); 
+            var jq_ip_ne = $(b_is_ip_ne ? '' : ('<p class="cid_act_view_data">[ip ne]</p>'));
+            jq_ip_ne.data('data', '[nk ip:' + nk_shub_ip_list.join(',') + ']\n\n[shub:' + shub_ip_list.join(',') + ']\n\n[beast:' + beast_ip_list.join(',') + ']');
+            var ret = (((jq_ip_ne.length + jq_api_ic_ne.length + jq_ip_ne.length) == 0) ? 'ok' : 'nk');
+            var jq_res = $('<p class="cid_act_view_data">[' + ret + ']</p>');
+            var s_data = $sf_json_stringify(o_res_body, null, 2);
+            jq_res.data('data', s_data);
+            
+            jq_shub_instauth.empty().append(jq_res);
+            //-- [i][cmt]
+            //-- jq_shub_instauth.append((jq_api_ne.length > 0) ? jq_api_ne : ''); 
+            jq_shub_instauth.append((jq_api_ic_ne.length > 0) ? jq_api_ic_ne : ''); 
+            jq_shub_instauth.append((jq_ip_ne.length > 0) ? jq_ip_ne : ''); 
+          }
+          else {
+            var compare_res = 'nk';
+            var jq_res = $('<span class="cid_act_view_data">' + compare_res + '</span>');
+            var s_data = '[err][returnCd: ' + returnCd + ']\n[returnMsg: ' + returnMsg + ']';
+            jq_res.data('data', s_data);
+            jq_shub_instauth.empty().append(jq_res);
+          }
+        }
+        if (s_msg.length > 0) {
+          jq_shub_instauth.text(s_msg);
+        }
+      },
+      error: function(request, status, error) {
+        jq_shub_instauth.text('error');
+	      //--@@console.log('code: ' + request.status + '\n' + 'error: ' + error);
+      }
+    });
+  }
+  
+  //-- [i]beast, shub ip list compare
+  function bstapi_fn_ip_list_compare(bst_ip_list, shub_ip_list) {
+    //-- beast: *.*.*.*, 1.2.3.*, 1.2.3.4~5, 1.2.3.4
+    //-- shub: *, 1.2.3.4~1.2.3.5, 1.2.3.4
+    var a_shub_ip_list = bstapi_fn_extend_ip_list(shub_ip_list.split(','), 'shub_rule');
+    var a_bst_ip_list = bstapi_fn_extend_ip_list(bst_ip_list.split(','), 'beast_rule');
+    var a_nk_shub_ip_list =[];
+    for (var n_ii = 0; n_ii < a_shub_ip_list.length; n_ii++) {
+      var shub_ip = a_shub_ip_list[n_ii];
+      //-- [i]비교예외
+      var cmp_ip = (('*' == shub_ip) ? '*.*.*.*' : shub_ip);
+      if (a_bst_ip_list.indexOf(cmp_ip) == -1) {
+        a_nk_shub_ip_list.push(shub_ip);
+      }
+    }
+    return ({
+      'shub_ip_list': a_shub_ip_list
+      , 'beast_ip_list': a_bst_ip_list
+      , 'nk_shub_ip_list': a_nk_shub_ip_list
+    });
+  }
+
+  function bstapi_fn_extend_ip_list(a_ip_list, direct) {
+    var b_is_beast_rule = ('beast_rule' == direct);
+    var b_is_shub_rule = ('shub_rule' == direct);
+    var a_ret_list = [];
+    a_ip_list.forEach(function(item, idx) {
+      if (b_is_beast_rule) {
+        if (item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\*$/) != null) {  //-- 1.2.3.* // [beast]
+          var found = item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)\*$/);
+          for (var n_ii = 0; n_ii <= 255; n_ii++) {
+            a_ret_list.push(found[1] + n_ii); //-- 1.2.3. + n_ii
+          }
+        }
+        else if (item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})~(\d{1,3})$/) != null) {  //-- 1.2.3.4~5 // [beast]
+          var found = item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})~(\d{1,3})$/);
+          var from = parseInt(found[2]);
+          var to = parseInt(found[3]);
+          if (!isNaN(from) && !isNaN(to)) {
+            for (var n_ii = from; n_ii <= to; n_ii++) {
+              a_ret_list.push(found[1] + n_ii); //-- 1.2.3. + n_ii
+            }
+          }
+          else {
+            a_ret_list.push(item);
+          }
+        }
+        else {
+          a_ret_list.push(item);
+        }
+      }
+      else if (b_is_shub_rule) {
+        if (item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})~(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})$/) != null) {  //-- 1.2.3.4~1.2.3.5 // [shub]
+          var found = item.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})~(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})$/);
+          var from_prefix = found[1];
+          var from = parseInt(found[2]);
+          var to_prefix = found[3];
+          var to = parseInt(found[4]);
+          if ((from_prefix == to_prefix) && (!isNaN(from) && !isNaN(to))) {
+            for (var n_ii = from; n_ii <= to; n_ii++) {
+              a_ret_list.push(found[1] + n_ii); //-- 1.2.3. + n_ii
+            }
+          }
+          else {
+            a_ret_list.push(item);
+          }
+        }
+        else {
+          a_ret_list.push(item);
+        }
+      }
+      else {
+        a_ret_list.push(item);
+      }
+    });
+    return a_ret_list;
+  }
+
+  //-- [i]선택정보 apilist compare처리 
+  function bstapi_fn_proc_svc_data_apilist_compare(a_tr, s_method_tag) {
+    var import_tag = $('#id_popup_bst_apitest').data('import_tag');
+    if (('svc-get' == import_tag) || ('svc-get-list' == import_tag)) {
+      //-- [2023:codeeyes][empty_block issue]
+    }
+    else {
+      alert('[err][invalid import_tag: ' + import_tag + ']'); return;
+    }
+    
+    var a_beast_api = bstapi_fn_get('a_beast_api');
+    if (a_beast_api.length == 0) {
+      alert('비교검증을 위한 API ID 목록이 없습니다.'); return;
+    }
+
+    var jq_board = $('#id_popup_bst_apitest .cid_board_import_data');
+    var jq_tbody = jq_board.find('tbody');
+
+    //-- [i][init for shub compare]
+    jq_tbody.find('tr').each(function() {
+      var jq_tr = $(this);
+      jq_tr.find('.cid_td_shub').empty();
+    });
+
+    for (var n_ii in a_tr) {
+      var jq_tr = a_tr[n_ii];
+      var rec = jq_tr.data('rec');
+      var svcId = $sf_str($sf_obj_val(rec, 'svcId'));
+      var jq_td_shub = jq_tr.find('.cid_td_shub');
+      var jq_cmp_res = $('<span class="cid_cmp_res"></span>');
+      var a_nk_apilist = [];
+      var a_excl_apilist = [];
+      if (svcId.length > 0) {
+        //-- [i][compare api list data array]
+        var a_apiAut = $sf_arr($sf_obj_val(rec, 'apiAut'));
+        if ('02' == s_method_tag) {
+          //-- [i][method_02]
+          //-- [i]case ignore compare에 exist한 api만 대상으로 case sensitive compare 
+          for (var n_ii = 0; n_ii < a_apiAut.length; n_ii++) {
+            var s_apiAut = $sf_str(a_apiAut[n_ii]);
+            var isFound = (a_beast_api.findIndex(function(item) { return (item.toLowerCase() === s_apiAut.toLowerCase()); }) != -1);
+            if (isFound) { 
+              if (a_beast_api.indexOf(s_apiAut) == -1) {
+                a_nk_apilist.push(s_apiAut);
+              }
+            }
+            else {
+              a_excl_apilist.push(s_apiAut);
+            }
+          }
+        }
+        else {
+          //-- [i][method_01]
+          //-- [i]case sensitive compare
+          for (var n_ii = 0; n_ii < a_apiAut.length; n_ii++) {
+            if (a_beast_api.indexOf(a_apiAut[n_ii]) == -1) {
+              a_nk_apilist.push(a_apiAut[n_ii]);
+            }
+          }
+        }
+        if (a_nk_apilist.length > 0) {
+          var compare_res = ('<p>[nk: ' + a_nk_apilist.length + ' / ' + a_apiAut.length + '건]</p>');
+          var jq_res = $('<span class="cid_act_view_data">' + compare_res + '</span>');
+          var s_data = a_nk_apilist.join('\n');
+          jq_res.data('data', '[nk API목록]\n' + s_data);
+          jq_cmp_res.empty().append(jq_res);
+        }
+        else {
+          var compare_res = ('<p>[ok: ' + a_apiAut.length + '건]</p>');
+          var jq_res = $('<span class="cid_act_view_data">' + compare_res + '</span>');
+          var s_data = a_apiAut.join('\n');
+          jq_res.data('data', '[ok API목록]\n' + s_data);
+          jq_cmp_res.empty().append(jq_res);
+        }
+        if (a_excl_apilist.length > 0) {
+          var compare_res = ('<p>[제외: ' + a_excl_apilist.length + '건]</p>');
+          var jq_res = $('<span class="cid_act_view_data">' + compare_res + '</span>');
+          var s_data = a_excl_apilist.join('\n');
+          jq_res.data('data', '[제외 API목록]\n' + s_data);
+          jq_cmp_res.append(jq_res);
+        }
+      }
+      else {
+        jq_cmp_res.empty().append('<p>[no svcId]</p>');
+      }
+      jq_td_shub.append(jq_cmp_res);
+    }
+  }
+  
+  //-- [i]beast_api_test정보 save to localStorage
+  function bstapi_fn_save_beast_api_test_data(sub_key, data) {
+    var beast_api_test_data = localStorage.getItem('beast_api_test_data');
+    var o_beast_api_test_data = ($sf_json_parse(beast_api_test_data)||{});
+    o_beast_api_test_data[sub_key] = data;
+    localStorage.setItem('beast_api_test_data', $sf_json_stringify(o_beast_api_test_data));
+  }
+  
+  //-- [i]beast_api_test정보 load from localStorage -> g_data // ui처리
+  function bstapi_fn_load_beast_api_test_data() {
+    var beast_api_test_data = localStorage.getItem('beast_api_test_data');
+    var o_beast_api_test_data = $sf_json_parse(beast_api_test_data);
+    var a_beast_api = $sf_arr($sf_obj_val(o_beast_api_test_data, 'a_beast_api'));
+    var a_beast_api_raw = $sf_arr($sf_obj_val(o_beast_api_test_data, 'a_beast_api_raw'));
+    var a_beast_api_exclude_cmp = $sf_arr($sf_obj_val(o_beast_api_test_data, 'a_beast_api_exclude_cmp'));
+    bstapi_fn_get('bstapi_inc')['a_beast_api'] = a_beast_api;
+    bstapi_fn_get('bstapi_inc')['a_beast_api_raw'] = a_beast_api_raw;
+    bstapi_fn_get('bstapi_inc')['a_beast_api_exclude_cmp'] = a_beast_api_exclude_cmp;
+  }
+  
+  //-- data {
+  function bstapi_fn_get(direct) {
+    if ('bstapi_inc' == direct) {
+      var data = (g_data||{});
+      data['bstapi_inc'] = ($has_own(data, 'bstapi_inc') ? data['bstapi_inc'] : {});
+      return data['bstapi_inc'];
+    }
+    else if ('a_beast_api' == direct) {
+      return $sf_arr($sf_obj_val(bstapi_fn_get('bstapi_inc'), 'a_beast_api'));
+    }
+    else if ('a_beast_api_raw' == direct) {
+      return $sf_arr($sf_obj_val(bstapi_fn_get('bstapi_inc'), 'a_beast_api_raw'));
+    }
+    else if ('a_beast_api_exclude_cmp' == direct) {
+      return $sf_arr($sf_obj_val(bstapi_fn_get('bstapi_inc'), 'a_beast_api_exclude_cmp'));
+    }
+    return null;
+  }
+  //-- data }
+  
+  function bstapi_fn_ui_disp_beast_api_exclude_cmp() {
+    //-- [i]('svc-get-list' == import_tag)일경우
+    var jq_chk_exclude_cmp = $('.cid_chk_exclude_cmp_item');
+    if (jq_chk_exclude_cmp.length == 0) { return; }
+
+    var a_beast_api_exclude_cmp = bstapi_fn_get('a_beast_api_exclude_cmp');
+    jq_chk_exclude_cmp.each(function(idx, item) {
+      var o_rec = $(this).closest('tr').data('rec');
+      var svcId = $sf_obj_val(o_rec, 'svcId');
+      $(this).prop('checked', (a_beast_api_exclude_cmp.indexOf(svcId) != -1));
+    });
+    var info = '제외: ' + jq_chk_exclude_cmp.filter(':checked').length + '건';
+    $('.cid_exclude_cmp_item_info').html(info);
+  }
+  
+</script>
+
+<!-- beast api test -->
+<c:if test="${bIsTargetTb}">
+	<c:if test="${not bIsAzure}">
+	  <input type="hidden" name="reqDomain" value="${attr_bstgw_api_tb_url}"/>
+	  <input type="hidden" name="azureYn" value="N"/>
+	</c:if>
+	<c:if test="${bIsAzure}">
+	  <input type="hidden" name="reqDomain" value="${attr_bstgw_api_new_tb_url}"/>
+	  <input type="hidden" name="azureYn" value="Y"/>
+	</c:if>
+</c:if>
+<c:if test="${not bIsTargetTb}">
+	<c:if test="${not bIsAzure}">
+	  <input type="hidden" name="reqDomain" value="${attr_bstgw_api_prd_url}"/>
+	  <input type="hidden" name="azureYn" value="N"/>
+	</c:if>
+	<c:if test="${bIsAzure}">
+	  <input type="hidden" name="reqDomain" value="${attr_bstgw_api_new_prd_url}"/>
+	  <input type="hidden" name="azureYn" value="Y"/>
+	</c:if>
+</c:if>
+<div id="id_popup_bst_apitest" class="dp_none">
+  <div class="popup_content mb0">
+    <div class="pkg_board">
+      <table class="table-vw2">
+        <caption>API Test Table</caption>
+        <colgroup>
+          <col style="width:10%" />
+          <col style="width:40%" />
+          <col style="width:10%" />
+          <col style="width:40%" />
+        </colgroup>
+        <tbody>
+          <tr>
+            <th scope="row">Domain</th>
+            <td>
+              <span>
+                <select class="cid_input cid_sel_req_domain" title="Domain">
+                  <option value="">target 선택</option>
+<c:if test="${bIsTargetTb}">
+	<c:if test="${not bIsAzure}">
+                  <option value="${attr_bstgw_api_tb_url}">[TB]${attr_bstgw_api_tb_url}</option>
+	</c:if>
+	<c:if test="${bIsAzure}">
+                  <option value="${attr_bstgw_api_new_tb_url}">[TB]${attr_bstgw_api_new_tb_url}</option>
+	</c:if>
+</c:if>
+<c:if test="${not bIsTargetTb}">
+	<c:if test="${not bIsAzure}">
+                  <option value="${attr_bstgw_api_prd_url}" selected>[PRD]${attr_bstgw_api_prd_url}</option>
+	</c:if>
+	<c:if test="${bIsAzure}">
+                  <option value="${attr_bstgw_api_new_prd_url}" selected>[PRD]${attr_bstgw_api_new_prd_url}</option>
+	</c:if>
+</c:if>
+                </select>
+              </span>
+            </td>
+            <th scope="row"><span class="cur_pointer cid_act_toggle_readonly">URL</span></th>
+            <td>
+              <span><input type="text" class="cid_input cid_txt_req_url" title="URL"></span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="cur_pointer cid_act_toggle_readonly">Method</span></th>
+            <td>
+              <span><input type="text" class="cid_input cid_txt_req_method" title="Method"></span>
+            </td>
+            <th scope="row"><span class="cur_pointer cid_act_toggle_readonly">QueryString</span></th>
+            <td>
+              <span><input type="text" class="cid_input cid_txt_req_qstr" title="QueryString"></span>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="cur_pointer cid_act_toggle_readonly">Body</span></th>
+            <td colspan="3">
+              <span>
+                <textarea class="cid_input cid_txt_req_body" style="height:80px"></textarea>
+               </span>
+            </td>
+          </tr>
+
+          <tr>
+            <th scope="row">Request<br/>Header</th>
+            <td>
+              <span>
+                <textarea class="cid_input cid_txt_res cid_txt_res_req_header" style="height:80px"></textarea>
+               </span>
+            </td>
+            <th scope="row">Response<br/>Header</th>
+            <td>
+              <span>
+                <textarea class="cid_input cid_txt_res cid_txt_res_res_header" style="height:80px"></textarea>
+               </span>
+            </td>
+          </tr>
+
+          <tr>
+            <th scope="row">Request<br/>Body</th>
+            <td>
+              <span>
+                <textarea class="cid_input cid_txt_res cid_txt_res_req_body" style="height:250px"></textarea>
+               </span>
+            </td>
+            <th scope="row">
+              Response<br/>Body
+<c:if test="${bIsBstgwManager}">
+              <div class="dp_none mt10 cid_direct_ui cid_direct_wrap_import_data"><button type="button" class="mr10 pl05 pr05 btn btn_sml btn_lightGray cid_act_import_data"><span>import data</span></button></div>
+</c:if>
+            </th>
+            <td>
+              <span>
+                <textarea class="cid_input cid_txt_res cid_txt_res_res_body" style="height:250px"></textarea>
+               </span>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div><!-- .pkg_board -->
+    <input type="hidden" class="cid_direct">
+    <div class="lPop_bottom brd_tp mt10">
+      <button type="button" class="btn btn_black" onclick="bstapi_fn_request()">Request</button>
+      <button type="button" class="btn btn_cancel cid_btn_popup_cancel">취소</button>
+    </div>
+
+    <!-- import_data { -->
+    <div class="pkg_board dp_none cid_wrap_import_data" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 1;">
+      <div class="pkg_board" style="padding:20px;">
+        <div class="cid_board_import_data" style="height: 540px; overflow-y: auto;">
+          <!--  board import data -->
+        </div>
+      </div>
+      <div class="lPop_bottom brd_tp" style="position: absolute; bottom: 0; width: 100%; margin: 0 0 15px 5px;">
+        <button type="button" class="btn btn_black cid_act_import_data_commit">Commit</button>
+        <button type="button" class="btn btn_cancel cid_btn_import_data_cancel">취소</button>
+        
+        <!--<button type="button" class="dp_none btn btn_sml btn_lightGray cid_direct_ui cid_act_svc_data_shub_compare"><span>SHUB비교</span></button>
+        <button type="button" class="dp_none btn btn_sml btn_lightGray cid_direct_ui cid_act_svc_data_apilist_compare cid_cmp_method_01"><span>API목록비교1</span></button>
+        <button type="button" class="dp_none btn btn_sml btn_lightGray cid_direct_ui cid_act_svc_data_apilist_compare cid_cmp_method_02"><span>API목록비교2</span></button>
+
+        <button type="button" class="dp_none btn btn_sml btn_lightGray cid_direct_ui cid_act_api_data_storage_save"><span>API목록저장</span></button>-->
+        
+      </div>
+    </div><!-- .pkg_board -->
+    <!-- import_data } -->
+
+  </div><!-- .popup_content mb0 -->
+</div><!-- #id_popup_bst_apitest -->
+<!-- beastApiTest_inc.jsp } -->
+</t:layout>

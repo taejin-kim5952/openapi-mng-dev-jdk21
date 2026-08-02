@@ -1,0 +1,3360 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout type="apiInfo">
+<c:set var="b_is_master" value="${fn:toLowerCase(sessionScope['dev.master.id']) eq 'master'}" scope="page" />
+
+<!--
+    OPEN API version 1.0
+
+    Copyright ⓒ 2017 kt corp. All rights reserved.
+
+    This is a proprietary software of kt corp, and you may not use this file except in
+    compliance with license agreement with kt corp. Any redistribution or use of this
+    software, with or without modification shall be strictly prohibited without prior written
+    approval of kt corp, and the copyright notice above does not evidence any actual or
+  intended publication of such software.
+-->
+<%-- //-- [tag:job-20200420][chg][for share head] --%>
+<%@ include file="/WEB-INF/jsp/api/regFormShareHead.jsp" %>
+
+<%-- //-- 아스날 내보내기 팝업 --%>
+<%@ include file="/WEB-INF/jsp/api/arsenal/popExportToArsenal.jsp" %>
+
+<!--// yaml parser 관련 js파일 -->
+<script type="text/javascript">
+  var tabNum = 0;  // 탭 번호
+  var requiredNum = 0;  // required 번호
+  var itemSuccess;
+  var exampleOb = new Object();
+  var exampleArrayStr;
+  var Ayinnum = 0;
+  <%--
+  //--[tag:adpt][cmt][using input #pApiCopyYn]
+  //--##var copyYn = "${param.apiCopyYn}";
+  --%>
+  <% //-- //-- [tag:adpt][add][for versionup] %>
+  var g_apiVer = '${param.apiVer}';  //-- api version input at popApiClone.jsp
+  var g_apiVerNo = '${param.apiVerNo}';  //-- api version group no from popApiClone.jsp
+
+  // 탭 활성화 이벤트
+  function onTab(num) {
+    //-- [tag:adpt][add][for bug][num 1이 없을수도 있음]
+    var jq_tab_btn = $('#tab' + num);
+    if (jq_tab_btn.length == 0) {  //-- num이 없을시 첫번째  버튼선택
+      num = $('.tab-content').first().attr('data-tabnum');
+    }
+
+    $('.tab_list2 div').removeClass('current');
+    $('.tab-content').removeClass('current');
+    $('#tab'     + num).addClass('current');
+    $('#tabForm' + num).addClass('current');
+
+    // 해당 body, header 폼 활성화
+    $(".responseForm").css("display","none");
+    $("#headerForm"+num).css("display","");
+    $("#bodyForm"+num).css("display","");
+  }
+
+  $(document).ready(function(){
+    <% //-- [tag:job-20200420][chg][cmt][like pathRegFormPrivate.jsp] %>
+    <%
+    /*--[tag:adpt][cmt]
+    $('#apiId').off("blur keyup").on("blur keyup", function(p_evt) {
+      var b_is_blur = (p_evt.type == 'blur');
+      var keyCode = p_evt.which|| p_evt.keyCode;
+      if ((keyCode < 32) || (keyCode > 122)) { return false; }  //-- 32:' ', 122:'z'
+
+      var apiId_val = $("#apiId").val();
+      if (apiId_val.length == 0) { return false; }  //-- 입력값이 없으면 return
+
+      var s_msg = fn_get_apiid_validation_msg();
+      if (s_msg.length > 0) {
+        if (b_is_blur == false) { $(this).blur(); }
+        alert_message(s_msg, 'API');
+      }
+      return (s_msg.length == 0);
+    });
+    --*/
+    %>
+    <%
+    /*--##
+    $('#apiId').off("blur keyup").on("blur keyup", function() {
+      var regexp =/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g;
+      if($("#apiId").val().match(regexp)){
+        $("#popupConfirm").parent().find("div").eq(0).children("span").text("API");
+        $("#popupConfirm").find('#alertTxt').html('API 아이디에는 한글이 들어갈 수 없습니다.');
+        $("#popupConfirm").dialog("open");
+
+        $(this).val($(this).val().replace(/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g, ''));
+        return false;
+      } else if($("#apiId").val().search(/\s/) != -1) {
+        $("#popupConfirm").parent().find("div").eq(0).children("span").text("API");
+        $("#popupConfirm").find('#alertTxt').html('API 아이디에는 공백이 들어갈 수 없습니다.');
+        $("#popupConfirm").dialog("open");
+        $("#apiId").val($("#apiId").val().replace(/ /g, ''));
+        return false;
+      }
+    });
+    --*/
+    %>
+
+    //-- @ apiGlobalScript.js
+    dataTypeSet(); //datatype 세팅
+    securityReadySet();
+
+    // 좌측상단 타이틀 세팅
+    $(".default_info").children("p").text(yamlOb.info.title);
+    $(".default_info").children("p").attr("title",yamlOb.info.title);
+
+    var param_apiPath = '${param.apiPath}';
+    var param_apiMethod = '${param.apiMethod}';
+    var param_apiCopyYn = "${param.apiCopyYn}"; // 'Y':copy, 'A':edit other method, 'V': version upgrade
+
+    //--[tag:adpt][add]
+    //--@@if ($('#pApiPath').val() != '') {
+    $('#apiPath').val(param_apiPath);  // path 세팅
+    //--@@}
+    $('#methodBox').val(fn_get_method_comn_cd(param_apiMethod));  // method 세팅
+
+    var b_is_load = false;
+    var b_is_update = false;
+    var b_is_meta_udate = false;
+
+    var s_apiedit_mode = '신규';
+    //--##if (($('#pApiPath').val() != '') && ($('#pApiMethod').val() != '')) {
+    if ((param_apiPath.length > 0) && (param_apiMethod.length > 0)) {
+      if ($('#pApiNo').val() != '') {
+        apiPathInfoSet(); // 정보세팅
+        b_is_load = true;
+        b_is_update = true;
+        s_apiedit_mode = '수정';
+        if ('APIREG1030' == sttusCd) {  //-- 등록완료
+          b_is_meta_udate = true;
+          s_apiedit_mode = 'meta수정';
+        }
+      }
+      else if ('Y' == param_apiCopyYn) { //-- copy
+        apiPathInfoSet(); // 정보세팅
+        b_is_load = true;
+        $('#pApiNo').val('');
+        s_apiedit_mode = '복사';
+      }
+      else if ('V' == param_apiCopyYn) { //-- verup
+        apiPathInfoSet(); // 정보세팅
+        b_is_load = true;
+        $('#pApiNo').val('');
+        s_apiedit_mode = '버전업';
+        fn_ui_set_versionup(param_apiPath, g_apiVer);  //-- set ui versionup@popApiClone.jsp
+      }
+      else if (param_apiCopyYn == 'A') { //-- other method
+        s_apiedit_mode = '신규method';
+      }
+    }
+    $('.cid_apiedit_mode').attr('title', s_apiedit_mode);
+    
+    if (b_is_meta_udate == true) {
+      //-- disable input except meta data
+      var jq_root = $('.rightConBoxing').find('ul.acco_opened').eq(0);
+      var jq_ret = jq_root.find(':input').not('.cid_enable_meta_upd').prop('disabled', true);
+    }
+
+    if (b_is_update == true) {
+      var param_apiNo = '${param.apiNo}';
+      var apidef_apiNo = '${apiDef.apiNo}';
+      var s_msg = '';
+      if (apidef_apiNo.length == 0) {
+        s_msg = '해당 API정보가 없습니다. - [apiNo: ' + param_apiNo + ']';
+      }
+      if (s_msg.length > 0) {
+        alert_message(s_msg, 'API');
+      }
+    }
+  });
+
+  // 보안 시큐리티 세팅 Fn
+  function securityReadySet() {
+    // 보안 type 세팅
+    var securityHtml = '<div>'
+      + '<a href="javascript:void(0)">'
+      + '<input type="checkbox" id="public_schema0" name="noGlobalSchema" value="no" onclick="noGlobalSchema(this)" title="No authentication">'
+      + '<label for="public_schema0"><span></span>No authentication</label>'
+      + '</a>' + '</div>';
+    var scopesNum = 1;
+    if (yamlOb.securityDefinitions != null) {
+      $.each(yamlOb.securityDefinitions, function(index, value) {
+        var scopesOpHtml = '';
+        var activeClass = '';
+        var activeScopesHtml = '';
+        if (yamlOb.security != null) {
+          $("#public_schema0").removeClass("inheritScuty");
+          $.each(yamlOb.security, function(secuKey, secuVal) {
+            if(secuVal != null){
+              $.each(secuVal, function(securityKey, securityVal) {
+                if (securityKey == index) {
+                  activeClass = "inheritScuty";
+                  $.each(securityVal, function(scopesKey, scopesVal) {
+                    activeScopesHtml = activeScopesHtml + '<li><span>'+scopesVal+'</span></li>';
+                  });
+                  return true;
+                }
+              });
+            }
+          });
+        }
+
+        if (value.type == 'oauth2') {
+          if (value.scopes != null) {
+            $.each(value.scopes, function(scopeIndex, scopeVal) {
+              scopesOpHtml = scopesOpHtml + '<option value="' + scopeIndex + '">' + scopeIndex + '</option>';
+            });
+          }
+          securityHtml = securityHtml + '<div>'
+              + '<a href="javascript:void(0)">'
+              + '<input type="checkbox" value="' + index + '" id="public_schema' + scopesNum + '" name="securityType" disabled class="' + activeClass + '" onclick="oauthClik(this)" title="' + index + '">'
+              + '<label for="public_schema'+scopesNum+'"><span></span>' + index + '</label>' + '</a>'
+              + '<dl class="range_wrap">' + '<dt>' + '<label>범위</label>'
+              + '<select class="wx140 ' + activeClass + '" name="scopesBox' + scopesNum + '" onclick="scopesSelect(' + scopesNum + ')">'
+              + '<option value="">선택하여 주세요.</option>' + scopesOpHtml + '</select>'
+              + '</dt>' + '<dd>'
+              + '<ol class="scopes'+scopesNum+' oauthScope">' + activeScopesHtml + '</ol>' + '</dd>' + '</dl>' + '</div>';
+        }
+        else {
+          securityHtml = securityHtml + '<div>'
+              + '<a href="javascript:void(0)">'
+              + '<input type="checkbox" value="' + index + '" id="public_schema' + scopesNum + '" name="securityType" disabled class="' + activeClass + '" onclick="onGlobalSchema(this)" title="' + index + '">'
+              + '<label for="public_schema'+scopesNum+'"><span></span>' + index + '</label>' + '</a>' + '</div>';
+        }
+        scopesNum = scopesNum + 1;
+      });
+      $("#securityType").html(securityHtml);
+      if (yamlOb.security == null) {
+        $("#public_schema0").addClass("inheritScuty");
+      }
+      else {
+        $("#public_schema0").removeClass("inheritScuty");
+      }
+      $("#securityType").find("input[type='checkbox']").prop("disabled", true);
+      $("#securityType").find("select").prop("disabled", true);
+      $(".inheritScuty").prop("checked", true);
+    }
+    else {
+      $("#securityTr").css("display", "none");
+    }
+  }
+
+  // 보안 상속 여부 설정
+  function securitySet(data) {
+    $("#securityType").find("input[type='checkbox']").prop("checked", false);
+
+    if (data == 'inherit') {
+      securityReadySet();
+      $("#inherit").prop('checked', true);
+    }
+    else {
+      $(".oauthScope").find("li").remove();
+      $("#securityType").find("input[type='checkbox']").prop("disabled", false);
+      $("#custom").prop('checked', true);
+    }
+  }
+
+  // oauth 타입 클릭시에 scopes 선택박스 활성화
+  function oauthClik(data) {
+    if ($(data).is(":checked") == true) {
+      $("#public_schema0").prop("checked", false);
+      $(data).parent().parent().find("select").prop("disabled", false);
+    }
+    else {
+      $(data).parent().parent().find("select").prop("disabled", true);
+    }
+  }
+  // 보안 타입 oauth2 를 선택 후 selecbox에 scopes를 선택 했을 경우
+  function scopesSelect(num) {
+    var valCheck = true;
+    var scopesCkHtml = '';
+    if ($("select[name='scopesBox"+num+"']").val() != "") {
+      if ($(".scopes"+num).find("li").length > 0) {
+        for (var i = 0; i < $(".scopes"+num).find("li").length; i++) {
+          if ($($(".scopes" + num).find("li")[i]).find("span")[0].innerText == $("select[name='scopesBox" + num + "']").val()) {
+            valCheck = false;
+          }
+        }
+        if (valCheck != false) {
+          scopesCkHtml = '<li><span>'
+              + $("select[name='scopesBox" + num + "']").val()
+              + '</span><button type="button" class="btn btn_garbage" onclick="scopesRemove(this)" title="삭제"><span>삭제</span></button></li>';
+          $(".scopes" + num).append(scopesCkHtml);
+        }
+      }
+      else {
+        scopesCkHtml = '<li><span>'
+            + $("select[name='scopesBox" + num + "']").val()
+            + '</span><button type="button" class="btn btn_garbage" onclick="scopesRemove(this)" title="삭제"><span>삭제</span></button></li>';
+        $(".scopes" + num).append(scopesCkHtml);
+      }
+    }
+  }
+  // 선택된 scopes 값 삭제
+  function scopesRemove(data) {
+    $(data).parent().remove();
+  }
+  // 타입 선택 body가 아닐 경우
+  function typeClick(data) {
+    if (data.value == "Object") {
+      // 기존 object가 아니였을때 div 삭제
+      if ($(data).parent().parent().parent().next().length > 0) {
+        $(data).parent().parent().parent().next().remove();
+      }
+
+      var sectionHtml = '';
+      if ($(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().find(".div_draging").length == 0) {
+        sectionHtml = '<div class="div_draging ui-sortable">'
+          + '<button type="button" title="파라미터 추가" class="btn btn_addParabox" onclick="objectElAdd(this);"><span>파라미터 추가</span></button>'
+          + '<button type="button" title="속성 추가" class="btn btn_sml btn_gray" onclick="objectElAdd(this);"><span>속성 추가</span></button>'
+          + '</div>';
+        $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().append(sectionHtml);
+      }
+    }
+    else {
+      if ($(data).parent().parent().parent().next().length == 0) {
+        if (data.value == "Array") {
+          var arrayHtml = '';
+          arrayHtml = '<tr>'
+            + '<th scope="row">'
+            + '<div class="essential">of</div>'
+            + '</th>'
+            + '<td><div>'
+            + '<select class="w100" onchange="typeClick(this);" name="type">'
+            +  '<option value="">타입을 선택하여 주세요</option>'
+          <c:forEach var="list" items="${dataTypeList}">
+            <c:if test="${list.cdNm ne 'Object'}">
+            + '<option value="${list.cdNm}">${list.cdNm}</option>'
+            </c:if>
+          </c:forEach>
+            + '</select>'
+            + '</div></td>'
+            + '</tr>';
+          $(data).parent().parent().parent().parent().append(arrayHtml);
+        }
+      }
+      else {
+        if (data.value != "Array") {
+          for (var i = $(data).parent().parent().parent().parent().find("tr").length - 1; i > 0; i--) {
+            if (i > $(data).parent().parent().parent().index()) {
+              $(data).parent().parent().parent().parent().find("tr").eq(i).remove();
+            }
+          }
+        }
+      }
+    }
+
+    dragDrop(); // 드롭앤 드롭 실행 매소드를 호출 안해줄 경우 기능 실행이 안됨
+  }
+  // 타입 선택 (body 일 경우)
+  function typeBodyClick(data) {
+    if (data.value == "Object") {
+      // 기존 object가 아니였을때 div 삭제
+      if ($(data).parent().parent().parent().next().length > 0) {
+        $(data).parent().parent().parent().next().remove();
+      }
+
+      var sectionHtml = '';
+      if ($(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().find(".div_draging").length == 0) {
+        sectionHtml = '<div class="div_draging ui-sortable">'
+          + '<button type="button" title="파라미터 추가" class="btn btn_addParabox" onclick="objectElAdd(this);"><span>파라미터 추가</span></button>'
+          + '<button type="button" title="속성 추가" class="btn btn_sml btn_gray" onclick="objectElAdd(this);"><span>속성 추가</span></button>'
+          + '</div>';
+        $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().append(sectionHtml);
+      }
+    }
+    else {
+      $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().find(".div_draging").remove();
+
+      if ($(data).parent().parent().parent().next().length == 0) {
+        if (data.value == "Array") {
+          var arrayHtml = '';
+          arrayHtml = '<tr>'
+            + '<th scope="row">'
+            + '<div class="essential">of</div>'
+            + '</th>'
+            + '<td><div>'
+            + '<select class="w100" onchange="typeBodyClick(this);" name="type">'
+            + '<option value="">타입을 선택하여 주세요</option>'
+          <c:forEach var="list" items="${dataTypeList}">
+            + '<option value="${list.cdNm}">${list.cdNm}</option>'
+          </c:forEach>
+            + '</select>'
+            + '</div></td>'
+            + '</tr>';
+          $(data).parent().parent().parent().parent().append(arrayHtml);
+        }
+      }
+      else {
+        if (data.value != "Array") {
+          for (var i = $(data).parent().parent().parent().parent().find("tr").length - 1; i > 0; i--) {
+            if (i > $(data).parent().parent().parent().index()) {
+              $(data).parent().parent().parent().parent().find("tr").eq(i).remove();
+            }
+          }
+        }
+      }
+    }
+    dragDrop(); // 드롭앤 드롭 실행 매소드를 호출 안해줄 경우 기능 실행이 안됨
+  }
+  // 타입 선택 (body 일 경우)(응답 파라미터일 경우)
+  function typeBodyExampleClick(data) {
+    if (data.value == "Object") {
+      // 오브젝트 일경우 예제 삭제
+      if ($(data).parent().parent().parent().parent().find(".example").length > 0) {
+        $(data).parent().parent().parent().find("th").eq(1).remove();
+        $(data).parent().parent().parent().find("td").eq(1).remove();
+      }
+      // 기존 object가 아니였을때 div 삭제
+      if ($(data).parent().parent().parent().next().length > 0) {
+        for (var i = $(data).parent().parent().parent().parent().find("tr").length - 1; i > 0; i--) {
+          if (i > $(data).parent().parent().parent().index()) {
+            $(data).parent().parent().parent().parent().find("tr").eq(i).remove();
+          }
+        }
+      }
+
+      var sectionHtml = '';
+      if ($(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().find(".div_draging").length == 0) {
+        sectionHtml = '<div class="div_draging ui-sortable">'
+          + '<button type="button" title="파라미터 추가" class="btn btn_addParabox" onclick="objectElExampleAdd(this);"><span>파라미터 추가</span></button>'
+          + '<button type="button" title="속성 추가" class="btn btn_sml btn_gray" onclick="objectElExampleAdd(this);"><span>속성 추가</span></button>'
+          + '</div>';
+        $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().append(sectionHtml);
+      }
+    }
+    else {
+      // 오브젝트 일경우 예제 추가
+      if ($(data).parent().parent().parent().find(".example").length == 0 && $(data).parent().parent().parent().find(".ofClass").length == 0) {
+        $(data).parent().parent().parent().append('<th scope="row"><div class="essential">예제</div></th>');
+        $(data).parent().parent().parent().append('<td class="example"><div><input type="text" name="example" title="예제 입력"></div></td>');
+      }
+      $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().find(".div_draging").remove();
+
+      if ($(data).parent().parent().parent().next().length == 0) {
+        if (data.value == "Array") {
+          var arrayHtml = '';
+          arrayHtml = '<tr>'
+            + '<th scope="row">'
+            + '<div class="essential ofClass">of</div>'
+            + '</th>'
+            + '<td><div>'
+            + '<select class="w100" onchange="typeBodyExampleClick(this);" name="type">'
+            + '<option value="">타입을 선택하여 주세요</option>'
+          <c:forEach var="list" items="${dataTypeList}">
+            + '<option value="${list.cdNm}">${list.cdNm}</option>'
+          </c:forEach>
+            + '</select>'
+            + '</div></td>'
+            + '</tr>';
+          $(data).parent().parent().parent().parent().append(arrayHtml);
+        }
+      }
+      else {
+        if (data.value != "Array") {
+          for (var i = $(data).parent().parent().parent().parent().find("tr").length - 1; i > 0; i--) {
+            if (i > $(data).parent().parent().parent().index()) {
+              $(data).parent().parent().parent().parent().find("tr").eq(i).remove();
+            }
+          }
+        }
+      }
+    }
+    dragDrop(); // 드롭앤 드롭 실행 매소드를 호출 안해줄 경우 기능 실행이 안됨
+  }
+  // 요청 파라미터 파라미터 추가
+  function paramAdd(data) {
+    var paramBtnHtml = '';
+    requiredNum = requiredNum + 1;
+    if ($(data).parent().parent().parent().find("span")[0].innerText == "path") {
+      $("#paramForm").find("input[name='required']").prop("checked", true);
+      $("#paramForm").find("input[name='required']").prop("disabled", true);
+    }
+    else {
+      $("#paramForm").find("input[name='required']").prop("checked", false);
+      $("#paramForm").find("input[name='required']").prop("disabled", false);
+    }
+    // body파라미터와 formdata파라미터가 같이 등록될 경우 swagger 구문 에러가 발생
+    if ($(data).parent().parent().parent().find("span")[0].innerText == "formData") {
+      if ($("input[name='reqContentType']").is(":checked") == true) {
+        $("#popupConfirm").parent().find("div").eq(0).children("span").text("API");
+        $("#popupConfirm").find('#alertTxt').html('body파라미터와 formData파라미터는<br /> 같이 등록할 수 없습니다.');
+        $("#popupConfirm").dialog("open");
+        return false;
+      }
+    }
+    // 응답 파라미터의 헤더는 필수 값이 없다.
+    if ($(data).parent().parent().parent().parent().find(".responseForm").length > 0) {
+      $("#paramForm").find("a").css("display", "none");
+    }
+    else {
+      $("#paramForm").find("a").css("display", "");
+    }
+
+    $("#paramForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    if ($(data).parent().parent().parent().find(".div_draging").length > 0) {
+      $(data).parent().parent().find(".div_draging").find("button").last().before($("#paramForm").html());
+    }
+    else {
+      paramBtnHtml = '<div class="paraDiv_drag">'
+        + '<div class="div_draging">'
+        + '<button type="button" title="파라미터 추가" class="btn btn_addParabox"   onclick="paramAdd(this)"><span>파라미터 추가</span></button>'
+        + $("#paramForm").html()
+        + '<button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button>'
+        + '</div>'
+        + '</div>';
+      $(data).parent().parent().append(paramBtnHtml);
+    }
+
+    dragDrop();
+  }
+  function bodyCheckboxCk(data) {
+    if ($(".reqFormData").find("section").length > 0) {
+      $("#popupConfirm").parent().find("div").eq(0).children("span").text("API");
+      $("#popupConfirm").find('#alertTxt').html('body파라미터와 formData파라미터는<br /> 같이 등록할 수 없습니다.');
+      $("#popupConfirm").dialog("open");
+      $(data).prop("checked", false);
+    }
+  }
+  // 요청 파라미터 삭제
+  function paramDel(data) {
+    // 파라미터가 1개일경우에는 div_draging 전체 삭제 1개 초과일 경우 section만 삭제
+    var parentPath = $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent();
+    if (parentPath.parent().children("section").length == 1) {
+      parentPath.parent().parent().remove();
+    }
+    else {
+      parentPath.remove();
+    }
+  }
+  // 요청 파라미터 삭제 (body 일 경우)
+  function paramBodyDel(data) {
+    // 파라미터가 1개일경우에는 div_draging 전체 삭제 1개 초과일 경우 section만 삭제
+    var parentPath = $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent();
+    if ($(parentPath).parent().parent().attr("class") == "paraDiv_drag") {
+      $(parentPath).parent().remove();
+    }
+    else {
+      parentPath.remove();
+    }
+
+  }
+  // 요청 파라미터 파라미터 추가 (body 부분)
+  function paramBodyAdd(data) {
+    requiredNum = requiredNum + 1;
+    $("#paramBodyForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramBodyForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    if ($(data).parent().parent().parent().find("section").length == 1) {
+      paramBtnHtml = '<div class="paraDiv_drag">'
+        + '<div class="div_draging">'
+        + $("#paramBodyForm").html()
+        + '</div>'
+        + '</div>';
+      $(data).parent().parent().append(paramBtnHtml);
+    }
+  }
+  // 요청 파라미터 파라미터 추가 (body 부분)
+  function paramReqBodyAddBtn(data) {
+    requiredNum = requiredNum + 1;
+    $("#paramReqBodyDataTypeForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramReqBodyDataTypeForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    if ($(data).parent().parent().parent().find("section").length == 1) {
+      paramBtnHtml = '<div class="paraDiv_drag">'
+        + '<div class="div_draging">'
+        + $("#paramReqBodyDataTypeForm").html()
+        + '</div>'
+        + '</div>';
+      $(data).parent().parent().append(paramBtnHtml);
+    }
+  }
+  // 응답 파라미터 파라미터 추가 (body 부분)
+  function paramResBodyAddBtn(data) {
+    var aHtml = "";
+    if ($(data).parent().parent().parent().attr("class").indexOf("responseForm") > -1) {
+      aHtml = $("#paramResBodyDataTypeForm").find(".fr").html();
+      $("#paramResBodyDataTypeForm").find(".fr").find("a").remove();
+    }
+    requiredNum = requiredNum + 1;
+
+    if ($("#paramResBodyDataTypeForm").find("tbody").find(".example").length == 0) {
+      $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<th scope="row"><div class="essential">예제</div></th>');
+      $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<td class="example"><div><input type="text" name="example" title="예제 입력"></div></td>');
+    }
+
+    $("#paramResBodyDataTypeForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramResBodyDataTypeForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    if ($(data).parent().parent().parent().find("section").length == 1) {
+      paramBtnHtml = '<div class="paraDiv_drag">'
+        + '<div class="div_draging">'
+        + $("#paramResBodyDataTypeForm").html() 
+        + '</div>'
+        + '</div>';
+      $(data).parent().parent().append(paramBtnHtml);
+    }
+    else {
+      $("#popupConfirm").parent().find("div").eq(0).children("span").text("API");
+      $("#popupConfirm").find('#alertTxt').html('body파라미터는 1개만 추가 할수 있습니다.');
+      $("#popupConfirm").dialog("open");
+    }
+    if ($(data).parent().parent().parent().attr("class").indexOf("responseForm") > -1) {
+      aHtml = $("#paramResBodyDataTypeForm").find(".fr").html(aHtml);
+    }
+  }
+
+  // object 일 경우 속성 추가 버튼
+  function objectElAdd(data) {
+    requiredNum = requiredNum + 1;
+    $("#paramBodyForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramBodyForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    $(data).parent().find("button").last().before($("#paramBodyForm").html());
+  }
+  // object 일 경우 속성 추가 버튼응답 파라미터일 경우
+  function objectElExampleAdd(data) {
+    requiredNum = requiredNum + 1;
+    $("#paramBodyExampleForm").find("input[name='required']").attr("id", "required" + requiredNum);
+    $("#paramBodyExampleForm").find("input[name='required']").next().attr("for", "required" + requiredNum);
+
+    $(data).parent().find("button").last().before($("#paramBodyExampleForm").html());
+  }
+
+  // response tab 추가 이벤트
+  function responseTabAdd(data) {
+    tabNum = tabNum + 1;
+    var formHtml = '';
+    var tabHtml  = '';
+    // 보안 스키마 탭 append 시작
+    tabHtml = '<div id="tab' + tabNum + '">'
+      + '<a href="javascript:void(0)" title="basic"><span onclick="onTab(' + tabNum + ');">200</span></a><button type="button" title="삭제" class="btn btn_garbage" onclick="responseTabDel(' + tabNum + ');"><span>삭제</span></button>'
+      + '</div>';
+      $("#responseTab").append(tabHtml);
+    // 보안 스키마 탭 append 끝
+
+    // 보안 스키마 탭 form append 시작
+    formHtml = '<div id="tabForm' + tabNum + '" class="tab-content" data-tabnum="' + tabNum + '">'
+      + $("#responseTabForm").html()
+      + '</div>';
+
+    $(".tab_wraping").append(formHtml);
+    // 보안 스키마 탭 form append 끝
+
+    // header 추가
+    var jq_new_form = $('#responseHeaderForm').clone().removeAttr('id').show();
+    jq_new_form.find('.schema_wrap').attr('id', 'headerForm' + tabNum);
+    $('#responseDiv').append(jq_new_form);
+
+    // body 추가
+    jq_new_form = $('#responseBodyForm').clone().removeAttr('id').show();
+    jq_new_form.find('.schema_wrap').attr('id', 'bodyForm' + tabNum);
+    jq_new_form.find('textarea').attr('id', 'resAccount' + tabNum);
+    jq_new_form.find('input[name="resContentType"]').each(function(index, item) {
+      $(item).attr('id', $(item).attr('id') + tabNum).next().attr('for', $(item).attr('id'));
+    });
+    $('#responseDiv').append(jq_new_form);
+
+    // 탭관련 class current 수정
+    onTab(tabNum);
+  }
+  // responseCode 변경시에 탭이름 변경
+  function resposeCdCng(data) {
+    //-- [tag:adpt][chg] var tabId = "#tab" + $(data).parent().parent().parent().parent().parent().parent().parent().parent().parent().attr("data-tabnum");
+    var tabId = "#tab" + $(data).closest('.tab-content').attr("data-tabnum");
+    $(tabId).children("a").children("span").text($(data).val());
+  };
+  // response 탭 삭제 매소드
+  function responseTabDel(num) {
+    $('#tab' + num).remove();
+    $('#tabForm' + num).remove();
+    $('#headerForm' + num).remove();
+    $('#bodyForm' + num).remove();
+    $('#bodyForm' + num).find('input[name="resContentType"]').each(function(index, item){
+      $(item).prop("checked", false);
+    });
+
+    //--[tag:adpt][cmt][for bug]tabNum = num-1;
+    onTab(1);
+  };
+
+  //-- [tag:adpt][renew]
+  //-- org_pathRegFormPrivate.js pathSave()로 저장후 renewal
+  // path 저장
+  function pathSave() {
+    
+	// API 권한 체크
+	if(!fnApiAuthCheck()) return; 
+	
+	//--[tag:adpt][add]
+    var b_is_meta_udate = (($('#pApiNo').val() != '') && ('APIREG1030' == sttusCd));
+    if (false == b_is_meta_udate) {
+      if (('APIREV1020' == sttusCd) || ('APIREG1020' == sttusCd) || ('APIREG1030' == sttusCd)) { // 작성중, 검토요청, 등록검토
+        var alert_option = { ok_button_onclick : (function() { window.location.reload(); }), };
+        alert_message(sttusCdNm + '에서는 수정하실 수 없습니다.', 'API', alert_option);
+        return false;
+      }
+    }
+
+    // body데이터 형식 체크박스 가 체크되어 있을 경우 파라미터 존재유무 체크
+    if ($("input[name='reqContentType']").is(":checked") == true) {
+      if ($(".reqBody").find(".inner").length == 0) {
+        alert_message('요청 body파라미터를 추가하세요.', 'API');
+        return false;
+      }
+    }
+
+    //-- 데이터 검사 {
+    if (dataValidation() == false) { //-- alert_message()오류처리
+      return false;
+    }
+    // 에러 건수가 1개라도 있으면 저장 되지 않음
+    if (errorNum > 0) {
+      err_on();
+      var offset = $("#container").offset();
+      $('html, body').animate({scrollTop : offset.top}, 500);
+      return false;
+    }
+    else {
+      //--[tag:adpt][chg]
+      //-- $('.err_tooltip').css("display", "none"); $('.err_count').css("display", "none");
+      $('.err_tooltip, .err_count').hide();
+    }
+    //-- 데이터 검사 }
+
+    //-- fv_xxx 선언 {
+    var fv_pApiPath_val = $("#pApiPath").val();
+    var fv_pApiMethod_val = $("#pApiMethod").val();
+    var fv_pApiCtgryNm_val = $("#pApiCtgryNm").val();
+    var fv_pApiCopyYn_val = $('#pApiCopyYn').val();
+    var fv_input_path_val; //--  $("input[name='path']").val()
+    var fv_securityType_checked; //-- $("#securityType input[type='checkbox']:checked")
+    //-- fv_xxx 선언 }
+
+    var jq_ref;
+    var jq_req_inner, jq_req_inner_idx;     //-- $(".reqQuery").find(".inner"), $(".reqHeaders").find(".inner"), $(".reqPath").find(".inner"), $(".reqFormData").find(".inner")
+    var jq_reqBody_draging; //-- $(".reqBody").children().children(".paraDiv_drag").children(".div_draging")
+
+    var jq_res_inner, jq_res_inner_idx;     //-- $("#headerForm"+ (n_ii + 1)).find(".inner"), $("#bodyForm"+ (n_ii + 1)).find(".inner")
+    var jq_resBody_draging; //-- $("#bodyForm"+ (n_ii + 1)).children().children(".paraDiv_drag").children(".div_draging");
+
+    //yaml 값 초기화 후 저장 시작
+    yamlOb = YAML.parse($("#yamlSbst").val());
+
+    /** PATH URI 저장 시작   ==========>   ***/
+    // pathParam이 있을경우에는 path 뒤에 pathParam 붙여서 저장
+    var yamlObPaths = "";
+    var dataOb = new Object();
+    if (typeof(yamlOb['paths']) == 'undefined') {
+      yamlOb['paths'] = new Object();
+    }
+    if ((fv_pApiPath_val != '') && (fv_pApiMethod_val != '') && (fv_pApiCopyYn_val != 'Y') && (fv_pApiCopyYn_val != 'A') && (fv_pApiCopyYn_val != 'V')) {
+      if (yamlOb['paths'][fv_pApiPath_val]) {
+        delete yamlOb['paths'][fv_pApiPath_val][fv_pApiMethod_val.toLowerCase()]; // 기존 경로의 매소드 삭제
+        if (Object.keys(yamlOb['paths'][fv_pApiPath_val]).length == 0) {
+          delete yamlOb['paths'][fv_pApiPath_val];
+        }
+      }
+    }
+
+    fv_input_path_val = $("input[name='path']").val();
+    // path param이 있을 경우에는 yaml path에 변수로 추가 해주어야 한다
+    jq_req_inner = $(".reqPath").find(".inner");
+    if (0 < jq_req_inner.length) {
+      var pathAdd = "";
+      for (var n_ii = 0; n_ii < jq_req_inner.length; n_ii++) {
+        var pathParamStr = "/{" + $(jq_req_inner[n_ii]).find("input[name='name']").val() + "}";
+        if (fv_input_path_val.indexOf(pathParamStr) == -1) {
+          pathAdd = pathAdd + pathParamStr;
+        }
+      }
+      $("input[name='path']").val(fv_input_path_val + pathAdd);
+      fv_input_path_val = $("input[name='path']").val();
+
+      if (jQuery.isEmptyObject(yamlOb.paths[fv_input_path_val])) {
+        yamlOb.paths[fv_input_path_val] = {};
+      }
+      yamlObPaths = yamlOb.paths[fv_input_path_val];
+    }
+    else {
+      if (jQuery.isEmptyObject(yamlOb.paths[fv_input_path_val])) {
+        yamlOb.paths[fv_input_path_val] = {};
+      }
+      yamlObPaths = yamlOb.paths[fv_input_path_val];
+    }
+
+    
+    var methodVar = $("select[name='method'] option:checked").text().toLowerCase(); //메소드 변수명으로 담아준다. (대문자로 들어온 값 소문자로 변환)
+
+    yamlObPaths[methodVar] = {};  // 패스 초기화
+    yamlObPaths[methodVar].summary     = $("input[name='summary']").val();  // 패스에 대한 이름
+    yamlObPaths[methodVar].operationId = $("input[name='apiId']").val();  // 패스에 대한API ID
+    yamlObPaths[methodVar].description = $("textarea[name='account']").val(); // 패스에 대한 설명
+    <%
+    //-- [tag:SR-20210222][cmt]
+    /*--
+    //-- [tag:SR-20201127][add]
+    yamlObPaths[methodVar]['x-guideGubun'] = $("#guideGubun").val();
+    --*/
+    %>
+    <% //-- [tag:SR-20210222][add] %>
+    delete yamlObPaths[methodVar]['x-guideGubun'];
+
+    //-- apiNo 처리 {
+    if ($('#pApiNo').val() == '') { // 신규 api 번호 조회
+      $.ajax({
+        url: '<c:url value="/api/reg/selApiPathApiNoAjax.do"/>', type: 'POST', cache: false, async: false,
+        success: function(data) {
+          if ($has_own(data, 'apiNo') == false) { alert_message('정보검색 작업 수행 중 오류가 발생했습니다. - [err: apino]', '알림'); return false; }
+          $('#pApiNo').val(data['apiNo']);
+          yamlObPaths[methodVar]['x-apiNo'] = data.apiNo;
+          g_apiVerNo = data.apiNo;
+          yamlObPaths[methodVar]['x-apiVerNo'] = g_apiVerNo;
+        },
+        error: function(request, status, error) { err_message(status, error); }
+      });
+    }
+    else {
+      yamlObPaths[methodVar]['x-apiNo'] =  $('#pApiNo').val();
+      yamlObPaths[methodVar]['x-apiVerNo'] = g_apiVerNo;
+    }
+    //-- apiNo 처리 }
+
+    // API그룹 명 저장
+    //--##[?]yamlObPaths[methodVar]['x-category'] =  {};
+    yamlObPaths[methodVar]['x-category'] = fv_pApiCtgryNm_val;
+    <% //-- [tag:job-20200420][add] %>
+    yamlObPaths[methodVar]['tags'] = [fv_pApiCtgryNm_val];
+    
+    var XCateOb = new Object();
+    XCateOb['apiNm'] = $("input[name='summary']").val();
+    XCateOb['apiNo'] = yamlObPaths[methodVar]['x-apiNo'];
+
+    if ((fv_pApiPath_val != '') && (fv_pApiMethod_val != '') && (fv_pApiCopyYn_val != 'Y') && (fv_pApiCopyYn_val != 'A') && (fv_pApiCopyYn_val != 'V')) {
+      if (Object.keys(yamlOb['x-category'][fv_pApiCtgryNm_val][fv_pApiPath_val]).length == 1) {
+        delete yamlOb['x-category'][fv_pApiCtgryNm_val][fv_pApiPath_val]; // 기존 경로의 매소드 삭제
+      } else {
+        delete yamlOb['x-category'][fv_pApiCtgryNm_val][fv_pApiPath_val][(fv_pApiMethod_val.toLowerCase())]; // 기존 경로의 매소드 삭제
+      }
+      if (typeof(yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val]) == 'undefined') {
+        yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val] = new Object();
+      }
+      yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val][methodVar] = XCateOb;
+    }
+    else {
+      if (typeof(yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val]) == 'undefined') {
+        yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val] = new Object();
+      }
+      yamlOb['x-category'][fv_pApiCtgryNm_val][fv_input_path_val][methodVar] = XCateOb;
+    }
+    //-- [tag:SR-20210222][cmt][i][x-visiblity, x-display deprecated]
+    /*--
+    //-- 20190308 apiGubun(visiblity),use_yn 추가
+    // apiGubun 저장
+    //--##[?]yamlObPaths[methodVar]['x-visiblity'] = {};
+    yamlObPaths[methodVar]['x-visiblity'] = $("select[name='apiGubun']").val();
+    // display 저장
+    //--##[?]yamlObPaths[methodVar]['x-display'] = {};
+    yamlObPaths[methodVar]['x-display'] = $("#apiUseYn").val();
+    --*/
+    <% //-- [tag:SR-20210222][add] %>
+    delete yamlObPaths[methodVar]['x-visiblity']
+    delete yamlObPaths[methodVar]['x-display']
+
+    /** PATH URI 저장 끝   ==========>   ***/
+
+    /** 보안 스키마 시작   ==========>   ***/
+    fv_securityType_checked = $("#securityType input[type='checkbox']:checked");
+    if ((fv_securityType_checked.length > 0) && ($("input[name='setyrityType']:checked").val() == "custom")) {
+      var securityArray = new Array();
+      var security = new Object();
+      var arryList = {};
+      // 보안 No authentication 선택시에 저장 안함
+      if ($(fv_securityType_checked[0]).val() != "no") {
+        for (var n_ii = 0; n_ii < fv_securityType_checked.length; n_ii++) {
+          var array = new Array(); //초기화
+          jq_ref = $(fv_securityType_checked[n_ii]).parent().parent().find("li");
+          for (var n_jj = 0; n_jj < jq_ref.length; n_jj++) {
+            array.push($(jq_ref[n_jj]).find("span")[0].innerText);
+          }
+          arryList = {};
+          arryList[$(fv_securityType_checked[n_ii]).val()] = array;
+          securityArray.push(arryList);
+        }
+        yamlObPaths[methodVar].security = securityArray;
+      }
+    }
+    /** 보안 스키마 끝   ==========>   ***/
+
+    /** request 파라미터 세팅 시작   ==========>   ***/
+    var paramArray = new Array();
+    var paramOb = {};
+
+    //--##[tag:adpt][renew][이전의 코드를 4번 반복하던것을 renewal]
+    //-- query, header, path, form 파라미터 처리 공통화 {
+    var a_mode_in = ['query', 'header', 'path', 'formData'];
+    var a_jq_sel = ['.reqQuery', '.reqHeaders', '.reqPath', '.reqFormData'];
+    for (var n_jj = 0; n_jj < a_mode_in.length; n_jj++) {
+      jq_req_inner = $(a_jq_sel[n_jj]).find(".inner");
+
+      for (var n_ii = 0; n_ii < jq_req_inner.length; n_ii++) {
+        jq_req_inner_idx = $(jq_req_inner[n_ii]);
+
+        paramOb = {};
+        paramOb['in']           = a_mode_in[n_jj];
+        paramOb['name']         = jq_req_inner_idx.find("input[name='name']").val();
+        paramOb['description']  = jq_req_inner_idx.find("input[name='account']").val();
+        paramOb['required']   = jq_req_inner_idx.find("input[name='required']").is(":checked");
+        if (a_mode_in[n_jj] == 'path') {
+          paramOb['required']   = true; // 패스 일 경우 required는 항상 트루 이다 아닐시에 swagger 에러
+        }
+        paramOb['x-example']    = jq_req_inner_idx.find("input[name='example']").val();
+        paramOb['x-dataTypeCd'] = "PRMTYP1010"; // PRMTYP1010(요청 파라미터), PRMTYP1020(응답 파라미터)
+
+        var ref_select_val = jq_req_inner_idx.find("select").val();
+        if (ref_select_val == 'Array') {
+          var emptyOb = new Object();
+          dataOb[0] = jq_req_inner[n_ii];
+          typeArrayFn($(dataOb[0]), emptyOb);
+
+          var ref_key_name_val = jq_req_inner_idx.find("input[name='name']").val();
+          paramOb['type']  = emptyOb[ref_key_name_val]['type'];
+          paramOb['items'] = emptyOb[ref_key_name_val]['items'];
+        }
+        else {
+          paramOb['type'] = ref_select_val.toLowerCase();
+        }
+        // Query 파라미터 배열로 저장
+        paramArray.push(paramOb);
+      }
+    }
+    //-- query, header, path, form 파라미터 처리 공통화 }
+
+    /*********************** request body 파라미터 세팅 시작   ==========>     ***/
+    jq_ref = $("input[name='reqContentType']:checked");
+    if (0 < jq_ref.length) { //--@[Content-Type선택이 있으면]
+      var consumesArray = new Array();
+      exampleOb = new Object();
+
+      //consumes 저장
+      jq_ref = $("input[name='reqContentType']:checked");
+      for (var n_ii = 0; n_ii < jq_ref.length; n_ii++) {
+        consumesArray.push($(jq_ref[n_ii]).val());
+      }
+      yamlObPaths[methodVar].consumes = consumesArray;  //--@[Content-Type저장]
+
+      paramOb = {};
+      paramOb['in']           = 'body';
+      paramOb['name']         = 'body';  //--@[초기값설정][overwrite됨?]
+      paramOb['description']  = $(".reqBody").find("textarea[name='reqBodyAccount']").val();
+      paramOb['schema']       = {};
+      paramOb['x-dataTypeCd'] = "PRMTYP1010"; // PRMTYP1010(요청 파라미터), PRMTYP1020(응답 파라미터)
+
+      jq_reqBody_draging = $(".reqBody").children().children(".paraDiv_drag").children(".div_draging");
+
+      var ref_select_val = $(jq_reqBody_draging.find("select")[0]).val();
+      var ref_key_name_val = $(jq_reqBody_draging.find("input[name='name']")[0]).val();
+      if (ref_select_val == 'Array') {
+        paramOb['name']           = ref_key_name_val;
+        paramOb['required']       = $(jq_reqBody_draging.find("input[name='required']")[0]).is(":checked");
+        paramOb['schema']['type'] = ref_select_val.toLowerCase();
+        paramOb['x-example']      = $(jq_reqBody_draging.find("input[name='example']")[0]).val();
+
+        var emptyOb = new Object();
+        dataOb[0] = jq_reqBody_draging.find(".inner")[0];
+        typeArrayFn($(dataOb[0]), emptyOb);
+
+        paramOb['schema']['items']  = emptyOb[ref_key_name_val]['items'];
+        paramOb['schema']['description']  = $(jq_reqBody_draging.find("input[name='account']")[0]).val();
+      }
+      else if (ref_select_val == 'Object') {
+        dataOb[0] = $(jq_reqBody_draging);
+        //--[tag:adpt][cmt][??][baybe dataOb[0]]
+        if (!jQuery.isEmptyObject(dataOb)) {
+          var emptyOb = new Object();
+          typeObject(dataOb[0], emptyOb);
+          paramOb['schema']['properties'] = emptyOb['properties'][ref_key_name_val]['properties'];
+          paramOb['schema']['required']   = emptyOb['properties'][ref_key_name_val]['required'];
+        }
+        paramOb['name']                  = ref_key_name_val;
+        paramOb['required']              = $(jq_reqBody_draging.find("input[name='required']")[0]).is(":checked");
+        paramOb['schema']['type']        = ref_select_val.toLowerCase();
+        paramOb['schema']['description'] = $(jq_reqBody_draging.find("input[name='account']")[0]).val();
+        paramOb['x-example']             = "Ob_Small_Com_Del" + JSON.stringify(exampleOb) + "Ob_Small_Com_Del";
+      }
+      else {
+        paramOb['name']      = ref_key_name_val;
+        paramOb['required']  = $(jq_reqBody_draging.find("input[name='required']")[0]).is(":checked");
+        paramOb['x-example'] = $(jq_reqBody_draging.find("input[name='example']")[0]).val();
+
+        if ($(jq_reqBody_draging.find("select option:selected")).text().indexOf("(data type)") > -1) {
+          paramOb['schema']['$ref'] = "#/definitions/"+  ref_select_val;
+          paramOb['x-dataTypeCd']   = "PRMTYP1040";
+        }
+        else {
+          paramOb['schema']['type']        = ref_select_val.toLowerCase();
+          paramOb['schema']['description'] = $(jq_reqBody_draging.find("input[name='account']")[0]).val();
+        }
+      }
+      // body 파라미터 배열로 저장
+      paramArray.push(paramOb);
+    }
+    /*********************** request body 파라미터 세팅 끝   ==========>     ***/
+    yamlObPaths[methodVar].parameters = paramArray;
+    /** request 파라미터 세팅 끝     ==========>   ***/
+
+    /** response 파라미터 세팅 시작   ==========>   ***/
+    //--##[tag:adpt][cmt]if (0 < tabNum) {
+    if ($("#responseTab").children("div").length > 0) {
+      yamlObPaths[methodVar].responses = {};
+    }
+    for (var n_ii = 0; n_ii < $("#responseTab").children("div").length; n_ii++) {
+      var resTabId = ("#tabForm"+ (n_ii + 1));
+      var statusCdVar = $(resTabId).find("select[name='resStatus']").val(); // 상태 코드
+
+      yamlObPaths[methodVar].responses[statusCdVar] = {};
+      yamlObPaths[methodVar].responses[statusCdVar].description = $(resTabId).find("input[name='resAccont']").val();
+
+      /*********************** response header 파라미터 세팅 시작   ==========>     ***/
+      var resHeaderId = ("#headerForm"+ (n_ii + 1));
+
+      jq_res_inner = $(resHeaderId).find(".inner");
+      if (0 < jq_res_inner.length) {
+        yamlObPaths[methodVar].responses[statusCdVar].headers = {};
+      }
+      for (var n_jj = 0; n_jj < jq_res_inner.length; n_jj++) {
+        jq_res_inner_idx = $(jq_res_inner[n_jj]);
+
+        var resStatusHeaderVar = jq_res_inner_idx.find("input[name='name']").val();
+        yamlObPaths[methodVar].responses[statusCdVar].headers[resStatusHeaderVar] = {};
+
+        paramOb = {};
+        paramOb['description']  = jq_res_inner_idx.find("input[name='account']").val();
+        paramOb['x-example']    = jq_res_inner_idx.find("input[name='example']").val();
+        paramOb['x-dataTypeCd'] = "PRMTYP1020"; // PRMTYP1010(요청 파라미터), PRMTYP1020(응답 파라미터)
+        /* paramOb['required']  = $($(resHeaderId).find(".inner")[n_jj]).find("input[name='required']").is(":checked");  // 응답 파라미터는 필수 값이 없음*/
+
+        var ref_select_val = jq_res_inner_idx.find("select").val();
+        if (ref_select_val == 'Array') {
+          var emptyOb = new Object();
+          dataOb[0] = jq_res_inner[n_jj];
+          typeArrayFn($(dataOb[0]), emptyOb);
+
+          paramOb['type']  = emptyOb[resStatusHeaderVar]['type'];
+          paramOb['items'] = emptyOb[resStatusHeaderVar]['items'];
+        }
+        else {
+          paramOb['type'] = ref_select_val.toLowerCase();
+        }
+        // response headers 저장
+        yamlObPaths[methodVar].responses[statusCdVar].headers[resStatusHeaderVar] = paramOb;
+      }
+      /*********************** response header 파라미터 세팅 끝     ==========>     ***/
+
+      /*********************** response Body 파라미터 세팅 시작   ==========>         ***/
+      var resBodyId = ("#bodyForm"+ (n_ii + 1));
+      var resProducesArray = new Array();
+      yamlObPaths[methodVar].responses[statusCdVar].schema = {};
+      // Produces 저장
+      jq_ref = $("input[name='resContentType']:checked");
+      for (var n_jj = 0; n_jj < jq_ref.length; n_jj++){
+        var producesCk = resProducesArray.contains($(jq_ref[n_jj]).val());
+        if (producesCk == false) {
+          resProducesArray.push($(jq_ref[n_jj]).val());
+        }
+      }
+      yamlObPaths[methodVar].produces = resProducesArray;
+
+      jq_res_inner = $(resBodyId).find(".inner");
+      if (0 < jq_res_inner.length) {
+        paramOb = {};
+        for (var n_jj = 0; n_jj < jq_res_inner.length; n_jj++) {
+          // 예제 배열 초기화
+          exampleOb = new Object();
+  
+          paramOb = {};
+          paramOb['x-description'] = $(resBodyId).find("textarea").val();
+          paramOb['x-dataTypeCd']  = "PRMTYP1020"; // PRMTYP1010(요청 파라미터), PRMTYP1020(응답 파라미터)
+  
+          jq_resBody_draging = $(resBodyId).children().children(".paraDiv_drag").children(".div_draging");
+  
+          var ref_select_val = $(jq_resBody_draging.find("select")[0]).val();
+          var ref_key_name_val = $(jq_resBody_draging.find("input[name='name']")[0]).val();
+          if (ref_select_val == 'Array') {
+            var emptyOb = new Object();
+            dataOb[0] = jq_resBody_draging.find(".inner")[0];
+            typeArrayFn($(dataOb[0]), emptyOb);
+  
+            paramOb['type']        = ref_select_val.toLowerCase();
+            paramOb['items']       = emptyOb[ref_key_name_val]['items'];
+            paramOb['description'] = $(jq_resBody_draging.find("input[name='account']")[0]).val();
+            paramOb['x-name']      = ref_key_name_val;
+            //-- [tag:adpt][chg] paramOb['example']     = "Ob_Small_Com_Del" + $(jq_resBody_draging.find("input[name='example']")[0]).val()+"Ob_Small_Com_Del";
+            paramOb['example']     = $(jq_resBody_draging.find("input[name='example']")[0]).val();
+          }
+          else if (ref_select_val == 'Object') {
+            dataOb[0] = $(jq_resBody_draging);
+            //--[tag:adpt][cmt][??][baybe dataOb[0]]
+            if (!jQuery.isEmptyObject(dataOb)) {
+              var emptyOb = new Object();
+              typeObject(dataOb[0], emptyOb);
+              paramOb = emptyOb;
+            }
+            paramOb['type']        = ref_select_val.toLowerCase();
+            paramOb['description'] = $(jq_resBody_draging.find("input[name='account']")[0]).val();
+            paramOb['x-name']      = ref_key_name_val;
+            paramOb['example']     = "Ob_Small_Com_Del" + JSON.stringify(exampleOb) + "Ob_Small_Com_Del"; // example 를 넣을때 yaml에 문자열변환하는 순간 '를 추가 하여서 문자열로 변환 후 '를 삭제하기 위해 임의의 문자 추가
+          }
+          else {
+            paramOb['example']     = $(jq_resBody_draging.find("input[name='example']")[0]).val();
+            paramOb['description'] = $(jq_resBody_draging.find("input[name='account']")[0]).val();
+            paramOb['x-name']      = ref_key_name_val;
+            /* paramOb['required'] = $(jq_resBody_draging.find("input[name='required']")[0]).is(":checked"); */
+  
+            if ($(jq_resBody_draging.find("select")[0]).children("option:selected").text().indexOf("(data type)") > -1) {
+              paramOb['$ref']         = "#/definitions/" + ref_select_val;
+              paramOb['x-dataTypeCd'] = "PRMTYP1040";
+            }
+            else {
+              paramOb['type'] = ref_select_val.toLowerCase();
+            }
+          }
+        }
+        yamlObPaths[methodVar].responses[statusCdVar].schema = paramOb;
+      }
+      /*********************** response Body 파라미터 세팅 끝   ==========>       ***/
+    } //-- for (var n_ii = 0; n_ii < $("#responseTab").children("div").length; n_ii++) {
+    //--##[tag:adpt][cmt]} //-- if (0 < tabNum) {
+    /** response 파라미터 세팅 끝     ==========>   ***/
+
+    // 패스가 2개 이상일 경우에 처음 등록한 / 경로 삭제
+    if (Object.keys(yamlOb['paths']).length > 1) {
+      delete yamlOb['paths']['/']; // json / 경로 삭제
+    }
+
+    var yamlStr = YAML.stringify(yamlOb);
+    // 임의 문자열 및 ' 삭제
+    yamlStr = yamlStr.replace(/\'Ob_Small_Com_Del/gi, "");
+    yamlStr = yamlStr.replace(/example: >-/g, "example:");
+    yamlStr = yamlStr.replace(/Ob_Small_Com_Del\'/gi, "");
+    yamlStr = yamlStr.replace(/Ob_Small_Com_Del/gi, "");
+    yamlStr = yamlStr.replace(/required: \[\]/gi, "");
+    // console.log(yamlStr);
+    // 필수값이 없는것들 삭제
+
+    <% //-- [tag:adpt][add] // apiVerNo %>
+    <% //-- [tag:SR-20201127][add] // guideGubun %>
+    var param = {
+      apiSpcNo: $("#pApiSpcNo").val(),  // 무조건 존재
+      apiNo: $("#pApiNo").val(),  // 존재(수정) , 부재(등록)
+      apiVerNo: g_apiVerNo,  //-- [tag:adpt][add]
+      yamlStr: yamlStr,  // yaml 데이터 : 필수,
+
+      apiNm: $("#apiNm").val(),
+      apiDesc: $("#apiDesc").val(),
+      apiId: $("#apiId").val(),
+      apiPath: $("#apiPath").val(),
+      apiCtgryNo: $("#pApiCtgryNo").val(),
+      apiCtgryNm: $("#pApiCtgryNm").val(),
+      methodCd: $("select[name='method']").val(),
+      methodCdNm: $("#methodBox option:checked").text(),
+      insertYn: $("#insertYn").val(),
+      apiGubun: $("select[name='apiGubun']").val(),
+      useYn: $("#apiUseYn").val(),
+      guideGubun: $("#guideGubun").val(),
+    };
+
+    $.ajax({
+      url: '<c:url value="/api/reg/savApiRegPathAjax.do"/>', type: 'POST', cache: false, async: false, data: param,
+      success: function(data) {
+        if ($has_own(data, 'apiRegVO') == false) { alert_message('정보처리 작업 수행 중 오류가 발생했습니다. - [err: apisave]', '알림'); return false; }
+        var alert_option = {
+          ok_button_onclick : (function() { //레이어 메세지 적용
+            if (getCookie('apiPopDel') != 'Y') { $('.pop_testRequest').dialog('open'); }  //-- 테스트/등록요청 안내
+          }),
+        };
+        alert_message('<spring:message code="api.req.save.msg" />', 'API', alert_option);
+
+        // 값 세팅
+        $('#pApiSpcNo').val(data['apiRegVO']['apiSpcNo']);
+        $('#pApiNo').val(data['apiRegVO']['apiNo']);
+        g_apiVerNo = data['apiRegVO']['apiVerNo'];
+        $('#pApiPath').val(data['apiRegVO']['apiPath']);
+        $('#pApiMethod').val(data['apiRegVO']['methodCdNm'].toLowerCase());
+        $('#pApiCtgryNo').val(data['apiRegVO']['apiCtgryNo']);
+        $('#insertYn').val('N');
+        // yaml값 셋팅
+        $('#yamlSbst').val(yamlStr);
+        //--[tag:adpt][add]
+        $('#pApiCopyYn').val(''); // 'Y':copy, 'A':edit other method, 'V': version upgrade
+
+        XLeftMenuSet(yamlOb['x-category']); //LEFT 메뉴 다시 셋팅
+        isChange = false; // 페이지 이동 체크 여부
+        // dataInfoOb = JSON.stringify(data['dataTypeInfo']);  // DATY TYPE 다시 세팅
+      },
+      error: function(request, status, error) { err_message(status, error); }
+    });
+  } //-- function pathSave() {
+
+  function typeObject(data, object) {
+    object['properties'] = {};
+    object['required'] = new Array();
+    exampleOb = new Object();
+    for (var n_ii = 0; n_ii < $(data[0]).children("section").length; n_ii++) {
+      typeObjectTwo($(data[0]).children("section")[n_ii],
+        object['properties'],
+        exampleOb,
+        object['required']);
+    }
+  }
+
+  function typeObjectTwo(data, object, exOb, requriedArray) {
+    if ($(data).find("select[name='type']").val() == 'Object') {
+      object[$(data).find("input[name='name']").val()] = {};
+      object[$(data).find("input[name='name']").val()]['type'] = $(data).find("select[name='type']").val().toLowerCase();
+      object[$(data).find("input[name='name']").val()]['description'] = $(data).find("input[name='account']").val();
+      object[$(data).find("input[name='name']").val()]['properties'] = {};
+      if ($(data).find("input[name='example']").val() != undefined) {
+        object[$(data).find("input[name='name']").val()]['x-example'] = $(data).find("input[name='example']").val();
+      }
+      if ($(data).find("input[name='required']").is(":checked") == true) {
+        requriedArray.push($(data).find("input[name='name']").val());
+      }
+      exOb[$(data).find("input[name='name']").val()] = {};
+
+      object[$(data).find("input[name='name']").val()]['required'] = new Array();
+      for (var n_ii=0; n_ii < $(data).children(".div_draging").children("section").length; n_ii++) {
+        typeObjectTwo($(data).children(".div_draging").children("section")[n_ii],
+        object[$(data).find("input[name='name']").val()]['properties'],
+        exOb[$(data).find("input[name='name']").val()],
+        object[$(data).find("input[name='name']").val()]['required']);
+      }
+    }
+    else if ($(data).find("select[name='type']").val() == 'Array') {
+      exampleArrayStr = "";
+      typeArrayFn($(data), object);
+      object[$(data).find("input[name='name']").val()]['description'] = $(data).find("input[name='account']").val();
+      if ($(data).find("input[name='example']").val() != undefined) {
+        object[$(data).find("input[name='name']").val()]['x-example'] = $(data).find("input[name='example']").val();
+      }
+      if ($(data).find("input[name='required']").is(":checked") == true) {
+        requriedArray.push($(data).find("input[name='name']").val());
+      }
+      exOb[$(data).find("input[name='name']").val()] = exampleArrayStr;
+    }
+    else {
+      object[$(data).find("input[name='name']").val()] = {};
+      exOb[$(data).find("input[name='name']").val()] = $(data).find("input[name='example']").val();
+
+      if ($(data).find("select[name='type'] option:selected").text().indexOf("(data type)") > -1) {
+        //--[tag:adpt][chg][toLowerCase()제거] object[$(data).find("input[name='name']").val()]['$ref'] = "#/definitions/"+  $(data).find("select[name='type']").val().toLowerCase();
+        object[$(data).find("input[name='name']").val()]['$ref'] = "#/definitions/"+  $(data).find("select[name='type']").val();
+        object[$(data).find("input[name='name']").val()]['x-dataTypeCd']    = "PRMTYP1040";
+      }
+      else {
+        if ($(data).find("input[name='required']").is(":checked") == true) {
+          requriedArray.push($(data).find("input[name='name']").val());
+        }
+        object[$(data).find("input[name='name']").val()]['type']      = $(data).find("select[name='type']").val().toLowerCase();
+        object[$(data).find("input[name='name']").val()]['description']   = $(data).find("input[name='account']").val();
+        if ($(data).find("input[name='example']").val() != undefined) {
+          object[$(data).find("input[name='name']").val()]['x-example']   = $(data).find("input[name='example']").val();
+        }
+      }
+    }
+  }
+
+  function typeArrayFn(data, object) {
+    if ($(data).find("input[name='example']").val() != "") {
+      exampleArrayStr = $(data).find("input[name='example']").val();
+    }
+    if (typeof $(data).find("input[name='name']").val() == "undefined") {
+      object['items'] = {};
+      typeArray = object['items'];
+    }
+    else {
+      object[$(data).find("input[name='name']").val()] = {};
+      typeArray = object[$(data).find("input[name='name']").val()];
+    }
+
+    for (var n_ii = 0; n_ii < $(data).find("select").length; n_ii++) {
+      if ($($(data).find("select")[n_ii]).val() == 'Array') {
+        type = $($(data).find("select")[n_ii]).val();
+        example = $($($(data).find("select")[n_ii]).parent().parent().parent().find("input")).val();
+        typeArray = typeArrayMake(type, example, typeArray);
+      }
+      else if ($($(data).find("select")[n_ii]).val() == 'Object') {
+        typeArray['type'] = $($(data).find("select")[n_ii]).val().toLowerCase();
+        if ($($($(data).find("select")[n_ii]).parent().parent().parent().find("input")).val() != undefined) {
+          typeArray['x-example'] = $($($(data).find("select")[n_ii]).parent().parent().parent().find("input")).val();
+        }
+        typeArray['properties'] = {};
+        typeArray['required'] = new Array();
+
+        var div_draging = $($(data).find("select")[n_ii]).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children(".div_draging");
+        for (var n_jj = 0; n_jj < div_draging.children("section").length; n_jj++) {
+          typeObjectTwo(div_draging.children("section")[n_jj], typeArray['properties'], exampleOb, typeArray['required']);
+        }
+        break;
+      }
+      else {
+        typeArray['type'] = $($(data).find("select")[n_ii]).val().toLowerCase();
+        break;
+      }
+    }
+  }
+
+  function typeArrayMake(type, example, typeArray) {
+    typeArray['type'] = type.toLowerCase();
+    typeArray['items'] = {};
+
+    return typeArray['items'];
+  }
+
+  function dataValidation() {
+    <% //--[tag:adpt][add] { %>
+    //-- alert_message처리 validation {
+    var s_msg;
+    s_msg = fn_get_apipath_validation_msg();
+    if (s_msg.length > 0) {
+      alert_message(s_msg, 'API');
+      return false;
+    }
+
+    s_msg = fn_get_apiid_validation_msg();
+    if (s_msg.length > 0) {
+      alert_message(s_msg, 'API');
+      return false;
+    }
+    //-- alert_message처리 validation }
+    <% //--[tag:adpt][add] } %>
+    
+    var jq_elem;
+
+    <% //--[tag:adpt][add] %>
+    errCountReset();
+
+    // 에러 내용 삭제
+    $(".err_tooltip").find("dd").remove();
+    $(".err_count").find("em").text(errorNum);
+    //--@@$(".red_txt").css("display", "none");
+
+    errCountCk($("input[name='summary']"), "pathSummary", true);  // 이름 검사
+    <% //-- [tag:job-20200420][add] %>
+    <% //--##errCountCk($("select[name='apiGubun']"), "pathApiGubun", true);  // API종류 검사 %>
+
+    <% //-- [tag:job-20200420][add] %>
+    errCountCk($("select[name='method']"), "methodIsEmpty", false); // method 검사
+
+    <% //-- [tag:job-20200420][chg] { %>
+    if (errCountCk($("input[name='path']"), "pathPathNull", false) == false) {  // Path 검사
+      pathErrCountCk($("input[name='path']"), "pathPath", false); 
+    }
+
+    errCountCk($("input[name='apiId']"), "pathApiId", false);  // API 아이디 검사
+    
+    jq_elem = $("#requestDiv").find($("input[name='name']"));
+    for (var i = 0; i < jq_elem.length; i++) {  // 이름 검사 (요청 파라미터)
+      //--[tag:SR-20201126][chg]
+      //--##errCountCk(jq_elem.eq(i), ('reqName' + i), false);
+      errCountCk(jq_elem.eq(i), ('paramNameFmt' + i), false);
+    }
+    //--[tag:SR-20201126][add]
+    jq_elem = $("#requestDiv").find($("input[name='account']"));
+    for (var i = 0; i < jq_elem.length; i++) { // 설명 검사 (요청 파라미터)
+      errCountCk(jq_elem.eq(i), ('paramAccountFmt' + i), false);
+    }
+    jq_elem = $("#requestDiv").find($("select[name='type']"));
+    for (var i = 0; i < jq_elem.length; i++) { // selectbox 검사 (요청 파라미터)
+      errCountCk(jq_elem.eq(i), ('reqSelect' + i), false);
+    }
+    jq_elem = $("#requestDiv").find($("input[name='example']"));
+    for (var i = 0; i < jq_elem.length; i++) { // 예제 검사 (요청 파라미터)
+      errCountCk(jq_elem.eq(i), ('reqExample' + i), false);
+    }
+    <% //-- [tag:job-20200420][chg] } %>
+
+    <% //-- [tag:job-20200420][add] %>
+    var param_len = $("#requestDiv").find($("input[name='name']")).length;
+    var contenttype_len = $("input[name='reqContentType']:checked").length;
+    if ((param_len > 0) && (contenttype_len == 0)) {
+      // content-type선택여부체크
+      errorNum = errorNum + 1;  $(".err_count").find("em").text(errorNum);
+      errorText.push('requestContentType');
+    }
+
+    // 응답 파라미터가 있는지 여부 체크
+    if(tabNum == 0){
+      errorNum = errorNum + 1;
+      $(".err_count").find("em").text(errorNum);
+      errorText.push("resParamYn");
+    }
+    // 응답 코드 중복 검사
+    var resStatusArray = [];
+    var resStatusDupleYn = 'N';
+    $("#responseDiv").find("select[name='resStatus']").each(function(index, item){
+      if (resStatusArray.indexOf($(item).val()) != -1) {
+        resStatusDupleYn = 'Y';
+        return false;
+      }
+      resStatusArray.push($(item).val());
+    });
+
+    var tabErrCheck = errorText.indexOf('resStatusDuple');
+    if ('Y' == resStatusDupleYn) {
+      errorNum = errorNum + 1; $(".err_count").find("em").text(errorNum);
+      errorText.push("resStatusDuple");
+    }
+
+    <% //-- [tag:job-20200420][chg] { %>
+    for (var i = 1; i <= tabNum; i++) { // 응답 파라미터 내용 검사
+      errCountCk($("#tabForm" + i).find("input[name='resAccont']"), ('resAccont' + i), false);
+    }
+    jq_elem = $("#responseDiv").find($("input[name='name']"));
+    for (var i = 0; i < jq_elem.length; i++) { // 이름 검사 (응답 파라미터)
+      //--[tag:SR-20201126][chg]
+      //--##errCountCk(jq_elem.eq(i), ('resName' + i), false);
+      errCountCk(jq_elem.eq(i), ('paramNameFmt' + i), false);
+    }
+    //--[tag:SR-20201126][add]
+    jq_elem = $("#responseDiv").find($("input[name='account']"));
+    for (var i = 0; i < jq_elem.length; i++) { // 설명 검사 (응답 파라미터)
+      errCountCk(jq_elem.eq(i), ('paramAccountFmt' + i), false);
+    }
+    jq_elem = $("#responseDiv").find($("select[name='type']"));
+    for (var i = 0; i < jq_elem.length; i++) { // selectbox 검사 (응답 파라미터)
+      errCountCk(jq_elem.eq(i), 'resSelect' + i, false);
+    }
+    jq_elem = $("#responseDiv").find($("input[name='example']"));
+    for (var i = 0; i < jq_elem.length; i++) { // 예제 검사 (응답 파라미터)
+      errCountCk(jq_elem.eq(i), 'resExample' + i, false);
+    }
+    <% //-- [tag:job-20200420][chg] } %>
+
+    <% //-- [tag:job-20200420][add] %>
+    for (var i = 1; i <= tabNum; i++) { // content-type선택여부체크
+      var jq_root = $("#bodyForm" + i);
+      var param_len = jq_root.find($("input[name='name']")).length;
+      var contenttype_len = jq_root.find("input[name='resContentType']:checked").length;
+      if ((param_len > 0) && (contenttype_len == 0)) {
+        errorNum = errorNum + 1;
+        $(".err_count").find("em").text(errorNum);
+        errorText.push('responseContentType');
+      }
+    }
+
+    <% //-- [tag:job-20200420][add] %>
+    summryDupCk(); // api이름 중복검사
+    overlapCk();  // 매소드/path 중복검사
+    apiIdcheck(); // api id 검사
+
+    errTextAppend();  // 에러 내용 추가
+
+    return true; //-- alert_message()오류가 없음
+  }
+
+  // 불러온 api정보 세팅
+  function apiPathInfoSet() {
+    var paramApiMethod = "${param.apiMethod}";
+    var paramApiPath   = "${param.apiPath}";
+
+    //--[tag:adpt][add] {
+    //-- check object exist
+    if (typeof(yamlOb['paths']) == 'undefined') {
+      alert_message('[o-o] yaml.paths object is not exist'); return;
+    }
+    if (typeof(yamlOb['paths'][paramApiPath]) == 'undefined') {
+      alert_message('[o-o] yaml.paths.' + paramApiPath + ' object is not exist'); return;
+    }
+    if (typeof(yamlOb['paths'][paramApiPath][paramApiMethod.toLowerCase()]) == 'undefined') {
+      alert_message('[o-o] yaml.paths.' + paramApiPath + '.' + paramApiMethod.toLowerCase() + ' object is not exist'); return;
+    }
+    //--[tag:adpt][add] }
+
+    var pathInfoOb = yamlOb['paths'][paramApiPath][paramApiMethod.toLowerCase()];
+
+    //-- 추가항목이어서 x-apiVerNo항목이 있을경우만 설정
+    if ($has_own(pathInfoOb, 'x-apiVerNo') == true) {
+      g_apiVerNo = pathInfoOb['x-apiVerNo'];  //-- api version group no
+    }
+
+    $("#apiNm").val(pathInfoOb['summary']); // 이름 세팅
+    //--[tag:adpt][add]
+    $("#methodBox").val(fn_get_method_comn_cd(paramApiMethod)); // method 세팅
+    $("#apiPath").val(paramApiPath);  // path 세팅
+    $("#apiId").val(pathInfoOb.operationId);  // api id 세팅
+    $("#apiDesc").val(pathInfoOb.description);  // 설명 세팅
+    //-- [tag:SR-20201127][add]
+    $('#guideGubun').val(pathInfoOb['x-guideGubun']);
+
+    /********** 보안 탭 세팅 시작 ********************************/
+    if(pathInfoOb.security != undefined){
+      var noSelectHtml = '' +
+        '<div>'+
+          '<a href="javascript:void(0)">'+
+            '<input type="checkbox" id="public_schema0" name="noGlobalSchema" title="No authentication" value="no" onclick="noGlobalSchema(this)">'+
+            '<label for="public_schema0"><span></span>No authentication</label>'+
+          '</a>'+
+        '</div>';
+      $("#securityType").html("");
+      $("#securityType").append(noSelectHtml);
+
+      var securityHmlt = '';
+      var securityNum = 0;
+      var securityChecked = "";
+      $("input[name='setyrityType'][id='inherit']").prop('checked', true);
+      $.each(yamlOb.securityDefinitions , function (index, info) {
+        securityNum = securityNum + 1;
+        securityHmlt = "";
+        securityChecked = "";
+        securityScopeList = "";
+        securityDisabled = "disabled";
+        securityScopeArray = new Array();
+        if(pathInfoOb.security != undefined){
+          $.each(pathInfoOb.security , function (num, item) {
+            if(item != undefined){
+              $.each(item , function (num2, item2) {
+                if(index == num2){
+                  securityChecked = "checked";
+                  securityDisabled        = "";
+                  if(item2 != undefined){
+                    $.each(item2 , function (num3, item3) {
+                      securityScopeArray.push(item3);
+                    });
+                  }
+                }
+              });
+            }
+          });
+        }
+        else {
+          $("input[name='noGlobalSchema']").prop("checked", true);
+        }
+        if (info.type == "oauth2") {
+          var scopesOptionHtml = '';
+          if (info.scopes != undefined) {
+            $.each(info.scopes , function (scopeNum, scopeItem) {
+              scopesOptionHtml = scopesOptionHtml + '<option value="'+scopeNum+'">'+scopeNum+'</option>';
+            });
+          }
+          if (securityScopeArray != undefined) {
+            $.each(securityScopeArray , function (scopeNum, scopeItem) {
+              securityScopeList = securityScopeList + '<li><span>'+scopeItem+'</span>';
+              if (pathInfoOb.security != undefined) {
+                securityScopeList = securityScopeList + '<button type="button" title="삭제" class="btn btn_garbage" onclick="scopesRemove(this);"><span>삭제</span></button>';
+              }
+              securityScopeList = securityScopeList + '</li>';
+            });
+          }
+          securityHmlt = '' +
+            '<div>'+
+              '<a href="javascript:void(0)">'+
+                '<input type="checkbox" id="public_schema'+securityNum+'" name="securityType" title="'+index+'"  onclick="oauthClik(this)" value="'+index+'" ' + securityChecked + '>'+
+                '<label for="public_schema'+securityNum+'"><span></span>'+index+'</label>'+
+              '</a>'+
+              '<dl class="range_wrap">'+
+                '<dt>'+
+                  '<label>범위</label>'+
+                  '<select class="wx140" name="scopesBox'+securityNum+'" onclick="scopesSelect('+securityNum+')"   '+securityDisabled+'   >'+
+                    '<option value="">범위를 선택하여 주세요</option>'+ scopesOptionHtml +
+                  '</select>'+
+                '</dt>'+
+                '<dd>'+
+                  '<ol class="scopes' + securityNum + ' oauthScope">'+ securityScopeList + '</ol>'+
+                '</dd>'+
+              '</dl>'+
+            '</div>';
+        }
+        else {
+          securityHmlt = '' +
+            '<div>'+
+              '<a href="javascript:void(0)">'+
+                '<input type="checkbox" id="public_schema' + securityNum + '" name="securityType" title="' + index + '" value="' + index + '" ' + securityChecked + ' onclick="onGlobalSchema(this);" >'+
+                '<label for="public_schema' + securityNum + '"><span></span>' + index + '</label>'+
+               '</a>'+
+            '</div>';
+        }
+        $("#securityType").append(securityHmlt);
+        if (pathInfoOb.security != undefined) {
+          $("input:radio[name='setyrityType'][value='custom']").prop("checked", true);
+        }
+      });
+    };
+    /********** 보안 탭 세팅 끝 ********************************/
+    /********** 파라미터 타입 탭 세팅 시작 ********************************/
+    var reqQueryArray = new Array();
+    var reqHeadersArray = new Array();
+    var reqPathArray = new Array();
+    var reqFormDataArray = new Array();
+    var reqBodyArray = new Array();
+    // 타입이 Object 또는 배열일 경우 div 세팅
+
+    //--##[tag:adpt][chg]if(pathInfoOb.parameters.length > 0){
+    if (pathInfoOb.parameters != undefined) {
+      for(var i=0; i < pathInfoOb.parameters.length; i++){
+        var paramVar = pathInfoOb.parameters[i];
+        if (paramVar['in'] == "query")   { reqQueryArray.push(paramVar);    }
+        else if (paramVar['in'] == "header")  { reqHeadersArray.push(paramVar);  }
+        else if (paramVar['in'] == "path")    { reqPathArray.push(paramVar);     }
+        else if (paramVar['in'] == "formData"){ reqFormDataArray.push(paramVar); }
+        else if (paramVar['in'] == "body")    { reqBodyArray.push(paramVar);     }
+      }
+    }
+
+    //-- [tag:adpt][renew][이전의 코드를 4번 반복하던것을 renewal]
+    var a_mode_array = [ reqQueryArray, reqHeadersArray, reqPathArray, reqFormDataArray];
+    var a_jq_sel = ['.reqQuery', '.reqHeaders', '.reqPath', '.reqFormData'];
+    var jq_param_sec, jq_new_form;
+    var jq_sec_root, jq_param_root;
+    for (var n_jj = 0; n_jj < a_mode_array.length; n_jj++) {
+      if (a_mode_array[n_jj].length > 0) {
+        $.each(a_mode_array[n_jj], function(index, item) {
+          requiredNum = requiredNum + 1;
+          jq_new_form = $('#paramForm').clone(); //-- clone template
+          //-- [tag:adpt][chg] jq_new_form.find('a').css('display', '');
+          jq_new_form.find("input[name='required']").attr('id', 'required' + requiredNum);
+          jq_new_form.find("input[name='required']").next().attr('for','required' + requiredNum);
+          if (a_jq_sel[n_jj] == '.reqPath') {
+            jq_new_form.find('input[name="required"]').prop('disabled', true);
+          }
+
+          jq_param_sec = $(a_jq_sel[n_jj]);
+          jq_sec_root = jq_param_sec.children('.parameter_add').children('.paraDiv_drag');
+          if (jq_sec_root.length == 0) {
+            var paramHtml = '<div class="paraDiv_drag  cid_template_first_param_root">'+
+                              '<div class="div_draging">'+
+                                '<button type="button" class="btn btn_addParabox" onclick="paramAdd(this)" title="파라미터 추가"><span>파라미터 추가</span></button>'+
+                                 jq_new_form.html() +
+                                '<button type="button" class="btn btn_sml btn_gray" onclick="paramAdd(this)" title="파라미터 추가"><span>파라미터 추가</span></button>'+
+                              '</div>'+
+                            '</div>';
+            jq_param_sec.children('.parameter_add').append(paramHtml);
+          }
+          else {
+            jq_sec_root.children('.div_draging').find('button').last().before(jq_new_form.html());
+          }
+
+          jq_sec_root = jq_param_sec.children('.parameter_add').children('.paraDiv_drag');
+          jq_param_root = jq_sec_root.children('.div_draging').children('section').eq(index);
+
+          jq_param_root.find("input[name='name']").val(item.name);
+          jq_param_root.find("input[name='required']").prop("checked", item.required);
+          jq_param_root.find("input[name='account']").val(item.description);
+          jq_param_root.find("select[name='type']").val(lowString(item.type));
+          jq_param_root.find("input[name='example']").val(item['x-example']);
+          if (item.type == 'array') {
+            dataInfoArrayDivSet(item.items, jq_param_root, 3);
+          }
+        });
+      }
+    }
+    
+    // body데이터
+    if(reqBodyArray.length > 0){
+      if(pathInfoOb.consumes != undefined){
+        for(var i=0;i < pathInfoOb.consumes.length; i++){
+          $("input[name='reqContentType']").each(function(index, value){
+            if(pathInfoOb.consumes[i] == value.value){
+              this.checked = true;
+              $(value).prop("checked", true);
+            }
+          });
+        }
+      }
+
+      $.each(reqBodyArray, function(index, item){
+        requiredNum = requiredNum + 1;
+        if(item.schema['type'] != undefined){
+
+          if(item.schema.type == "object"  && $("#paramResBodyDataTypeForm").find("tbody").find(".example").length > 0){
+            $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).find("th").eq(1).remove();
+            $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).find("td").eq(1).remove();
+          } else if($("#paramResBodyDataTypeForm").find("tbody").find(".example").length == 0){
+            $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<th scope="row"><div class="essential">예제</div></th>');
+            $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<td class="example"><div><input type="text" name="example" title="예제 입력"></div></td>');
+          }
+
+          $("#paramResBodyDataTypeForm").find("input[name='required']").attr("id","required"+requiredNum);
+          $("#paramResBodyDataTypeForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+
+          if($(".reqBody").children(".parameter_add").children(".paraDiv_drag").length == 0){
+            var bodyHtml =  '<div class="paraDiv_drag">'+
+                        '<div class="div_draging">'+
+                            $("#paramResBodyDataTypeForm").html() +
+                        '</div>'+
+                    '</div>';
+            $(".reqBody").children(".parameter_add").append(bodyHtml);
+          } else {
+            $("#paramForm").find("a").css("display", "");
+            $(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").find("button").last().before($("#paramForm").html());
+          }
+
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='name']").val(item.name);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='required']").prop("checked", item.required);
+          //--##[tag:adpt][chg][maybe bug]$("textarea[name='reqBodyAccount']").val(item.description);
+          $(".reqBody").find("textarea[name='reqBodyAccount']").val(item.description);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='account']").val(item.schema.description);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("select[name='type']").val(lowString(item.schema.type));
+
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='example']").val(item['x-example']);
+          if(item.schema.type == "array"){
+            resDataInfoArrayDivSet(item.schema.items, $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]), 3);
+          } else if (item.schema.type == "object"){
+            resDataInfoObjectDivSet(item.schema.properties, $(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section"), item.schema);
+          }
+        } else {
+          // datatype 이 있을경우
+          $("#paramResBodyDataTypeForm").find("input[name='required']").attr("id","required"+requiredNum);
+          $("#paramResBodyDataTypeForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+
+          var bodyHtml =  '<div class="paraDiv_drag">'+
+                      '<div class="div_draging">'+
+                          $("#paramResBodyDataTypeForm").html() +
+                      '</div>'+
+                  '</div>';
+          $(".reqBody").children(".parameter_add").append(bodyHtml);
+
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='name']").val(item.name);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='required']").prop("checked", item.required);
+          //--##[tag:adpt][chg][maybe bug]$("textarea[name='reqBodyAccount']").val(item.description);
+          $(".reqBody").find("textarea[name='reqBodyAccount']").val(item.description);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='account']").val(item.description);
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("select[name='type']").val(item.schema['$ref'].replace("#/definitions/",""));
+          $($(".reqBody").children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='example']").val(item['x-example']);
+        }
+      });
+    }
+
+    /********** 파라미터 타입 탭 세팅 끝 ********************************/
+
+    /**********응답 파라미터 타입 탭 세팅 시작 ********************************/
+    if(pathInfoOb.responses != undefined){
+      $.each(pathInfoOb.responses, function(index, item){
+        tabNum = tabNum + 1;
+        var formHtml = '';
+        var tabHtml  = '';
+        // 보안 스키마 탭 append 시작
+        tabHtml =   '<div id="tab'+tabNum+'" onclick="onTab('+tabNum+');">'+
+                  '<a href="javascript:void(0)" title="basic"><span>'+index+'</span></a><button type="button" title="삭제" class="btn btn_garbage" onclick="responseTabDel('+tabNum+');"><span>삭제</span></button>'+
+                  '</div>';
+          $("#responseTab").append(tabHtml);
+        // 보안 스키마 탭 append 끝
+
+        // 보안 스키마 탭 form append 시작
+        formHtml =  '<div id="tabForm'+tabNum+'" class="tab-content" data-tabnum="'+tabNum+'">'+
+                $("#responseTabForm").html()+
+              '</div>';
+        $(".tab_wraping").append(formHtml);
+        // 보안 스키마 탭 form append 끝
+        $("#tabForm"+tabNum).find("select").val(index);
+        $("#tabForm"+tabNum).find("input[name='resAccont']").val(item.description);
+
+        // header 추가
+        var jq_new_form = $('#responseHeaderForm').clone().removeAttr('id').show();
+        jq_new_form.find('.schema_wrap').attr('id', 'headerForm' + tabNum);
+        $('#responseDiv').append(jq_new_form);
+
+        if(pathInfoOb.responses[index].headers != undefined){
+          var paramDept = 0;
+          $.each(pathInfoOb.responses[index].headers, function(headIndex, headItem){
+            requiredNum = requiredNum + 1;
+            $("#paramForm").find("a").css("display", "none");
+            $("#paramForm").find("input[name='required']").attr("id","required"+requiredNum);
+            $("#paramForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+
+            if($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").length == 0){
+              var responseHeaders =   '<div class="paraDiv_drag">'+
+                            '<div class="div_draging">'+
+                                '<button type="button" title="파라미터 추가" class="btn btn_addParabox"   onclick="paramAdd(this)"><span>파라미터 추가</span></button>'+
+                                  $("#paramForm").html() +
+                            '<button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button>'+
+                            '</div>'+
+                        '</div>';
+              $("#headerForm"+tabNum).children(".parameter_add").append(responseHeaders);
+            } else {
+              $("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").find("button").last().before($("#paramForm").html());
+            }
+            $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]).find("input[name='name']").val(headIndex);
+            /* $("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section").find("input[name='required']").prop("checked", item.required); */
+            $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]).find("input[name='account']").val(headItem.description);
+            $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]).find("input[name='example']").val(headItem['x-example']);
+            $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]).find("select[name='type']").val(lowString(headItem.type));
+            $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]).find("input[name='required']").prop("checked", headItem.required);
+
+            if(headItem.type == "array"){
+              dataInfoArrayDivSet(headItem.items, $($("#headerForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[paramDept]), 2);
+            }
+            paramDept = paramDept + 1;
+          });
+        }
+
+        // body 추가
+        jq_new_form = $('#responseBodyForm').clone().removeAttr('id').show();
+        jq_new_form.find('.schema_wrap').attr('id', 'bodyForm' + tabNum);
+        jq_new_form.find('textarea').attr('id', 'resAccount' + tabNum);
+        // context-type
+        jq_new_form.find('input[name="resContentType"]').each(function(index, item) {
+          $(item).attr('id', $(item).attr('id') + tabNum).next().attr('for', $(item).attr('id'));
+          $(item).prop('checked', ((pathInfoOb.produces||[]).indexOf($(item).val()) != -1));
+        });
+        $('#responseDiv').append(jq_new_form);
+
+        // 스키마가 없을경우 바디 파라미터 세팅 안함
+        if(!jQuery.isEmptyObject(pathInfoOb.responses[index].schema)){
+          var bodyVar = pathInfoOb.responses[index].schema;
+          requiredNum = requiredNum + 1;
+          $("#bodyForm"+tabNum).find("textarea").val(bodyVar['x-description']);
+          // 데이터 타입 이용 안할시에
+          var aHtml = "";
+          aHtml = $("#paramResBodyDataTypeForm").find(".fr").html();
+          $("#paramResBodyDataTypeForm").find(".fr").find("a").remove();
+          if(bodyVar['type'] != undefined){
+            if(bodyVar.type == "object"){
+              $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).find("th").eq(1).remove();
+              $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).find("td").eq(1).remove();
+            } else if($("#paramResBodyDataTypeForm").find("tbody").find(".example").length == 0){
+              $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<th scope="row"><div class="essential">예제</div></th>');
+              $("#paramResBodyDataTypeForm").find("tbody").find("tr").eq(2).append('<td class="example"><div><input type="text" name="example" title="예제 입력"></div></td>');
+            }
+
+            $("#paramResBodyDataTypeForm").find("input[name='required']").attr("id","required"+requiredNum);
+            $("#paramResBodyDataTypeForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+
+            if($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").length == 0){
+              var bodyHtml =  '<div class="paraDiv_drag">'+
+                          '<div class="div_draging">'+
+                              $("#paramResBodyDataTypeForm").html() +
+                          '</div>'+
+                      '</div>';
+              $("#bodyForm"+tabNum).children(".parameter_add").append(bodyHtml);
+            } else {
+              $("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").find("button").last().before($("#paramBodyExampleForm").html());
+            }
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='name']").val(bodyVar['x-name']);
+            /* $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")[index]).find("input[name='required']").prop("checked", item.required); */
+            //--##[tag:adpt][cmt]$("textarea[name='reqBodyAccount']").val(bodyVar.description);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='account']").val(bodyVar.description);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("select[name='type']").val(lowString(bodyVar.type));
+
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='example']").val(bodyVar.example);
+
+            if(bodyVar['required'] != undefined){
+              if(bodyVar['required'].indexOf(bodyVar['x-name']) != -1){
+                $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='required']").prop("checked", true);
+              } else {
+                $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='required']").prop("checked", false);
+              }
+            }
+
+            if(bodyVar.type == "array"){
+              // 예제 세팅
+              resDataInfoArrayDivSet(bodyVar.items, $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")), 3);
+            } else if (bodyVar.type == "object"){
+              resDataInfoObjectDivSet(bodyVar.properties[bodyVar['x-name']].properties, $("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section"), bodyVar.properties[bodyVar['x-name']]);
+            }
+          }
+          // 데이터 타입 이용 시에
+          else {
+            $("#paramResBodyDataTypeForm").find("input[name='required']").attr("id","required"+requiredNum);
+            $("#paramResBodyDataTypeForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+
+            var bodyHtml =  '<div class="paraDiv_drag">'+
+                        '<div class="div_draging">'+
+                            $("#paramResBodyDataTypeForm").html() +
+                        '</div>'+
+                    '</div>';
+            $("#bodyForm"+tabNum).children(".parameter_add").append(bodyHtml);
+            $("textarea[name='reqBodyAccount']").val(bodyVar.description);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='required']").prop("checked", bodyVar.required);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='example']").val(bodyVar.example);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='name']").val(bodyVar['x-name']);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("input[name='account']").val(bodyVar.description);
+            $($("#bodyForm"+tabNum).children(".parameter_add").children(".paraDiv_drag").children(".div_draging").children("section")).find("select[name='type']").val(bodyVar['$ref'].replace("#/definitions/",""));
+          }
+          $("#paramResBodyDataTypeForm").find(".fr").html(aHtml);
+        }
+      });
+      onTab(1);
+    }
+    /**********응답 파라미터 타입 탭 세팅 끝 ********************************/
+
+    dragDrop();
+  }
+
+  <% //-- [tag:job-20200420][chg][like pathRegFormPrivate.jsp] %>
+  // 이름 중복 검사
+  function summryDupCk(){
+    var b_ret = false;
+    apiRegCheckStrLength(500, 'apiNm');
+    <%-- //-- [tag:adpt][add][apiVerNo for versionup] --%>
+    var param = {
+      apiSpcNo: $('#pApiSpcNo').val(),
+      apiNo: $('#pApiNo').val(),
+      apiNm: $('#apiNm').val(),
+      apiVerNo: g_apiVerNo,
+    };
+    $.ajax({
+      url: '<c:url value="/api/reg/selApiNmCheckAjax.do"/>', type: 'POST', async: false, cache: false, data: param,
+      success: function(data) {
+        if ($has_own(data, 'duplYn') == false) { alert_message('정보검색 작업 수행 중 오류가 발생했습니다. - [err: apiname]', '알림'); return false; }
+        b_ret = (data['duplYn'] != 'Y');
+        var jq_red_txt = $('input[name=summary]').parent().find('.red_txt');
+        var errCheck = errorText.indexOf('pathSummaryDup');
+        if (b_ret == false) {
+          if (errCheck == -1) {
+            errorNum = errorNum + 1; $('.err_count').find('em').text(errorNum);
+            errorText.push('pathSummaryDup');
+          }
+          jq_red_txt.show();
+        }
+        else {
+          if (errCheck != -1) { errorText.splice(errorText.indexOf('pathSummaryDup'), 1); }
+          jq_red_txt.hide();
+        }
+      },
+      error: function(request, status, error) { err_message(status, error); }
+    });
+    return b_ret;
+  }
+
+  <% //-- [tag:job-20200420][chg][like pathRegFormPrivate.jsp] %>
+  // 매소드 중복 검사
+  function overlapCk() {
+    var b_ret = false;
+    var param = {
+      apiSpcNo: $('#pApiSpcNo').val(),  // api spc번호(무조건 존재)
+      apiPath: $('#apiPath').val(),  // api path(무조건 존재)
+      methodCd: $('select[name="method"]').val(),  // api method(무조건 존재)
+      apiCtgryNo: $('#pApiCtgryNo').val(),  // API그룹 번호(무조건 존재)
+      apiNo: $('#pApiNo').val(),  // api번호(무조건 존재)
+    };
+    $.ajax({
+      url: '<c:url value="/api/reg/salApijDupPathCheckAjax.do"/>', type: 'POST', async: false, cache: false, data: param,
+      success: function(data) {
+        if ($has_own(data, 'duplYn') == false) { alert_message('정보검색 작업 수행 중 오류가 발생했습니다. - [err: apipath]', '알림'); return false; }
+        b_ret = (data['duplYn'] != 'Y');
+        var jq_red_txt = $('select[name=method]').parent().find('.red_txt');
+        var errCheck = errorText.indexOf('pathMtthod');
+        if (b_ret == false) {
+          if (errCheck == -1) {
+            errorNum = errorNum + 1; $('.err_count').find('em').text(errorNum);
+            errorText.push('pathMtthod');
+          }
+          jq_red_txt.show();
+        }
+        else {
+          if (errCheck != -1) { errorText.splice(errorText.indexOf('pathMtthod'), 1); }
+          jq_red_txt.hide();
+        }
+      },
+      error: function(request, status, error) { err_message(status, error); }
+    });
+    return b_ret;
+  }
+
+  <% //-- [tag:job-20200420][chg][like pathRegFormPrivate.jsp] %>
+  // api id 중복 체크
+  function apiIdcheck() {
+    <%-- //-- [tag:adpt][add][apiVerNo for versionup] --%>
+    var param = {
+      apiSpcNo: $('#pApiSpcNo').val(),  // 무조건 존재
+      apiNo: $('#pApiNo').val(),
+      apiId: $('#apiId').val(),
+      apiVerNo: g_apiVerNo,
+    };
+    $.ajax({
+      url: '<c:url value="/api/reg/salApiIdCheckAjax.do"/>', type: 'POST', async: false, cache: false, data: param,
+      success: function(data) {
+        if ($has_own(data, 'checkCnt') == false) { alert_message('정보검색 작업 수행 중 오류가 발생했습니다. - [err: apiid]', '알림'); return false; }
+        b_ret = (data['checkCnt'] == 0);
+        var jq_red_txt = $('input[name=apiId]').parent().find('.red_txt');
+        var errCheck = errorText.indexOf('pathApiIdOverlap');
+        if (b_ret == false) {
+          if (errCheck == -1) {
+            errorNum = errorNum + 1; $('.err_count').find('em').text(errorNum);
+            errorText.push('pathApiIdOverlap');
+          }
+          jq_red_txt.show();
+        }
+        else {
+          if (errCheck != -1) { errorText.splice(errorText.indexOf('pathApiIdOverlap'), 1); }
+          jq_red_txt.hide();
+        }
+      },
+      error: function(request, status, error) { err_message(status, error); }
+    });
+    return b_ret;
+  }
+
+  // dataType Object 시에 div 세팅
+  function dataInfoObjectDivSet(data, appendTag){
+    if(appendTag.children(".bodyForm").length == 0){
+      var html =  '<div class="div_draging paramBodyDataDiv bodyForm ui-sortable">'+
+              '<button type="button" title="파라미터 추가" class="btn btn_addParabox" onclick="objectElAdd(this)"><span>파라미터 추가</span></button>'+
+              '<button type="button" title="속성 추가" class="btn btn_sml btn_gray" onclick="objectElAdd(this)"><span>속성 추가</span></button>'+
+            '</div>';
+      appendTag.append(html);
+    }
+    $.each(data, function(index, item) {
+      requiredNum = requiredNum + 1;
+      $("#paramBodyForm").find("input[name='required']").attr("id","required"+requiredNum);
+      $("#paramBodyForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+      $("#paramBodyForm").find("section").attr("id", "section_"+requiredNum)
+      appendTag.children(".paramBodyDataDiv").find("button").last().before($("#paramBodyForm").html());
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='name']").val(index)
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("select").val(lowString(item.type));
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='account']").val(item.description);
+
+      if(lowString(item.type) == "Object"){
+        dataInfoObjectDivSet(item.properties, appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum));
+      } else if(lowString(item.type) == "Array"){
+        dataInfoArrayDivSet(item, appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum), 1);
+      }
+    });
+  }
+  // dataType Object 시에 div 세팅 (응답 파라미터 시에)
+  function resDataInfoObjectDivSet(data, appendTag, parentData){
+    if(appendTag.children(".bodyForm").length == 0){
+      var html =  '<div class="div_draging paramBodyDataDiv bodyForm ui-sortable">'+
+              '<button type="button" title="파라미터 추가" class="btn btn_addParabox" onclick="objectElExampleAdd(this)"><span>파라미터 추가</span></button>'+
+              '<button type="button" title="속성 추가" class="btn btn_sml btn_gray" onclick="objectElExampleAdd(this)"><span>속성 추가</span></button>'+
+            '</div>';
+      appendTag.append(html);
+    }
+    $.each(data, function(index, item) {
+      requiredNum = requiredNum + 1;
+      if(lowString(item.type) == "Object" && $("#paramBodyExampleForm").find("tbody").find(".example").length > 0){
+        $("#paramBodyExampleForm").find("tbody").find("tr").eq(2).find("th").eq(1).remove();
+        $("#paramBodyExampleForm").find("tbody").find("tr").eq(2).find("td").eq(1).remove();
+      } else if($("#paramBodyExampleForm").find("tbody").find(".example").length == 0){
+        $("#paramBodyExampleForm").find("tbody").find("tr").eq(2).append('<th scope="row"><div class="essential">예제</div></th>');
+        $("#paramBodyExampleForm").find("tbody").find("tr").eq(2).append('<td class="example"><div><input type="text" name="example" title="예제 입력"></div></td>');
+      }
+
+      $("#paramBodyExampleForm").find("input[name='required']").attr("id","required"+requiredNum);
+      $("#paramBodyExampleForm").find("input[name='required']").next().attr("for","required"+requiredNum);
+      $("#paramBodyExampleForm").find("section").attr("id", "section_"+requiredNum)
+      appendTag.children(".paramBodyDataDiv").find("button").last().before($("#paramBodyExampleForm").html());
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='name']").val(index)
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("select").val(lowString(item.type));
+      appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='account']").val(item.description);
+      if(item['example'] != undefined){
+        appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='example']").val(item['example']);
+      }else {
+        appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='example']").val(item['x-example']);
+      }
+      // 필수 값 체크
+
+      if(parentData['required'] != undefined){
+        if(parentData['required'].indexOf(index) != -1){
+          appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='required']").prop("checked", true);
+        } else {
+          appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum).children(".inner").find("input[name='required']").prop("checked", false);
+        }
+      }
+
+      if(lowString(item.type) == "Object"){
+        resDataInfoObjectDivSet(item.properties, appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum), item);
+      } else if(lowString(item.type) == "Array"){
+        resDataInfoArrayDivSet(item, appendTag.children(".paramBodyDataDiv").find("#section_"+requiredNum), 2);
+      }
+    });
+  }
+
+  // dataType Array 시에 div 세팅
+  function dataInfoArrayDivSet(data, appendTag, num){
+    var itemType = "";
+    var itemExample = "";
+    var itemItems = new Array();
+    var itemPpt   = new Object();
+    Ayinnum = num;
+    if(Ayinnum == 0){
+      appendTag.append($("#dataForm").html());
+      appendTag = appendTag.children(".paramBodyDataDiv").find("section");
+    } else {
+      var arrayHtml = '';
+      if(appendTag.find("tr").eq(Ayinnum).length == 0) {
+        arrayHtml =   '<tr>'+
+                  '<th scope="row">'+
+                    '<div class="essential">of</div>'+
+                  '</th>'+
+                  '<td><div>'+
+                    '<select class="w100" onchange="typeClick(this);" name="type">'+
+                                    '<option value="">타입을 선택하여 주세요</option>'+
+                                    <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                      <c:if test="${list.cdNm ne 'Object'}">
+                                      '<option value="${list.cdNm}">${list.cdNm}</option>'+
+                                      </c:if>
+                                    </c:forEach>
+                                  '</select>'+
+                  '</div></td>'+
+                '</tr>';
+        appendTag.find("tbody").append(arrayHtml);
+      }
+    }
+    $.each(data, function(index, item) {
+      if(index == "type"){
+        itemType = lowString(item);
+      } else if(index == "x-example"){
+        itemExample = item;
+      } else if(index == "items"){
+        itemItems = item;
+      } else if(index == "properties"){
+        itemPpt = item;
+      }
+    });
+    appendTag.find("tr").eq(Ayinnum).find("input[name='account']").val(itemExample);
+    appendTag.find("tr").eq(Ayinnum).find("input[name='example']").val(itemExample);
+    appendTag.find("tr").eq(Ayinnum).find("select").val(itemType);
+
+    Ayinnum = Ayinnum + 1;
+    if(itemType == "Array"){
+      dataInfoArrayDivSet(itemItems, appendTag, Ayinnum);
+    } else if (itemType == "Object"){
+      dataInfoObjectDivSet(itemPpt, appendTag);
+    }
+  }
+
+  // dataType Array 시에 div 세팅 (응답 파라미터 세팅용)
+  function resDataInfoArrayDivSet(data, appendTag, num){
+    var itemType = "";
+    var itemExample = "";
+    var itemItems = new Array();
+    var itemPpt   = new Object();
+    Ayinnum = num;
+    if(Ayinnum == 0){
+      appendTag.append($("#dataForm").html());
+      appendTag = appendTag.children(".paramBodyDataDiv").find("section");
+    } else {
+      var arrayHtml = '';
+      if(appendTag.find("tr").eq(Ayinnum).length == 0) {
+        arrayHtml =   '<tr>'+
+                  '<th scope="row">'+
+                    '<div class="essential ofClass">of</div>'+
+                  '</th>'+
+                  '<td><div>'+
+                    '<select class="w100" onchange="typeBodyExampleClick(this);" name="type">'+
+                                '<option value="">타입을 선택하여 주세요</option>'+
+                                <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                '<option value="${list.cdNm}">${list.cdNm}</option>'+
+                                </c:forEach>
+                              '</select>'+
+                  '</div></td>'+
+                '</tr>';
+        appendTag.find("tbody").append(arrayHtml);
+      }
+    }
+    $.each(data, function(index, item) {
+      if(index == "type"){
+        itemType = lowString(item);
+      } else if(index == "x-example"){
+        itemExample = item;
+      } else if(index == "items"){
+        itemItems = item;
+      } else if(index == "properties"){
+        itemPpt = item;
+      }
+    });
+    appendTag.find("tr").eq(Ayinnum).find("input[name='account']").val(itemExample);
+    appendTag.find("tr").eq(Ayinnum).find("input[name='example']").val(itemExample);
+    appendTag.find("tr").eq(Ayinnum).find("select").val(itemType);
+
+    Ayinnum = Ayinnum + 1;
+    if(itemType == "Array"){
+      resDataInfoArrayDivSet(itemItems, appendTag, Ayinnum);
+    } else if (itemType == "Object"){
+      resDataInfoObjectDivSet(itemPpt, appendTag, data);
+    }
+  }
+
+  // 공통 보안 스키마 사용 안함클릭시 전체 선택해제
+  function noGlobalSchema(data){
+    if($(data).prop("checked")){
+      $("input[name='securityType']").prop("checked", false);
+    }
+  }
+  //공통 보안 스키마 사용하는것 클릭시에 no checkbox 선택해제
+  function onGlobalSchema(data){
+    if($(data).prop("checked")){
+      $("input[name='noGlobalSchema']").prop("checked", false);
+    }
+  }
+</script>
+<script>
+  <% //-- [tag:job-20200420][chg][like pathRegFormPrivate.jsp] %>
+
+  //--### for input handler {
+  function fn_on_change_apinm(elem_select) {
+    summryDupCk();
+  }
+
+  function fn_on_change_method(elem_select) {
+    overlapCk();
+  }
+
+  function fn_on_change_path(elem_select) {
+    var s_msg = fn_get_apipath_validation_msg();
+    if (s_msg.length > 0) { alert_message(s_msg, 'API'); return false; }
+    overlapCk();
+  }
+
+  function fn_on_change_apiid(elem_select) {
+    var s_msg = fn_get_apiid_validation_msg();
+    if (s_msg.length > 0) { alert_message(s_msg, 'API'); return false; }
+    apiIdcheck();
+  }
+  //--### for input handler }
+  
+  //--### for input validation {
+  //-- path validation
+  function fn_get_apipath_validation_msg() {
+    var s_msg = '';
+
+    var apipath_val = $('#apiPath').val();
+    if (apipath_val.length == 0) { return s_msg; } //-- 입력값이 없으면 return
+    if (fn_is_valid_path(apipath_val) == false) { s_msg = 'API path 형식 오류 입니다.'; return s_msg; }
+    return s_msg;
+  }
+
+  //-- apiid validation
+  function fn_get_apiid_validation_msg() {
+    var s_msg = '';
+
+    var apiId_val = $('#apiId').val();
+    if (apiId_val.length == 0) { return s_msg; } //-- 입력값이 없으면 return
+
+    var regexp = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g;
+    if (apiId_val.match(regexp)) { s_msg = 'API 아이디에는 한글이 들어갈 수 없습니다.'; $(this).val($(this).val().replace(/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g, '')); return s_msg; }
+    if (apiId_val.search(/\s/) != -1) { s_msg = 'API 아이디에는 공백이 들어갈 수 없습니다.'; $('#apiId').val(apiId_val.replace(/ /g, '')); return s_msg; }
+    return s_msg;
+  }
+  //--### for input validation }
+</script>
+
+<!-- yaml parser 관련 js파일 //-->
+<c:set value="N" var="insertYn" />
+<c:if test="${param.apiNo == ''}">
+  <c:set value="Y" var="insertYn" />
+</c:if>
+
+<form method="POST" action="" name="apiInfoForm" id="apiInfoForm" class="tempForm">
+  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" value="${param.apiSpcNo}" />
+  <input type="hidden" id="pApiNo" name="apiNo" value="${param.apiNo}" />
+  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" value="${param.apiCtgryNo}" />
+  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" value="${param.apiCtgryNm}" />
+  <input type="hidden" id="pApiDataTypeNm" name="apiDataTypeNm" value="${param.apiDataTypeNm}" />
+  <input type="hidden" id="pApiPath" name="apiPath" value="${param.apiPath}" />
+  <input type="hidden" id="pApiMethod" name="apiMethod" value="${param.apiMethod}" />
+  <input type="hidden" id="pApiCopyYn" name="apiCopyYn" value="${param.apiCopyYn}" />
+
+  <input type="hidden" id="insertYn" name="insertYn" value="${insertYn}" />
+  <input type="hidden" id="projectNamespace" name="projectNamespace" value="<c:out value="${projectNamespace}"/>" />
+</form><!-- #apiInfoForm -->
+
+<form method="POST" action="<c:url value='/api/reg/mvApiInfoReg.do' />" name="apiImportForm" id="apiImportForm" class="tempForm">
+  <textarea id="importYamlSbst" name="yamlSbst" class="tempTextarea"></textarea>
+  <input type="hidden" id="importYn" name="importYn" value="" />
+</form><!-- #apiImportForm -->
+
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+
+        <!-- regist_wrap -->
+        <div class="regist_wrap">
+          <div class="regi_bar">
+            <% //-- [tag:job-20200420][chg][for share regi_bar layout] %>
+            <%@ include file="/WEB-INF/jsp/api/regFormShareRegiBar.jsp" %>
+          </div><!-- .regi_bar -->
+
+          <!-- regist_layout -->
+          <div class="regist_layout">
+            <div class="api_left">
+              <% //-- [tag:job-20200420][chg][for share left layout] %>
+              <%@ include file="/WEB-INF/jsp/api/regFormShareLeft.jsp" %>
+            </div><!-- .api_left -->
+            <!--// 생성 버튼 클릭시 나오는 퀵메뉴 //-->
+            <ol class="quickmenu"></ol><!-- .quickmenu -->
+            <!-- api_right -->
+            <div class="api_right">
+              <h5 class="rTitleOneDep cid_apiedit_mode">API <a href="javascript:void(0)" title="API 등록하는 방법보기" class="rtit_btn" onclick="showApiMV(this, '.mv-wrap');return false;">API 등록하는 방법보기</a></h5>
+              <div class="btn_RT">
+                <button type="button" title="취소" class="btn btn_sml" onClick="history.back()" ><span>취소</span></button>
+                <button type="button" title="저장" class="btn btn_sml btn_black" onclick="pathSave();"><span>저장</span></button>
+              </div><!-- .btn_RT -->
+              <div class="rightConBoxing">
+                <!-- accordian active type -->
+                <ul class="acco_opened">
+                  <!-- API 정보 -->
+                  <li>
+                    <article class="tooltip"></article>
+                    <!-- tooltip -->
+                    <dl class="tooltiptext">
+                      <dt>API 정보</dt>
+                      <dd>API의 정보를 입력하세요.</dd>
+                    </dl>
+                    <!-- // tooltip -->
+                    <!-- active bar -->
+                    <div>
+                      <a class="active acco_act" href="javascript:void(0)" title="API 정보">
+                        <span>API 정보</span>
+                      </a>
+                    </div>
+                    <!-- // active bar -->
+                    <!-- slide Content -->
+                    <div class="hidden_div" style="display:block;"> <!-- style="display:block;" -->
+                      <div class="pkg_board">
+                        <!-- table start -->
+                        <section>
+                          <table class="table-vw">
+                            <caption>table Table</caption>
+                            <colgroup>
+                              <col style="width:20%;">
+                              <col style="width:80%;">
+                            </colgroup>
+                            <tbody>
+                              <tr>
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>이름</dt>
+                                    <dd>API를 대표할 수 있는 이름을 입력하세요.</dd>
+                                  </dl>
+                                  <div class="essential">이름</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <input type="text" name="summary" id="apiNm" onchange="fn_on_change_apinm(this)" title="이름 입력">
+                                    <!-- <p class="red_txt">이름을 입력하세요.</p> -->
+                                    <p class="red_txt">* 중복된 API 이름이 존재합니다.</p>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>설명</dt>
+                                    <dd>API의 요약정보를 입력하세요. <br>설명을 보고 API에 대한 특징을 확인 합니다.</dd>
+                                  </dl>
+                                  <div class="essential">설명</div>
+                                </th>
+                                <td>
+                                  <div class="txtarea_wrap">
+                                    <textarea class="cid_enable_meta_upd" title="설명 입력" id="apiDesc" name="account" onchange="apiRegCheckStrLength(4000, $(this).attr('id'))" onkeyup="apiRegCheckStrLength(4000, $(this).attr('id'))"></textarea>
+                                  </div>
+                                </td>
+                              </tr>
+                              <% //-- [tag:job-20200420][add][hidden] %>
+                              <tr class="disp_none cid_arsenal_hidden">
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>API 구분</dt>
+                                    <dd>Public : 사외에 Open하여 제공되는 기능</dd>
+                                    <dd>Private : 타 서비스/플랫폼에 제공되는 기능</dd>
+                                    <dd>Internal : 서비스/플랫폼 내부에 제공되는 기능</dd>
+                                  </dl>
+                                  <div class="essential">API 구분</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <select title="Api구분 선택" class="wx200" name="apiGubun" id="apiGubun">
+                                      <option value="">선택</option>
+                                      <c:forEach var="list" items="${apiCatList}" varStatus="status">
+                                        <c:set var="selected" value="" />
+                                        <c:if test="${list.comnCd eq apiDef.apiGubun}">
+                                          <c:set var="selected" value="selected" />
+                                        </c:if>
+                                      <option value="${list.comnCd}" ${selected}>${list.cdNm}</option>
+                                      </c:forEach>
+                                    </select>
+                                    <p class="red_txt">API 구분을 선택하세요.</p>
+                                  </div>
+                                  <c:set value="N" var="apiUseYn" />
+                                  <c:if test="${apiDef.apiUseYn == 'Y'}">
+                                    <c:set value="Y" var="apiUseYn" />
+                                  </c:if>
+                                  <input type="hidden" id="apiUseYn" name="apiUseYn" value="${apiUseYn}" />
+                                </td>
+                              </tr>
+                              <% //-- [tag:SR-20201127][add] %>
+                              <!-- guide 구분 -->
+                              <tr>
+                                <th scope="row">
+                                  <div class="">
+                                    <article class="tooltip"></article>guide 구분
+                                    <!-- tooltip -->
+                                    <dl class="tooltiptext">
+                                      <dt>guide 구분</dt>
+                                      <dd>guide구분을 선택하세요</dd>
+                                    </dl>
+                                    <!-- // tooltip -->
+                                  </div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <c:set var="selected_rest" value="" />
+                                    <c:set var="selected_soap" value="" />
+                                    <c:if test="${apiDef.guideGubun == 'REST'}">
+                                      <c:set var="selected_rest" value="selected" />
+                                    </c:if>
+                                    <c:if test="${apiDef.guideGubun == 'SOAP'}">
+                                      <c:set var="selected_soap" value="selected" />
+                                    </c:if>
+                                    <select title="guide구분 선택" class="wx200" name="guideGubun" id="guideGubun">
+                                      <option value="">선택</option>
+                                      <option value="REST" ${selected_rest}>REST</option>
+                                      <option value="SOAP" ${selected_soap}>SOAP</option>
+                                    </select>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>Method</dt>
+                                    <dd>클라이언트와 서버 사이에 이루어지는 요청(Request)과 응답(Response) 데이터를 전송하는 HTTP method 방식을 선택하세요.</dd>
+                                  </dl>
+                                  <div class="essential">Method</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <select title="Method 선택" class="wx200" name="method" id="methodBox" onchange="fn_on_change_method(this)">
+
+                                      <c:forEach var="list" items="${mthTypeList}">
+                                        <option value="${list.comnCd}">${list.cdNm }</option>
+                                        <%--
+                                        <c:set var="selected" value="" />
+                                        <c:if test="${fn:toUpperCase(param.apiMethod) == list.cdNm}">
+                                          <c:set var="selected" value="selected" />
+                                        </c:if>
+                                        <option value="${list.comnCd}" ${selected} >${list.cdNm }</option>
+                                        --%>
+                                      </c:forEach>
+                                    </select>
+                                    <p class="red_txt">동일한 method가 존재합니다.</p>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>Path</dt>
+                                    <dd>API의 경로를 입력하세요.</dd>
+                                  </dl>
+                                  <div class="essential">Path</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <input type="text" title="Path 입력" name="path" id="apiPath" onchange="fn_on_change_path(this)">
+                                    <p class="def_txt">* 예시: /users/{userId}</p>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <th scope="row">
+                                  <article class="tooltip"></article>
+                                  <dl class="tooltiptext">
+                                    <dt>API 아이디</dt>
+                                    <dd>API를 시스템적으로 구분하기 위해 사용되는 API아이디를 입력하세요.</dd>
+                                  </dl>
+                                  <div class="essential">API 아이디</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <input type="text" name="apiId" id="apiId" title="API 아이디 입력" onchange="fn_on_change_apiid(this)">
+                                    <p class="def_txt">* 예시: OTP_00001</p>
+                                    <p class="red_txt">* API 아이디가 중복입니다.</p>
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table><!-- .table-vw -->
+                        </section>
+                        <!-- // table End -->
+                      </div><!-- .pkg_board -->
+                    </div><!-- .hidden_div -->
+                    <!-- // slide Content -->
+                  </li>
+                  <!-- // API 정보 -->
+
+                  <!--  보안 -->
+                  <li class="disp_none cid_arsenal_hidden">
+                    <article class="tooltip"></article>
+                    <!-- tooltip -->
+                    <dl class="tooltiptext">
+                      <dt>보안</dt>
+                      <dd>API의 보안 스키마를 선언합니다.</dd>
+                    </dl>
+                    <!-- // tooltip -->
+                    <!-- active bar -->
+                    <div>
+                      <a class="acco_act" href="javascript:void(0)" title="보안">
+                        <span>보안</span>
+                      </a>
+                    </div>
+                    <!-- // active bar -->
+
+                    <!-- slide Content -->
+                    <div class="hidden_div">
+                      <div class="pkg_board">
+                        <!-- table start -->
+                        <section>
+                          <table class="table-vw">
+                            <caption>Table</caption>
+                            <colgroup>
+                              <col style="width:20%;">
+                              <col style="width:80%;">
+                            </colgroup>
+                            <tbody>
+                              <tr>
+                                <th scope="row">
+                                  <div class="essential">구성</div>
+                                </th>
+                                <td>
+                                  <div>
+                                    <div class="radio_set">
+                                      <em>
+                                        <input type="radio" id="inherit" name="setyrityType" value="inherit" title="API 또는 리소스로부터 보안 상속" checked onclick="securitySet('inherit')">
+                                        <label for="inherit"><span></span>API 또는 리소스로부터 보안 상속</label>
+                                      </em>
+                                      <em>
+                                        <input type="radio" id="custom" name="setyrityType" value="custom"  title="보안에 대한 사용자 지정"     onclick="securitySet('custom')">
+                                        <label for="custom"><span></span>보안에 대한 사용자 지정</label>
+                                      </em>
+                                    </div><!-- .radio_set -->
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr id="securityTr">
+                                <th scope="row">
+                                  <div class="essential">타입</div>
+                                </th>
+                                <td>
+                                  <div class="chk_agree aligned2" id="securityType">
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table><!-- .table-vw -->
+                        </section>
+                        <!-- // table End -->
+                      </div><!-- .pkg_board -->
+                    </div><!-- .hidden_div -->
+                    <!-- slide Content -->
+                  </li>
+                  <!--  // 보안 -->
+
+                  <!--   요청 파라미터 -->
+                  <li>
+                      <article  class="tooltip"></article>
+                          <!--  tooltip -->
+                          <dl class="tooltiptext">
+                              <dt>요청  파라미터</dt>
+                              <dd>데이터의  요청 파라미터 값을 입력하세요. </dd>
+                          </dl>
+                          <!--  // tooltip -->
+                      <!--  active bar -->
+                      <div>
+                          <a  class="acco_act" href="javascript:void(0)" title="요청 파라미터">
+                              <span>요청  파라미터</span>
+                          </a>
+                      </div>
+                      <!--  // active bar -->
+
+                      <!--  slide Content -->
+                      <div  class="hidden_div" id="requestDiv">
+                          <!--  query -->
+                          <div  class="schema_wrap reqQuery">
+                              <!--  parameter_add -->
+                              <div  class="parameter_add">
+                                  <h5 class="para_tit"><span>query</span> <button type="button" title="파라미터 추가" class="btn  btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button></h5>
+                              </div>
+                              <!--  // parameter_add -->
+                          </div>
+                          <!--  // query -->
+
+                          <!--  headers -->
+                          <div  class="schema_wrap reqHeaders">
+                              <!--  parameter_add -->
+                              <div  class="parameter_add">
+                                  <h5 class="para_tit"><span>headers</span> <button type="button" title="파라미터 추가" class="btn  btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button></h5>
+                              </div>
+                              <!--  // parameter_add -->
+                          </div>
+                          <!--  // header -->
+
+                          <!--  path -->
+                          <div  class="schema_wrap reqPath">
+                              <!--  parameter_add -->
+                              <div  class="parameter_add">
+                                  <h5 class="para_tit"><span>path</span>  <button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button></h5>
+                              </div>
+                              <!--  // parameter_add -->
+                          </div>
+                          <!--  // path -->
+
+                          <!--  body -->
+                          <div  class="schema_wrap reqBody">
+                              <!--  parameter_add -->
+                              <div  class="parameter_add">
+                                  <h5 class="para_tit"><span>body</span>  <button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramResBodyAddBtn(this)"><span>파라미터 추가</span></button></h5>
+
+                                  <div  class="pkg_board pt10">
+                                      <!--  table start -->
+                                      <section>
+                                          <table  class="table-vw thnopd">
+                                              <caption>Table</caption>
+                                              <colgroup>
+                                                  <col  style="width:20%;">
+                                                  <col  style="width:80%;">
+                                              </colgroup>
+
+                                              <tbody>
+                                                  <tr>
+                                                      <th scope="row">
+                                                          <div  class="essential">Content Type</div>
+                                                      </th>
+                                                      <td><div  class="chk_agree aligned">
+                                                        <c:forEach var="list" items="${cntTypeList}" varStatus="status">
+                                                          <a href="javascript:void(0)">
+                                                                <input type="checkbox" id="req_con${status.count}" name="reqContentType" value="${list.cdNm}" title="${list.cdNm}" onclick="bodyCheckboxCk(this);">
+                                                                <label for="req_con${status.count}"><span></span>${list.cdNm}</label>
+                                                            </a>
+                                                        </c:forEach>
+                                                          <p  class="red_txt">최소 1개 이상 선택해야 합니다.</p>
+                                                      </div></td>
+                                                  </tr>
+
+                                                  <tr>
+                                                      <th scope="row">
+                                                          <div>설명</div>
+                                                      </th>
+                                                      <td>
+                                                          <div class="txtarea_wrap"><textarea class="cid_enable_meta_upd" title="설명 입력" name="reqBodyAccount" id="reqBodyAccount" onchange="apiRegCheckStrLength(4000,'reqBodyAccount')" onkeyup="apiRegCheckStrLength(4000,'reqBodyAccount')" ></textarea></div>
+                                                      </td>
+                                                  </tr>
+                                              </tbody>
+                                          </table>
+
+                                      </section>
+                                      <!--  // table End -->
+                                  </div>
+                              </div>
+                              <!--  // parameter_add -->
+                          </div>
+                          <!--  // body -->
+
+                          <!--  formData -->
+                          <div  class="schema_wrap reqFormData">
+                              <!--  parameter_add -->
+                              <div  class="parameter_add">
+                                  <h5 class="para_tit"><span>formData</span>  <button type="button" title="파라미터 추가" onclick="paramAdd(this)" class="btn btn_sml btn_gray"><span>파라미터 추가</span></button></h5>
+                              </div>
+                              <!--  // parameter_add -->
+                          </div>
+                          <!--  // formData -->
+
+                      </div>
+                      <!--  slide Content -->
+                  </li>
+                  <!--   // 요청 파라미터 -->
+
+                  <!--   응답 파라미터 -->
+                  <li>
+                      <article  class="tooltip"></article>
+                          <!--  tooltip -->
+                          <dl class="tooltiptext">
+                                <dt>응답 파라미터</dt>
+                                <dd>데이터의 응답 파라미터 값을 입력하세요. </dd>
+                          </dl>
+                          <!--  // tooltip -->
+                      <!--  active bar -->
+                      <div>
+                          <a  class="acco_act" href="javascript:void(0)" title="응답 파라미터">
+                              <span>응답  파라미터</span>
+                          </a>
+                      </div>
+                      <!--  // active bar -->
+
+                      <!--  slide Content -->
+                      <div  class="hidden_div" id="responseDiv">
+                          <!--  tab -->
+                          <div  class="schema_wrap">
+                              <div  class="tab_list2" id="responseTab">
+                                  <span class="add_tab"><button type="button" title="추가"  class="btn btn_sml" onclick="responseTabAdd(this)"><span>추가</span></button></span>
+                              </div>
+
+                              <div  class="tab_wraping">
+                              </div>
+                          </div>
+                          <!--  // tab -->
+                      </div>
+                      <!--  slide Content -->
+                  </li>
+                  <!--   // 응답 파라미터 -->
+
+                </ul><!-- .acco_opened -->
+                <div class="btn_set">
+                  <button type="button" title="취소" class="btn btn_sml" onClick="history.back()" ><span>취소</span></button>
+                  <button type="button" title="저장" class="btn btn_sml btn_black" onclick="pathSave();"><span>저장</span></button>
+                </div><!-- .btn_set -->
+
+              </div><!-- .rightConBoxing -->
+            </div><!-- .api_right -->
+            <!-- // api_right -->
+
+          </div><!-- .regist_layout -->
+          <!-- // regist_layout -->
+        </div><!-- .regist_wrap -->
+        <!-- // regist_wrap -->
+      </div><!-- #content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<!-- paramiter form 시작 -->
+<div id="paramForm" style="display:none;">
+  <!-- parameter dep 1-1 -->
+  <section>
+      <div class="inner">
+          <p class="handler_bar">handler</p>
+          <div class="para_content">
+              <div class="pkg_board">
+                  <!-- table start -->
+                  <section>
+                      <table class="table-noBrd">
+                          <caption>table Table</caption>
+                          <colgroup>
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                          </colgroup>
+
+                          <tbody>
+                            <tr>
+                                  <td colspan="4"><div>
+                                      <!-- <span class="red_txt">중복된 이름이 있습니다.</span> -->
+                                      <span class="fr">
+                                          <a href="javascript:void(0)">
+                                              <input type="checkbox" id="required" name="required" title="필수">
+                                              <label for="required"><span></span>필수</label>
+                                          </a>
+                                          <button type="button" title="삭제" class="btn btn_garbage" onclick="paramDel(this);"><span>삭제</span></button>
+                                      </span>
+                                  </div></td>
+                            </tr>
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">이름</div>
+                                  </th>
+                                  <td><div><input type="text" name="name" title="이름 입력">
+                                  </div></td>
+                                  <th scope="row">
+                                      <div>설명</div>
+                                  </th>
+                                  <td><div>
+                                      <input class="cid_enable_meta_upd" type="text" name="account" title="설명 입력">
+                                  </div></td>
+                              </tr>
+
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">타입</div>
+                                  </th>
+                                  <td><div>
+                                      <select class="w100" onchange="typeClick(this);" name="type">
+                                            <option value="">타입을 선택하여 주세요</option>
+                                            <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                              <c:if test="${list.cdNm ne 'Object'}">
+                                                <option value="${list.cdNm}">${list.cdNm}</option>
+                                              </c:if>
+                                            </c:forEach>
+                                        </select>
+                                  </div></td>
+                                  <th scope="row">
+                                      <div class="essential">예제</div>
+                                  </th>
+                                  <td class="example">
+                                    <div>
+                                        <input type="text" name="example" title="예제 입력">
+                                    </div>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </section>
+                  <!-- // table End -->
+              </div>
+          </div>
+      </div>
+  </section>
+  <!-- // parameter dep 1-1 -->
+</div>
+<!-- paramiter form 끝 -->
+<!-- paramiter form (body) 시작 -->
+<div id="paramBodyForm" style="display:none;">
+  <!-- parameter dep 1-1 -->
+  <section>
+      <div class="inner">
+          <p class="handler_bar">handler</p>
+          <div class="para_content">
+              <div class="pkg_board">
+                  <!-- table start -->
+                  <section>
+                      <table class="table-noBrd">
+                          <caption>table Table</caption>
+                          <colgroup>
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                          </colgroup>
+
+                          <tbody>
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">이름</div>
+                                  </th>
+                                  <td><div><input type="text" name="name" title="이름 입력">
+                                  </div></td>
+                                  <td colspan="2"><div>
+                                      <!-- <span class="red_txt">중복된 이름이 있습니다.</span> -->
+                                      <span class="fr">
+                                          <a href="javascript:void(0)">
+                                              <input type="checkbox" id="required" name="required" title="필수">
+                                              <label for="required"><span></span>필수</label>
+                                          </a>
+                                          <button type="button" title="삭제" class="btn btn_garbage" onclick="paramBodyDel(this);"><span>삭제</span></button>
+                                      </span>
+                                  </div></td>
+                              </tr>
+
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">타입</div>
+                                  </th>
+                                  <td><div>
+                                      <select class="w100" onchange="typeBodyClick(this);" name="type">
+                                            <option value="">타입을 선택하여 주세요</option>
+                                            <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                              <option value="${list.cdNm}">${list.cdNm}</option>
+                                            </c:forEach>
+                                        </select>
+                                  </div></td>
+                                  <th scope="row">
+                                      <div>설명</div>
+                                  </th>
+                                  <td><div>
+                                      <input class="cid_enable_meta_upd" type="text" name="account" title="설명 입력">
+                                  </div></td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </section>
+                  <!-- // table End -->
+
+              </div>
+          </div>
+      </div>
+  </section>
+  <!-- // parameter dep 1-1 -->
+</div>
+<!-- paramiter form (body) 끝 -->
+
+<!-- paramiter form (body) datatype 적용 안안 form 시작 -->
+<div id="paramReqBodyDataTypeForm" style="display:none;">
+  <!-- parameter dep 1-1 -->
+  <section>
+      <div class="inner">
+          <p class="handler_bar">handler</p>
+          <div class="para_content">
+              <div class="pkg_board">
+                  <!-- table start -->
+                  <section>
+                      <table class="table-noBrd">
+                          <caption>table Table</caption>
+                          <colgroup>
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                          </colgroup>
+
+                          <tbody>
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">이름</div>
+                                  </th>
+                                  <td><div><input type="text" name="name" title="이름 입력">
+                                  </div></td>
+                                  <td colspan="2"><div>
+                                      <!-- <span class="red_txt">중복된 이름이 있습니다.</span> -->
+                                      <span class="fr">
+                                          <a href="javascript:void(0)">
+                                              <input type="checkbox" id="required" name="required" title="필수">
+                                              <label for="required"><span></span>필수</label>
+                                          </a>
+                                          <button type="button" title="삭제" class="btn btn_garbage" onclick="paramBodyDel(this);"><span>삭제</span></button>
+                                      </span>
+                                  </div></td>
+                              </tr>
+
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">타입</div>
+                                  </th>
+                                  <td><div>
+                                      <select class="w100" onchange="typeBodyClick(this);" name="type">
+                                          <option value="">타입을 선택하여 주세요</option>
+                                          <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                              <option value="${list.cdNm}">${list.cdNm}</option>
+                                          </c:forEach>
+                                          <c:forEach var="list" items="${definitionsList}" varStatus="status">
+                                              <option value="${list.typeNm}" class="dataType">(data type) ${list.typeNm}</option>
+                                          </c:forEach>
+                                        </select>
+                                  </div></td>
+                                  <th scope="row">
+                                      <div>설명</div>
+                                  </th>
+                                  <td><div>
+                                      <input class="cid_enable_meta_upd" type="text" name="account" title="설명 입력">
+                                  </div></td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </section>
+                  <!-- // table End -->
+
+              </div>
+          </div>
+      </div>
+  </section>
+  <!-- // parameter dep 1-1 -->
+</div>
+<!-- paramiter form (body) 끝 -->
+
+<!-- paramiter form (body) datatype 적용 안안 form 시작 -->
+<div id="paramResBodyDataTypeForm" style="display:none;">
+  <!-- parameter dep 1-1 -->
+  <section>
+      <div class="inner">
+          <p class="handler_bar">handler</p>
+          <div class="para_content">
+              <div class="pkg_board">
+                  <!-- table start -->
+                  <section>
+                      <table class="table-noBrd">
+                          <caption>table Table</caption>
+                          <colgroup>
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                          </colgroup>
+
+                          <tbody>
+                            <tr>
+                              <td  colspan="4">
+                                <div>
+                                  <span class="fr">
+                                        <a href="javascript:void(0)">
+                                            <input type="checkbox" id="required" name="required" title="필수" />
+                                              <label for="required"><span></span>필수</label>
+                                          </a>
+                                          <button type="button" title="삭제" class="btn btn_garbage" onclick="paramBodyDel(this);"><span>삭제</span></button>
+                                      </span>
+                                </div>
+                              </td>
+                            </tr>
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">이름</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                      <input type="text" name="name" title="이름 입력">
+                                    </div>
+                                  </td>
+                                  <th scope="row">
+                                      <div>설명</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                        <input class="cid_enable_meta_upd" type="text" name="account" title="설명 입력">
+                                    </div>
+                                  </td>
+                              </tr>
+
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">타입</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                        <select class="w100" onchange="typeBodyExampleClick(this);" name="type">
+                                            <option value="">타입을 선택하여 주세요</option>
+                                            <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                                <option value="${list.cdNm}">${list.cdNm}</option>
+                                            </c:forEach>
+                                            <c:forEach var="list" items="${definitionsList}" varStatus="status">
+                                                <option value="${list.typeNm}" class="dataType">(data type) ${list.typeNm}</option>
+                                            </c:forEach>
+                                          </select>
+                                    </div>
+                                  </td>
+                                  <th scope="row">
+                                      <div class="essential">예제</div>
+                                  </th>
+                                  <td class="example">
+                                    <div>
+                                        <input type="text" name="example" title="예제 입력">
+                                    </div>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </section>
+                  <!-- // table End -->
+
+              </div>
+          </div>
+      </div>
+  </section>
+  <!-- // parameter dep 1-1 -->
+</div>
+<!-- paramiter form (body) 끝 -->
+<!-- paramiter form (body) example 적용 안안 form 시작 -->
+<div id="paramBodyExampleForm" style="display:none;">
+  <!-- parameter dep 1-1 -->
+  <section>
+      <div class="inner">
+          <p class="handler_bar">handler</p>
+          <div class="para_content">
+              <div class="pkg_board">
+                  <!-- table start -->
+                  <section>
+                      <table class="table-noBrd">
+                          <caption>table Table</caption>
+                          <colgroup>
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                              <col style="width:10%;">
+                              <col style="width:40%;">
+                          </colgroup>
+
+                          <tbody>
+                            <tr>
+                              <td colspan="4">
+                                <div>
+                                  <span class="fr">
+                                        <a href="javascript:void(0)">
+                                            <input type="checkbox" id="required" name="required" title="필수" />
+                                              <label for="required"><span></span>필수</label>
+                                          </a>
+                                          <button type="button" title="삭제" class="btn btn_garbage" onclick="paramBodyDel(this);"><span>삭제</span></button>
+                                      </span>
+                                </div>
+                              </td>
+                            </tr>
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">이름</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                      <input type="text" name="name" title="이름 입력">
+                                    </div>
+                                  </td>
+                                  <th scope="row">
+                                      <div>설명</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                        <input class="cid_enable_meta_upd" type="text" name="account" title="설명 입력">
+                                    </div>
+                                  </td>
+                              </tr>
+
+                              <tr>
+                                  <th scope="row">
+                                      <div class="essential">타입</div>
+                                  </th>
+                                  <td>
+                                    <div>
+                                        <select class="w100" onchange="typeBodyExampleClick(this);" name="type">
+                                            <option value="">타입을 선택하여 주세요</option>
+                                            <c:forEach var="list" items="${dataTypeList}" varStatus="status">
+                                                <option value="${list.cdNm}">${list.cdNm}</option>
+                                            </c:forEach>
+                                          </select>
+                                    </div>
+                                  </td>
+                                  <th scope="row">
+                                      <div class="essential">예제</div>
+                                  </th>
+                                  <td class="example">
+                                    <div>
+                                        <input type="text" name="example" title="예제 입력">
+                                    </div>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </section>
+                  <!-- // table End -->
+
+              </div>
+          </div>
+      </div>
+  </section>
+  <!-- // parameter dep 1-1 -->
+</div>
+<!-- paramiter form (body) 끝 -->
+
+<!-- response form -->
+<div id="responseTabForm" style="display:none;">
+  <!-- tab1 -->
+    <h6>response</h6>
+    <div>
+        <div class="pkg_board">
+            <!-- table start -->
+            <section>
+                <table class="table-oneStyle">
+                    <caption>table Table</caption>
+                    <colgroup>
+                        <col style="width:13%;">
+                        <col style="width:40%;">
+                        <col style="width:7%;">
+                        <col style="width:40%;">
+                    </colgroup>
+
+                    <tbody>
+                        <tr>
+                            <th><div class="essential">상태</div></th>
+                            <td><div>
+                                <select class="w100" name="resStatus" onchange="resposeCdCng(this)">
+                                    <option value="100">100 - Continue</option>
+                                    <option value="101">101 - Switching Protocols</option>
+                                    <option value="102">102 - Processing</option>
+                                    <option value="200" selected>200 - OK</option>
+                                    <option value="201">201 - Created</option>
+                                    <option value="202">202 - Accepted</option>
+                                    <option value="203">203 - Non-Authoritative</option>
+                                    <option value="204">204 - No Content</option>
+                                    <option value="205">205 - Reset Content</option>
+                                    <option value="206">206 - Partial Content</option>
+                                    <option value="207">207 - Multi-Status</option>
+                                    <option value="208">208 - Already Reported</option>
+                                    <option value="208">226 - IM Used</option>
+                                    <option value="300">300 - Multiple Choices</option>
+                                    <option value="301">301 - Moved PerManently</option>
+                                    <option value="302">302 - Found</option>
+                                    <option value="303">303 - See Other</option>
+                                    <option value="304">304 - Not Modified</option>
+                                    <option value="305">305 - Use Proxy</option>
+                                    <option value="307">307 - Temporary Redirect</option>
+                                    <option value="308">308 - Permanent Refirect</option>
+                                    <option value="400">400 - Bad Request</option>
+                                    <option value="401">401 - Unauthorized</option>
+                                    <option value="402">402 - Payment Requried</option>
+                                    <option value="403">403 - Forbidden</option>
+                                    <option value="404">404 - Not Found</option>
+                                    <option value="405">405 - Methode Not Allowed</option>
+                                    <option value="406">406 - Not Acceptable</option>
+                                    <option value="407">407 - Proxy Authentication</option>
+                                    <option value="408">408 - Request Timeout</option>
+                                    <option value="409">409 - Conflict</option>
+                                    <option value="410">410 - Gone</option>
+                                    <option value="411">411 - Length Requried</option>
+                                    <option value="412">412 - Precondition Failed</option>
+                                    <option value="413">413 - Payload Too Large</option>
+                                    <option value="414">414 - URI Too Long</option>
+                                    <option value="415">415 - Unsupported Media Type</option>
+                                    <option value="416">416 - Range Not Satisfiable</option>
+                                    <option value="417">417 - Expectation Failed</option>
+                                    <option value="421">421 - Misdirected Request</option>
+                                    <option value="422">422 - Unprocessable Entity</option>
+                                    <option value="423">423 - Locked</option>
+                                    <option value="424">424 - Failed Dependency</option>
+                                    <option value="426">426 - Upgrade Required</option>
+                                    <option value="428">428 - Precondition Required</option>
+                                    <option value="429">429 - Too Many Requests</option>
+                                    <option value="431">431 - Request Header Fields Too Large</option>
+                                    <option value="500">500 - Internal Server Error</option>
+                                    <option value="501">501 - Not Implemented</option>
+                                    <option value="502">502 - Bad Gateway</option>
+                                    <option value="503">503 - Service Unaable</option>
+                                    <option value="504">504 - Gateway Timeout</option>
+                                    <option value="505">505 - HTTP Version Not Supported</option>
+                                    <option value="506">506 - Variant Also Negotiates</option>
+                                    <option value="507">507 - Insufficient Storage</option>
+                                    <option value="508">508 - Loop Detected</option>
+                                    <option value="510">510 - Not Extended</option>
+                                    <option value="511">511 - Network Authentication</option>
+                                </select>
+                            </div></td>
+                            <th><div class="essential">설명</div></th>
+                            <td><div><input class="cid_enable_meta_upd" type="text" name="resAccont" title="설명 입력"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </section>
+            <!-- // table End -->
+        </div>
+    </div>
+    <!-- // tab1 -->
+</div>
+<!-- responseHeaderForm form -->
+<div id="responseHeaderForm" style="display:none;">
+  <!-- headers -->
+    <div class="schema_wrap responseForm">
+        <!-- parameter_add -->
+        <div class="parameter_add">
+            <h5 class="para_tit"><span>headers</span> <button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramAdd(this)"><span>파라미터 추가</span></button></h5>
+
+        </div>
+        <!-- // parameter_add -->
+    </div>
+    <!-- // header -->
+</div>
+<!-- responseBodyForm form -->
+<div id="responseBodyForm" style="display:none;">
+  <div class="schema_wrap responseForm">
+    <!-- parameter_add -->
+    <div class="parameter_add">
+        <h5 class="para_tit"><span>body</span> <button type="button" title="파라미터 추가" class="btn btn_sml btn_gray" onclick="paramResBodyAddBtn(this)"><span>파라미터 추가</span></button></h5>
+
+        <div class="pkg_board pt10">
+            <!-- table start -->
+            <section>
+                <table class="table-vw thnopd">
+                    <caption>Table</caption>
+                    <colgroup>
+                        <col style="width:20%;">
+                        <col style="width:80%;">
+                    </colgroup>
+
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <div class="essential">Content Type</div>
+                            </th>
+                            <td><div class="chk_agree aligned">
+                                <c:forEach var="list" items="${cntTypeList}" varStatus="status">
+                                <a href="javascript:void(0)">
+                                     <input type="checkbox" id="resContent${status.count}" name="resContentType" title="${list.cdNm}" value="${list.cdNm}">
+                                     <label for="resContent${status.count}"><span></span>${list.cdNm}</label>
+                                 </a>
+                              </c:forEach>
+                                <p class="red_txt">최소 1개 이상 선택해야 합니다.</p>
+                            </div></td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <div>설명</div>
+                            </th>
+                            <td>
+                                <div class="txtarea_wrap">
+                                  <textarea class="cid_enable_meta_upd" title="설명 입력" id="resAccount" onchange="apiRegCheckStrLength(4000, $(this).attr('id'))" onkeyup="apiRegCheckStrLength(4000, $(this).attr('id'))" ></textarea>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </section>
+            <!-- // table End -->
+        </div>
+    </div>
+    <!-- // parameter_add -->
+  </div>
+  <!-- // body -->
+</div>
+
+<div class="err_tooltip" style="display: none;" onclick="$(this).hide();">
+  <div class="err_tooltip_wrap">
+    <dl><dt>다음과 같은 오류가 발생하였습니다.</dt></dl>
+  </div>
+</div>
+
+<!-- 테스트/등록요청 안내 -->
+<div class="pop_testRequest" title="테스트/등록요청 안내" style="display:none;">
+    <!--  popup content Start  -->
+    <div class="popup_content">
+        <div class="content_wrap" style="max-height:none;">
+            <div class="">
+                <img src="<c:url value='/resources/images/common/bg/guidepop03.png'/>"  alt="API가 추가 되었습니다. 다음은 테스트 및 등록요청을 하십시오.<상단 메뉴에서 [테스트/등록요청] 버튼을 클릭하여 테스트 및 등록요청을 할 수 있습니다.>">
+            </div>
+        </div>
+
+        <p class="etc_text">테스트 및 등록요청을 하시겠습니까?</p>
+
+        <div class="lPop_bottom brd_tp">
+            <button type="button" title="테스트/등록요청 하기" class="btn btn_black btn_confirm" onclick="yamlEditorOpen('${ssUserVo.enCmbrId}','${param.apiSpcNo}', 'sessionkey', {'apiClass':'${info.apiClass}'});">테스트/등록요청 하기</button>
+            <button type="button" title="닫기" class="btn  btn_popup_close">닫기</button>
+        </div>
+
+        <div class="chk_agree ar mt20">
+            <a href="javascript:void(0)">
+                <input type="checkbox" id="noview1" name="noview1" title="7일간 열지 않음" onclick="cookieSetInfo(this, 'apiPopDel');">
+                <label for="noview1"><span></span>7일간 열지 않음</label>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!--// popup script -->
+<script>
+  $(document).ready(function() {
+    $('.pop_testRequest').dialog({
+      autoOpen: false, width: 475, modal: true, resizable: false
+    });
+    $('.pop_testRequest .btn_confirm, .pop_testRequest .btn_popup_close').click(function(event) {
+      event.preventDefault();
+      $('.pop_testRequest').dialog('close');
+    });
+  });
+</script>
+<!-- popup script //-->
+
+<% //-- [tag:job-20200812][chg][for share popup] %>
+<%@ include file="/WEB-INF/jsp/api/regFormSharePopup.jsp" %>
+<% //-- [tag:adpt][add][for api clone] %>
+<%@ include file="/WEB-INF/jsp/api/popApiClone.jsp" %>
+<% //-- [tag:adpt][add][for api search] %>
+<jsp:include page="/WEB-INF/jsp/adptran/vue_part_mount_adptranService.jsp" flush="false" />
+
+<% //-- [tag:adpt][test][ing] { %>
+<%
+  if (b_is_master == true) {
+%>
+<script src="<c:url value="/resources/adptran/js/dev_pathRegFormPrivate.js" />"></script>
+<!--  https://unpkg.com/canvas-datagrid -->
+<script src="<c:url value="/resources/adptran/js/canvas-datagrid.0.22.12.js" />"></script>
+<script src="<c:url value="/resources/adptran/js/dev_canvas-datagrid.js" />"></script>
+[PARAM]<br>${param}<br>
+[apiDef]<br>${apiDef}<br>
+<%
+//--##[info]<br>{info}<br>
+%>
+<%
+  }
+%>
+<% //-- [tag:adpt][test][ing] } %>
+
+</t:layout>

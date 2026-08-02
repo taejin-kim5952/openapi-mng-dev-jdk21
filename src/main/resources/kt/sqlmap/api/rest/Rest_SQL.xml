@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.rest.auth.dao.AuthDAO">
+
+    <!-- 권한 목록 조회 -->
+    <select id="selAuth" parameterType="com.kt.openapi.web.rest.auth.vo.SearchVO" resultType="int">
+        /* com.kt.openapi.web.rest.auth.dao.AuthDAO.selAuth */
+        <![CDATA[
+        SELECT  COUNT(*)
+        FROM    KOA_TB_API_SPC A 
+        WHERE   DEL_YN          = 'N'
+        AND     REG_STTUS_CD    = 'APIREG1010'
+        AND     API_SPC_NO      = #{apiNo}
+        AND     A.AUT_ID    IN 
+                            (
+                                SELECT  B.AUT_ID
+                                FROM    KOA_TB_MBR  A ,
+                                        KOA_TB_AUT_MPPG B ,
+                                        KOA_TB_AUT C 
+                                WHERE   A.MBR_ID        = B.MBR_ID
+                                AND     B.AUT_ID        = C.AUT_ID
+                                AND     A.MBR_STTUS_CD  = 'MBRSTS1020'
+                                AND     A.USE_YN        = 'Y'
+                                AND     B.AUT_STTUS_CD  = 'MBRAUT1020'
+                                AND     C.USE_YN        = 'Y'
+                                AND     A.MBR_ID        = #{mbrId}
+                                AND     B.USE_PERD_ST_DT <= NOW() AND B.USE_PERD_FNS_DT >= NOW()
+                            )
+        ]]>
+    </select>
+    
+</mapper>

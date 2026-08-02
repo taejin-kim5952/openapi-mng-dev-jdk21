@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.sample.dao.SampleDAO">
+
+    <resultMap id="sampleResult" type="com.kt.openapi.web.sample.vo.SampleVO">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="regUser" column="reg_user"/>
+    </resultMap>
+
+    <insert id="insertSample" parameterType="com.kt.openapi.web.sample.vo.SampleVO">
+        <selectKey keyProperty="id" resultType="string" order="BEFORE">
+            /* [현대화] 임시 ID 채번 (실제 환경에서는 SEQUENCE 또는 DB 함수 사용) */
+            SELECT 'SAMPLE-' + RIGHT('00000' + CAST(COALESCE(MAX(CAST(REPLACE(ID, 'SAMPLE-', '') AS INT)), 0) + 1 AS VARCHAR), 5)
+            FROM SAMPLE 
+        </selectKey>
+        <![CDATA[
+            INSERT INTO SAMPLE 
+                ( ID
+                  , NAME
+                  , DESCRIPTION
+                  , USE_YN
+                  , REG_USER )
+            VALUES ( #{id}
+                  , #{name}
+                  , #{description}
+                  , #{useYn}
+                  , #{regUser} )
+        ]]>
+    </insert>
+    
+    <update id="updateSample" parameterType="com.kt.openapi.web.sample.vo.SampleVO">
+        <![CDATA[
+            UPDATE SAMPLE
+            SET NAME=#{name}
+                , DESCRIPTION=#{description}
+                , USE_YN=#{useYn}
+            WHERE ID=#{id}
+        ]]>
+    </update>
+    
+    <delete id="deleteSample" parameterType="com.kt.openapi.web.sample.vo.SampleVO">
+        <![CDATA[
+            DELETE FROM SAMPLE 
+            WHERE ID=#{id}
+        ]]>
+    </delete>
+    
+    <select id="selectSample" resultMap="sampleResult" parameterType="com.kt.openapi.web.sample.vo.SampleVO">
+        <![CDATA[
+            SELECT
+                ID, NAME, DESCRIPTION, USE_YN, REG_USER
+            FROM SAMPLE 
+            WHERE ID=#{id}
+        ]]>
+    </select>
+    
+    <select id="selectSampleList" parameterType="com.kt.openapi.web.sample.vo.SampleDefaultVO" resultMap="sampleResult">
+            SELECT
+                ID, NAME, DESCRIPTION, USE_YN, REG_USER
+            FROM SAMPLE 
+            WHERE 1=1
+            <if test="searchCondition == '0'">
+                AND ID LIKE '%' || #{} || '%'
+            </if>
+            <if test="searchCondition == '1'">
+                AND NAME LIKE '%' || #{} || '%'
+            </if>
+            ORDER BY ID ASC
+    </select>
+    
+    <select id="selectSampleListTotCnt" parameterType="com.kt.openapi.web.sample.vo.SampleDefaultVO" resultType="int">
+            SELECT COUNT(*) totcnt
+            FROM SAMPLE 
+            WHERE 1=1
+            <if test="searchCondition == '0'">
+                AND ID LIKE '%' || #{} || '%'
+            </if>
+            <if test="searchCondition == '1'">
+                AND NAME LIKE '%' || #{} || '%'
+            </if>
+    </select>
+
+</mapper>

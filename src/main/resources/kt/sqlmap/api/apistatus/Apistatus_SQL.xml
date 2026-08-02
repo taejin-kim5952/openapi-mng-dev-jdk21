@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.adptran.dao.ApistatusDAO">
+
+    <sql id="ref_where_api_status_info">
+        <!-- API상태검색조건 -->  
+        <if test="sysId != null and sysId != ''">
+            AND (a_sys.SYS_ID = #{sysId})
+        </if>
+        <if test="apiSpcNo != null and apiSpcNo != ''">
+            AND (a_spc.API_SPC_NO = #{apiSpcNo})
+        </if>
+        <if test="statusCode != null and statusCode != ''">
+            AND (as_if.STATUS_CODE = #{statusCode})
+        </if>
+        <if test="apiNm != null and apiNm != ''">
+            AND (UPPER(a_def.API_NM) LIKE ('%' + UPPER(#{apiNm}) + '%')) 
+        </if>
+        <if test="statusGroupNo != null and statusGroupNo != ''">
+            AND (a_def.API_NO IN (
+                SELECT sub_def.API_NO
+                FROM KOA_TB_API_STATUS_INFO sub_as_if 
+                INNER JOIN KOA_TB_API_DEF sub_def  ON (sub_def.API_NO = sub_as_if.API_NO)
+                    AND (sub_as_if.CHECK_YN = 'Y') AND (sub_as_if.USE_YN = 'Y')
+                INNER JOIN KOA_TB_API_STATUS_SPC_GROUP_LINK as_grplnk  ON (as_grplnk.API_SPC_NO = sub_def.API_SPC_NO)
+                WHERE (as_grplnk.STATUS_GROUP_NO = #{statusGroupNo})
+            ))
+        </if>
+    </sql>
+
+    <!-- link table view -->
+    <sql id="ref_join_table_koa_tb_api_status_info">
+        <!-- 점검설정이 있는 유효한 API상태정보 -->
+        KOA_TB_API_STATUS_INFO as_if 
+        INNER JOIN KOA_TB_API_DEF a_def  ON (a_def.API_NO = as_if.API_NO)
+            AND (as_if.CHECK_YN = 'Y') AND (as_if.USE_YN = 'Y')
+        INNER JOIN KOA_TB_API_SPC a_spc  ON (a_spc.API_SPC_NO = a_def.API_SPC_NO)
+            <if test="userAutIdList != null">
+                AND (a_spc.AUT_ID IN 
+                <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+        INNER JOIN KOA_TB_API_SYSTEM a_sys  ON (a_sys.SYS_ID = a_spc.SYS_ID)
+            <if test="userSysIdList != null">
+                AND (a_sys.SYS_ID IN 
+                <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+    </sql>
+
+    <sql id="ref_view_koa_tb_api_status_spc_group">
+        <!-- 사용하는 group 정보 filter -->
+        (SELECT *
+          FROM KOA_TB_API_STATUS_SPC_GROUP 
+          WHERE (USE_YN = 'Y')
+        ) as_grp
+    </sql>
+
+    <!-- re-use query -->
+    <sql id="ref_apistatus_count_by_group">
+        <!-- 그룹별API상태갯수 -->
+        SELECT COUNT(*)
+        FROM KOA_TB_API_STATUS_INFO sub_as_if 
+        INNER JOIN KOA_TB_API_DEF sub_a_def  ON (sub_a_def.API_NO = sub_as_if.API_NO)
+            AND (sub_as_if.CHECK_YN = 'Y') AND (sub_as_if.USE_YN = 'Y')
+        INNER JOIN KOA_TB_API_SPC sub_a_spc  ON (sub_a_spc.API_SPC_NO = sub_a_def.API_SPC_NO)
+            <if test="userAutIdList != null">
+                AND (sub_a_spc.AUT_ID IN 
+                <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+        INNER JOIN KOA_TB_API_SYSTEM sub_a_sys  ON (sub_a_sys.SYS_ID = sub_a_spc.SYS_ID)
+            <if test="userSysIdList != null">
+                AND (sub_a_sys.SYS_ID IN 
+                <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+        INNER JOIN KOA_TB_API_STATUS_SPC_GROUP_LINK as_grplnk  ON (as_grplnk.API_SPC_NO = sub_a_def.API_SPC_NO)
+        WHERE (as_grplnk.STATUS_GROUP_NO = as_grp.STATUS_GROUP_NO)
+    </sql>
+
+    <select id="select_API_STATUS_SPC_GROUP_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusGroupVO">
+        <!-- API상태그룹목록 -->
+        /* apistatus.select_API_STATUS_SPC_GROUP_LIST */
+        SELECT
+            as_grp.STATUS_GROUP_NM
+          , as_grp.STATUS_GROUP_NO
+          , as_grp.SORT_ODRG
+          , as_sgulnk.SEQ AS user_link_SEQ
+          , as_sgulnk.SORT_ODRG AS user_link_SORT_ODRG 
+        FROM <include refid="ref_view_koa_tb_api_status_spc_group"/>
+          LEFT JOIN KOA_TB_API_STATUS_SPC_GROUP_USER_LINK as_sgulnk  ON (as_sgulnk.STATUS_GROUP_NO = as_grp.STATUS_GROUP_NO)
+            AND (as_sgulnk.USER_ID = #{userId})
+        ORDER BY COALESCE(as_sgulnk.SORT_ODRG, 999), COALESCE(as_grp.SORT_ODRG, 999), as_grp.STATUS_GROUP_NM, as_grp.STATUS_GROUP_NO
+    </select>
+
+    <select id="select_GROUP_SUMMARY_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusGroupVO">
+        <!-- 그룹별API상태요약정보목록 -->
+        /* apistatus.select_GROUP_SUMMARY_LIST */
+        SELECT
+            as_grp.STATUS_GROUP_NM
+          , as_grp.STATUS_GROUP_NO
+          , (<include refid="ref_apistatus_count_by_group"/> AND (sub_as_if.STATUS_CODE = 'OK')) AS as_ok_count
+          , (<include refid="ref_apistatus_count_by_group"/>) AS as_status_count
+        FROM <include refid="ref_view_koa_tb_api_status_spc_group"/>
+        WHERE (1=1)
+        <if test="statusGroupNoList != null">
+            AND as_grp.STATUS_GROUP_NO IN
+            <foreach item="item" collection="statusGroupNoList" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        ORDER BY COALESCE(as_grp.SORT_ODRG, 999), as_grp.STATUS_GROUP_NO
+    </select>
+
+    <select id="select_GROUP_SUMMARY_INFO" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusGroupVO">
+        <!-- 그룹API상태요약정보 -->
+        /* apistatus.select_GROUP_SUMMARY_INFO */
+        SELECT
+            as_grp.STATUS_GROUP_NM
+          , as_grp.STATUS_GROUP_NO
+          , (<include refid="ref_apistatus_count_by_group"/> AND (sub_as_if.STATUS_CODE = 'OK')) AS as_ok_count
+          , (<include refid="ref_apistatus_count_by_group"/> AND (sub_as_if.STATUS_CODE = 'DL')) AS as_dl_count
+          , (<include refid="ref_apistatus_count_by_group"/> AND (sub_as_if.STATUS_CODE = 'NK')) AS as_nk_count
+        FROM <include refid="ref_view_koa_tb_api_status_spc_group"/>
+        <where>
+            <if test="statusGroupNo != null and statusGroupNo != ''">
+                AND (as_grp.STATUS_GROUP_NO = #{statusGroupNo})
+            </if>
+        </where>
+    </select>
+
+    <select id="select_GROUP_API_STATUS_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태목록-대표정보 -->
+        /* apistatus.select_GROUP_API_STATUS_LIST */
+        SELECT
+          a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM AS as_API_SPC_NM
+          , a_def.API_NO
+          , a_def.API_NM
+          , TO_CHAR(as_if.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') AS STATUS_CHECK_DT
+          , as_if.STATUS_CODE
+          , as_if.STATUS_RES_MSEC
+        FROM 
+          <include refid="ref_join_table_koa_tb_api_status_info"/> 
+          INNER JOIN KOA_TB_API_STATUS_SPC_GROUP_LINK as_grplnk  ON (as_grplnk.API_SPC_NO = a_def.API_SPC_NO)
+          INNER JOIN <include refid="ref_view_koa_tb_api_status_spc_group"/> ON (as_grp.STATUS_GROUP_NO = as_grplnk.STATUS_GROUP_NO)
+        WHERE (as_grp.STATUS_GROUP_NO = #{statusGroupNo})
+        ORDER BY
+          (CASE WHEN (as_if.STATUS_CODE = 'OK') THEN 3
+            WHEN (as_if.STATUS_CODE = 'NK') THEN 1
+            WHEN (as_if.STATUS_CODE = 'DL') THEN 2
+            ELSE 4 END)
+          , as_if.STATUS_CHECK_DT DESC
+          , a_def.API_NO DESC
+    </select>
+
+    <select id="select_API_STATUS_INFO_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태목록(pagination)-검색정보 -->
+        /* apistatus.select_API_STATUS_INFO_LIST */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" /> 
+        SELECT
+          ROW_NUMBER() OVER (ORDER BY a_sys.SORT_ODRG, a_sys.SUB_SORT_ODRG, a_sys.SYS_NM, a_spc.API_NM, a_spc.API_SPC_ID, a_spc.API_SPC_NO, a_def.API_NM, a_def.API_NO) rownum
+          , a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM AS as_API_SPC_NM
+          , a_def.API_NO
+          , a_def.API_NM
+          , TO_CHAR(as_if.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') AS STATUS_CHECK_DT
+          , as_if.STATUS_CODE
+          , as_if.STATUS_RES_MSEC
+        FROM
+          <include refid="ref_join_table_koa_tb_api_status_info"/>
+        <where>
+            <include refid="ref_where_api_status_info"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" /> 
+    </select>
+
+    <select id="count_select_API_STATUS_INFO_LIST" parameterType="map" resultType="int">
+        /* apistatus.count_select_API_STATUS_INFO_LIST */
+        SELECT COUNT(*) AS count
+        FROM
+          <include refid="ref_join_table_koa_tb_api_status_info"/>
+        <where>
+            <include refid="ref_where_api_status_info"/>
+        </where>
+    </select>
+
+    <select id="select_API_STATUS_INFO_LIST_STATUS_CODE_COUNT" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태목록-검색정보-상태별 count -->
+        /* apistatus.select_API_STATUS_INFO_LIST_STATUS_CODE_COUNT */
+        SELECT as_if.STATUS_CODE, COUNT(*) AS count
+        FROM
+          <include refid="ref_join_table_koa_tb_api_status_info"/>
+        <where>
+            <include refid="ref_where_api_status_info"/>
+        </where>
+        GROUP BY as_if.STATUS_CODE
+    </select>
+
+    <select id="select_API_STATUS_CHECK_HIST_DAILY_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태목록(pagination)-검색정보-일별요약 -->
+        /* apistatus.select_API_STATUS_CHECK_HIST_DAILY_LIST */
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" /> 
+        SELECT
+          ROW_NUMBER() OVER (ORDER BY a_sys.SORT_ODRG, a_sys.SUB_SORT_ODRG, a_sys.SYS_NM, a_spc.API_NM, a_spc.API_SPC_ID, a_spc.API_SPC_NO, a_def.API_NM, a_def.API_NO) rownum
+          , a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM AS as_API_SPC_NM
+          , a_def.API_NO
+          , a_def.API_NM
+          , TO_CHAR(as_if.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') AS STATUS_CHECK_DT
+          , as_if.STATUS_CODE
+          , as_if.STATUS_RES_MSEC
+          , (
+              SELECT STRING_AGG(
+                  TO_CHAR(as_cdh.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') || '::' || as_cdh.STATUS_CODE || '::' || CAST(as_cdh.STATUS_RES_MSEC AS VARCHAR),
+                  ';'
+                  ORDER BY as_cdh.STATUS_CHECK_YMD
+              )
+              FROM KOA_TB_API_STATUS_CHECK_DAILY_HST as_cdh
+              WHERE (as_cdh.API_NO = as_if.API_NO)
+                AND (as_cdh.STATUS_CHECK_YMD BETWEEN #{startStatusCheckYmd} AND #{endStatusCheckYmd})
+          ) daily_list
+        FROM
+          <include refid="ref_join_table_koa_tb_api_status_info"/>
+        <where>
+            <include refid="ref_where_api_status_info"/>
+        </where>
+        <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" /> 
+    </select>
+
+    <select id="count_select_API_STATUS_CHECK_HIST_DAILY_LIST" parameterType="map" resultType="int">
+        /* apistatus.count_select_API_STATUS_CHECK_HIST_DAILY_LIST */
+        SELECT COUNT(*) AS count
+        FROM
+          <include refid="ref_join_table_koa_tb_api_status_info"/>
+        <where>
+            <include refid="ref_where_api_status_info"/>
+        </where>
+    </select>
+
+    <select id="select_API_STATUS_CHECK_HIST_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태이력정보목록 -->
+        /* apistatus.select_API_STATUS_CHECK_HIST_LIST */
+        SELECT 
+          as_chst.SEQ
+          , a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM AS as_API_SPC_NM
+          , a_def.API_NO
+          , a_def.API_NM
+          , TO_CHAR(as_chst.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') AS STATUS_CHECK_DT
+          , as_chst.STATUS_CODE
+          , as_chst.STATUS_RES_MSEC
+        FROM 
+          KOA_TB_API_STATUS_CHECK_HST as_chst 
+          INNER JOIN KOA_TB_API_DEF a_def  ON (a_def.API_NO = as_chst.API_NO)
+          INNER JOIN KOA_TB_API_SPC a_spc  ON (a_spc.API_SPC_NO = a_def.API_SPC_NO)
+            <if test="userAutIdList != null">
+                AND (a_spc.AUT_ID IN 
+                <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+          INNER JOIN KOA_TB_API_SYSTEM a_sys  ON (a_sys.SYS_ID = a_spc.SYS_ID)
+            <if test="userSysIdList != null">
+                AND (a_sys.SYS_ID IN 
+                <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+        WHERE (as_chst.API_NO = #{apiNo})
+          <if test="statusCheckDtDays != null and statusCheckDtDays != ''">
+            <![CDATA[
+            AND (EXTRACT(DAY FROM (NOW() - as_chst.STATUS_CHECK_DT)) <= #{statusCheckDtDays})
+            ]]>
+          </if>
+        ORDER BY
+          as_chst.SEQ DESC
+    </select>
+
+    <select id="select_API_STATUS_CHECK_HIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 그룹API상태이력정보 상세 -->
+        /* apistatus.select_API_STATUS_CHECK_HIST */
+        SELECT 
+          as_chst.SEQ
+          , a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM AS as_API_SPC_NM
+          , a_def.API_NO
+          , a_def.API_NM
+          , TO_CHAR(as_chst.STATUS_CHECK_DT, 'YYYY-MM-DD HH24:MI:SS') AS STATUS_CHECK_DT
+          , as_chst.STATUS_CODE
+          , as_chst.STATUS_RES_MSEC
+          , TO_CHAR(as_chst.ST_TIME, 'YYYY-MM-DD HH24:MI:SS') AS ST_TIME
+          , TO_CHAR(as_chst.END_TIME, 'YYYY-MM-DD HH24:MI:SS') AS END_TIME
+          , as_chst.PROC_RESULT_CD
+          , as_chst.PROC_RESULT_MSG
+          , as_chst.REQ_API_URL
+          , as_chst.REQ_HEADERS
+          , as_chst.REQ_BODY
+          , as_chst.REQ_TRANSACTION_ID
+          , as_chst.REQ_SEQUENCE_NO
+          , as_chst.RES_TRANSACTION_ID
+          , as_chst.RES_SEQUENCE_NO
+          , as_chst.RES_RETURN_CODE
+          , as_chst.RES_RETURN_DESCRIPTION
+          , as_chst.RES_ERROR_CODE
+          , as_chst.RES_ERROR_DESCRIPTION
+          , as_chst.RES_RESPONSE
+        FROM 
+          KOA_TB_API_STATUS_CHECK_HST as_chst 
+          INNER JOIN KOA_TB_API_DEF a_def  ON (a_def.API_NO = as_chst.API_NO)
+          INNER JOIN KOA_TB_API_SPC a_spc  ON (a_spc.API_SPC_NO = a_def.API_SPC_NO)
+          INNER JOIN KOA_TB_API_SYSTEM a_sys  ON (a_sys.SYS_ID = a_spc.SYS_ID)
+        WHERE (as_chst.SEQ = #{seq})
+    </select>
+
+    <select id="select_API_SYSTEM_SPC_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusVO">
+        <!-- 시스템-서비스 목록 -->
+        /* apistatus.select_API_SYSTEM_SPC_LIST */
+        SELECT 
+          a_sys.SYS_ID
+          , a_sys.SYS_NM
+          , a_spc.API_SPC_NO
+          , a_spc.API_NM
+          , a_spc.API_SPC_ID
+          , a_spc.VER
+        FROM 
+          KOA_TB_API_SYSTEM a_sys  INNER JOIN KOA_TB_API_SPC a_spc  ON (a_sys.SYS_ID = a_spc.SYS_ID)
+            <if test="userAutIdList != null">
+                AND (a_spc.AUT_ID IN 
+                <foreach item="item" collection="userAutIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+            <if test="userSysIdList != null">
+                AND (a_sys.SYS_ID IN 
+                <foreach item="item" collection="userSysIdList" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+                )
+            </if>
+        WHERE 
+          (COALESCE(a_spc.DEL_YN, 'N') = 'N')
+          AND (COALESCE(a_spc.TMPLT_YN, 'N') = 'N')
+        ORDER BY a_sys.SORT_ODRG, a_sys.SUB_SORT_ODRG, a_sys.SYS_NM, a_spc.API_NM, a_spc.API_SPC_ID, a_spc.API_SPC_NO
+    </select>
+
+    <delete id="delete_API_STATUS_SPC_GROUP_USER_LINK" parameterType="map">
+        <!-- API상태그룹사용자설정정보 삭제 -->
+        /* apistatus.delete_API_STATUS_SPC_GROUP_USER_LINK */
+        DELETE FROM KOA_TB_API_STATUS_SPC_GROUP_USER_LINK WHERE (USER_ID = #{userId})
+    </delete>
+
+    <insert id="insert_API_STATUS_SPC_GROUP_USER_LINK" parameterType="map">
+        <!-- API상태그룹사용자설정정보 입력 -->
+        /* apistatus.insert_API_STATUS_SPC_GROUP_USER_LINK */
+        INSERT INTO KOA_TB_API_STATUS_SPC_GROUP_USER_LINK 
+          ( USER_ID, STATUS_GROUP_NO , SORT_ODRG )
+        VALUES  
+        <foreach item="item" collection="apiStatusSpcGroupUserLinkList" separator=",">
+          ( #{userId}, #{item.statusGroupNo}, #{item.sortOdrg} )
+        </foreach>
+    </insert>
+
+    <select id="select_dum_API_STATUS_SPC_GROUP_LIST" parameterType="map" resultType="com.kt.openapi.web.adptran.vo.ApiStatusGroupVO">
+        <!-- API그룹 목록 -->
+        /* apistatus.select_dum_API_STATUS_SPC_GROUP_LIST */
+        SELECT
+          as_grp.STATUS_GROUP_NO
+          , as_grp.STATUS_GROUP_NM
+        FROM <include refid="ref_view_koa_tb_api_status_spc_group"/>
+        ORDER BY COALESCE(as_grp.SORT_ODRG, 999), as_grp.STATUS_GROUP_NM
+    </select>
+
+</mapper>
