@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<!--/* devsupport/devsupport/list.jsp -> Thymeleaf 변환 */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='default', bodyClass=null)}">
+<head>
+    <title>KT Open API</title>
+</head>
+<body>
+<div layout:fragment="content">
+<script type="text/javascript" th:inline="javascript">
+/*<![CDATA[*/
+$(function(){
+	fnSearch(1);//조회
+	//글쓰기 폼 이동
+	$('.btn.btn_black').on('click' , function(){
+		location.href = c_url + 'devsupport/devsupport/mvDevsupportReg.do';
+	});
+})
+
+
+$(function(){
+	fnSearch(1);//조회
+})
+
+//페이징 조회
+function pageGo(pageIndex){
+	fnSearch(pageIndex);
+}
+
+//공지사항 검색
+function fnSearch(pageIndex) {
+	var obj = new Object();
+	obj.searchCondition =$('#searchCondition').val();
+	obj.searchKeyword =$('#searchKeyword').val();
+	obj.bbsTypeCd = 'BBSTYP1099'; // 기술지원
+	obj.pageIndex = pageIndex;
+	$.ajax({
+		url: /*[[@{/devsupport/devsupport/selDevSupportListAjax.do}]]*/ '/devsupport/devsupport/selDevSupportListAjax.do',
+		type: 'POST',
+		data :obj,
+		success: function(data){
+			$(".table-list > tbody").children().remove();
+			var html = "";
+			if(data != null  && data.nlist.length != 0){
+			$.each(data.nlist, function(index, item) {
+
+
+				html+=	' <tr> ';
+
+				html+=	'     <td><div><span>'+item.rownum+'</span></div></td> ';
+
+				html+=	'     <td><div><a href="javascript:fnGoViewPage('+item.pstingId+');" title="N-STEP 작업 공지">'
+
+				if(item.supportgb == "VMAP"){
+
+                	 html+=	'개발vm 기술지원 요청'
+                }else if(item.supportgb == "FIAP"){
+                	 html+=	'방화벽 기술지원 요청'
+                }else{
+                	 html+=	'TB DATA등록 요청'
+                }
+
+				html+=  '</a></div></td> ';
+                html+=	'     <td class="tdTitle"><div><a href="javascript:fnGoViewPage('+item.pstingId+');" title="N-STEP 작업 공지">'+item.title+'</a></div></td> ';
+                html+=	'     <td><div>'+item.regDt+'</div></td> ';
+                html+=	'     <td><div>'
+
+                if(item.status == "00"){
+                	 html+=	'등록완료'
+                }else if(item.status == "20"){
+                	 html+=	'접수완료'
+                }else{
+                	 html+=	'처리완료'
+                }
+	                html+=	'</div></td> ';
+
+	                html+=	' </tr> ';
+				}); //each끝
+			}else {
+	    		html += '<tr>';
+	    		html += '<td colspan="5">';
+	    		html += '	기술지원 내역이  없습니다.';
+	    		html += '</td>';
+	    		html += '</tr>';
+	    	}
+			$(".table-list > tbody").append(html);
+			drawPaging('noticePaging' ,data.paginationInfo.currentPageNo ,data.paginationInfo.firstPageNoOnPageList ,data.paginationInfo.totalPageCount,data.paginationInfo.lastPageNoOnPageList  ,'pageGo');
+		},
+		error:function(request,status,error){
+		        alert("code:"+request.status+"\n"+"error:"+error);
+	    }
+	});
+}
+
+//기술지원 상세보기
+function fnGoViewPage(pstingId){
+
+	$("#detailFrm > input[name='pstingId']").val(pstingId);
+	$('#detailFrm').attr({action:c_url+'devsupport/devsupport/mvDevSupportView.do', method:'post'}).submit();
+
+}
+
+//페이지로 이동
+function fnVMApply(gb){
+
+	var btnHtm = "";
+
+	if(gb == "1"){
+		//$('#frm').attr({action:c_url+'devsupport/vmguide/devVmGuide.do', method:'post'}).submit();
+		 //window.open('http://ipc.kt.com/login','_blank');
+	}else if(gb == "2"){ //TEST DATA
+
+		$('#frm').attr({action:c_url+'devsupport/tdapply/testdataapply.do', method:'post'}).submit();
+	}else if(gb == "3"){
+		$('#frm').attr({action:c_url+'devsupport/sdkdwn/sdkdwn.do', method:'post'}).submit();
+	}else if(gb == "4"){
+
+		if('' == null || '' == null  || '' == ''  )   {
+
+			btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm"  onclick="fnLogin()">확인</button> ';
+			btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+			fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.');
+		}else{
+			$('#frm').attr({action:c_url+'devsupport/devsupport/devSupportList.do', method:'post'}).submit();
+		}
+
+
+	}
+
+}
+
+/*]]>*/
+</script>
+<form id="detailFrm" >
+	<input type="hidden" id="pstingId" name="pstingId" value=""/>
+</form>
+<form name="frm" id="frm" method="post" >
+
+</form>
+<div id="container">
+		<div class="sVisual sv_guide">
+			<div>
+				<h2>개발 기술 지원</h2>
+				<p>개발환경 구축을 위한 기술 지원 요청</p>
+			</div>
+		</div>
+		<div class="contents style_gray2 search_only">
+			<div class="conBox">
+				<div class="pg_location"><a>Go home</a> <span>&gt;</span> 개발 기술 지원</div>
+
+				<div id="content">
+                    <!-- guide_wrap -->
+                    <div class="guidedev_wrap">
+                        <!-- guide_wrap -->
+                        <div class="guide_wrap">
+                            <ul class="tab_list guidetab">
+                                <li onclick="fnVMApply('1')" class="guide01" title="개발VM신청 가이드"><span>개발VM 신청 <br>가이드</span></li>
+                                <li onclick="fnVMApply('2')" class="guide02" title="Test Data 등록 요청"><span>Test Data <br> 등록 요청</span></li>
+                                <li onclick="fnVMApply('3')" class="guide03" title="SDK 가이드 및 다운로드"><span>SDK 가이드 및 <br> 다운로드</span></li>
+                                <li onclick="fnVMApply('4')" class="guide04 current" title="기술 지원 요청"><span>기술 지원 요청</span></li>
+                            </ul>
+
+                            <div id="tab1" class="tabcontent current">
+                                <h6>개발 기술 지원 리스트</h6>
+
+                                <div class="pkg_board">
+                                <!--  List start -->
+                                    <section>
+                                        <h4 class="brd_title">개발 기술 지원 리스트</h4>
+                                        <table class="table-list">
+                                            <caption> List Table</caption>
+                                            <colgroup>
+                                                <col style="width:110px;">
+                                                <col style="width:190px;">
+                                                <col style="width:auto;">
+                                                <col style="width:160px;">
+                                                <col style="width:160px;">
+                                            </colgroup>
+
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col"><div>NO</div></th>
+                                                    <th scope="col"><div>신청 구분</div></th>
+                                                    <th scope="col"><div>제목</div></th>
+                                                    <th scope="col"><div>작성일</div></th>
+                                                    <th scope="col"><div>처리상태</div></th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody></tbody>
+                                        </table>
+                                    </section>
+                                </div>
+                                <!-- paging -->
+                       			<div class="paging"  id="noticePaging"></div>
+                                <div class="btn_set-right">
+                                    <button type="button" title="신청하기" class="btn btn_black"><span>신청하기</span></button>
+                                </div>
+                                <!-- // List End -->
+                            </div>
+
+                            <div id="tab2" class="tabcontent">
+                                <h6>Test Data 등록 요청</h6>
+
+                                <div class="pkg_board">
+                                <!--  List start -->
+                                    <section>
+                                        <h4 class="brd_title">Test Data 등록 요청</h4>
+                                        <table class="table-list">
+                                            <caption> List Table</caption>
+                                            <colgroup>
+                                                <col style="width:110px;">
+                                                <col style="width:190px;">
+                                                <col style="width:auto;">
+                                                <col style="width:160px;">
+                                                <col style="width:160px;">
+                                            </colgroup>
+
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col"><div>NO</div></th>
+                                                    <th scope="col"><div>신청 구분</div></th>
+                                                    <th scope="col"><div>제목</div></th>
+                                                    <th scope="col"><div>작성일</div></th>
+                                                    <th scope="col"><div>처리상태</div></th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td><div>10</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_comp">처리완료</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>9</td>
+                                                    <td><div>개발 VM방화벽 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_return">반려</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>8</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>7</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>6</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>5</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>4</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>3</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>2</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><div>1</td>
+                                                    <td><div>개발 VM등록 요청</td>
+                                                    <td class="tdTitle"><div><a href="javascript:;" title="VM 기술지원 요청 드립니다.">VM 기술지원 요청 드립니다.</a></div></td>
+                                                    <td><div>2017.05.02</div></td>
+                                                    <td><div class="sts_conf">접수</div></td>
+                                                </tr>
+
+                                            </tbody>
+                                        </table>
+                                    </section>
+                                </div>
+                                <!-- paging -->
+                                <div class="paging">
+                                    <span class="btn_first"><a href="#">go_first</a></span>
+                                    <span class="btn_prev"><a href="#">go_prev</a></span>
+                                    <ul>
+                                        <li class="active"><a href="#">1</a></li>
+                                        <li><a href="#">2</a></li>
+                                        <li><a href="#">3</a></li>
+                                        <li><a href="#">4</a></li>
+                                        <li><a href="#">5</a></li>
+                                        <li><a href="#">6</a></li>
+                                        <li><a href="#">7</a></li>
+                                        <li><a href="#">8</a></li>
+                                        <li><a href="#">9</a></li>
+                                        <li><a href="#">10</a></li>
+                                    </ul>
+                                    <span class="btn_next"><a href="#">go_next</a></span>
+                                    <span class="btn_last"><a href="#">go_last</a></span>
+                                </div>
+
+                                <div class="btn_set-right">
+                                    <button type="button" title="신청하기" class="btn btn_black"><span>신청하기</span></button>
+                                </div>
+                                <!-- // List End -->
+                            </div>
+
+                            <div id="tab3" class="tabcontent ">
+                                <h6>SDK 가이드 및 다운로드</h6>
+
+                                <div class="pkg_board">
+                                <!--  List start -->
+                                    <section>
+                                        <h4 class="brd_title">SDK 가이드 및 다운로드</h4>
+                                        <table class="table-list">
+                                            <caption> List Table</caption>
+                                            <colgroup>
+                                                <col style="width:110px;">
+                                                <col style="width:190px;">
+                                                <col style="width:auto;">
+                                                <col style="width:160px;">
+                                                <col style="width:160px;">
+                                            </colgroup>
+
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col"><div>NO</div></th>
+                                                    <th scope="col"><div>신청 구분</div></th>
+                                                    <th scope="col"><div>제목</div></th>
+                                                    <th scope="col"><div>작성일</div></th>
+                                                    <th scope="col"><div>처리상태</div></th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                            </tbody>
+                                        </table>
+                                    </section>
+                                </div>
+                                <!-- paging -->
+                                <div class="paging">
+                                    <span class="btn_first"><a href="#">go_first</a></span>
+                                    <span class="btn_prev"><a href="#">go_prev</a></span>
+                                    <ul>
+                                        <li class="active"><a href="#">1</a></li>
+                                        <li><a href="#">2</a></li>
+                                        <li><a href="#">3</a></li>
+                                        <li><a href="#">4</a></li>
+                                        <li><a href="#">5</a></li>
+                                        <li><a href="#">6</a></li>
+                                        <li><a href="#">7</a></li>
+                                        <li><a href="#">8</a></li>
+                                        <li><a href="#">9</a></li>
+                                        <li><a href="#">10</a></li>
+                                    </ul>
+                                    <span class="btn_next"><a href="#">go_next</a></span>
+                                    <span class="btn_last"><a href="#">go_last</a></span>
+                                </div>
+
+                                <div class="btn_set-right">
+                                    <button type="button" title="신청하기" class="btn btn_black"><span>신청하기</span></button>
+                                </div>
+                                <!-- // List End -->
+                            </div>
+
+                            <div id="tab4" class="tabcontent">
+                                <h6>기술 지원 요청</h6>
+
+                                <div class="pkg_board">
+                                <!--  List start -->
+                                    <section>
+                                        <h4 class="brd_title">기술 지원 요청</h4>
+                                        <table class="table-list">
+                                            <caption> List Table</caption>
+                                            <colgroup>
+                                                <col style="width:110px;">
+                                                <col style="width:190px;">
+                                                <col style="width:auto;">
+                                                <col style="width:160px;">
+                                                <col style="width:160px;">
+                                            </colgroup>
+
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col"><div>NO</div></th>
+                                                    <th scope="col"><div>신청 구분</div></th>
+                                                    <th scope="col"><div>제목</div></th>
+                                                    <th scope="col"><div>작성일</div></th>
+                                                    <th scope="col"><div>처리상태</div></th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+
+                                            </tbody>
+                                        </table>
+                                    </section>
+                                </div>
+                                <!-- paging -->
+                                <div class="paging">
+                                    <span class="btn_first"><a href="#">go_first</a></span>
+                                    <span class="btn_prev"><a href="#">go_prev</a></span>
+                                    <ul>
+                                        <li class="active"><a href="#">1</a></li>
+                                        <li><a href="#">2</a></li>
+                                        <li><a href="#">3</a></li>
+                                        <li><a href="#">4</a></li>
+                                        <li><a href="#">5</a></li>
+                                        <li><a href="#">6</a></li>
+                                        <li><a href="#">7</a></li>
+                                        <li><a href="#">8</a></li>
+                                        <li><a href="#">9</a></li>
+                                        <li><a href="#">10</a></li>
+                                    </ul>
+                                    <span class="btn_next"><a href="#">go_next</a></span>
+                                    <span class="btn_last"><a href="#">go_last</a></span>
+                                </div>
+
+                                <div class="btn_set-right">
+                                    <button type="button" title="신청하기" class="btn btn_black"><span>신청하기</span></button>
+                                </div>
+                                <!-- // List End -->
+                            </div>
+                        </div>
+                        <!-- // guide_wrap -->
+
+
+                    </div>
+                    <!-- // guide_wrap -->
+                </div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>
