@@ -221,7 +221,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "guide/useList",
             "guide/shubList",
             "devsupport/tdapply/testdataapply",
-            "devsupport/devsupport/list"
+            "devsupport/devsupport/list",
+            "devsupport/devsupport/write",
+            "devsupport/devsupport/view"
         });
         return resolver;
     }
