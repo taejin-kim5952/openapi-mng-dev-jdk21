@@ -212,7 +212,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         resolver.setContentType("text/html;charset=UTF-8");
         resolver.setOrder(1);
         resolver.setViewNames(new String[]{
-            "adptran/vue_page_mount_apistatus"
+            "adptran/vue_page_mount_apistatus",
+            "cmmn/public_error"
         });
         return resolver;
     }

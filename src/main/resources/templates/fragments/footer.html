@@ -1,0 +1,179 @@
+<!--/* footer.jsp -> Thymeleaf 프래그먼트 변환 */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="footer">
+
+<script type="text/javascript" th:inline="javascript">
+/*<![CDATA[*/
+//API 권한신청
+var fsessionChk = function(){
+      var flocationUrl = '';
+      flocationUrl = /*[[${ssUserVo != null ? ssUserVo.maskingMbrId : ''}]]*/ '';
+      if(!flocationUrl){
+          location.href = /*[[@{/login/loginForm.do}]]*/ '/login/loginForm.do';
+      }else {
+          location.href = /*[[@{/mypage/mypageInfo.do}]]*/ '/mypage/mypageInfo.do';
+      }
+}
+
+//회원가입
+var fmlink = function(){
+      var mvar = '';
+      mvar = /*[[${@environment.getProperty('psso.join.url')}]]*/ '';
+      window.open(mvar, '_blank');
+}
+
+//회사소개
+var companyInfo = function(){
+      var cvar = '';
+      cvar = 'https://corp.kt.com/html/intro/main.html';
+      window.open(cvar, '_blank');
+}
+
+//불법스팸 대응
+var spamInfo = function(){
+      var spvar = '';
+      spvar = 'https://spam.kisa.or.kr';
+      window.open(spvar, '_blank');
+}
+
+//명의 도용 방지
+var msafer = function(){
+      var msavar = '';
+      msavar = 'https://www.msafer.or.kr';
+      window.open(msavar, '_blank');
+}
+
+//API 등록
+ var fapiReg = function(){
+      var loginStep = '';
+      loginStep = /*[[${ssUserVo != null ? ssUserVo.maskingMbrId : ''}]]*/ '';
+      if(!loginStep){
+          var btnHtm = "";
+          btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="fnDeLogin()"  id="cBtton">확인</button> ';
+          btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+          fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.' );
+          return;
+      }
+      var list = new Array();
+      /*[# th:if="${ssUserVo != null}"]*/
+      /*[# th:each="item : ${ssUserVo.authList}"]*/
+      list.push(/*[[${item.autId}]]*/ '');
+      /*[/]*/
+      /*[/]*/
+
+      if(!list[0]){
+          var btnHtm = "";
+          btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="mypageGo()"  id="cBtton">확인</button> ';
+          btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+          fnOpenLayer(btnHtm, 'API 권한 신청', /*[[#{top.aut.req}]]*/ 'API 권한 신청이 필요합니다.' );
+          return;
+      }else{
+             location.href = /*[[@{/api/main/mvMainList.do}]]*/ '/api/main/mvMainList.do';
+      }
+}
+
+//mypage 페이지
+var floginChkAut = function(){
+      var loginChkUrl = '';
+      loginChkUrl = /*[[${ssUserVo != null ? ssUserVo.maskingMbrId : ''}]]*/ '';
+      if(!loginChkUrl){
+          var btnHtm = "";
+          btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="fnDeMyPage()"  id="cBtton">확인</button> ';
+          btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+          fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.' );
+          return;
+      }else{
+          location.href = /*[[@{/mypage/mypageInfo.do}]]*/ '/mypage/mypageInfo.do';
+      }
+}
+//openapi 검색 버튼 클릭시
+var apiRegSearch = function(){
+      location.href = /*[[@{/api/search/apiSearch.do}]]*/ '/api/search/apiSearch.do';
+}
+
+function fnDeLogin(){
+      var strUrl = c_url + 'api/main/mvMainList.do';
+      location.href = c_url + 'login/loginForm.do?returnUrl=' + strUrl;
+      return;
+}
+
+function fnDeMyPage(){
+      var strUrl = c_url + 'mypage/mypageInfo.do';
+      location.href = c_url + 'login/loginForm.do?returnUrl=' + strUrl;
+      return;
+}
+/*]]>*/
+</script>
+<footer>
+    <div class="footerDiv clfix">
+        <ul class="ft_menu">
+            <li><a href="javascript:;" onclick="companyInfo();" title="회사소개">회사소개</a></li>
+            <li><a th:href="@{/agree/agViewinfo.do}" title="이용약관">이용약관</a></li>
+            <li><a th:href="@{/priv/pViewinfo.do}" title="개인정보취급방침">개인정보취급방침</a></li>
+            <li><a href="javascript:;" onclick="spamInfo();" title="불법스팸대응">불법스팸대응</a></li>
+            <li><a href="javascript:;" onclick="msafer();" title="명의도용방지서비스">명의도용방지서비스</a></li>
+        </ul>
+        <ul>
+            <li>(주)케이티 대표이사 &nbsp;박윤영
+            사업자등록번호 :&nbsp; 102-81-42945
+            케이티 통신판매업 신고 :&nbsp; 2002-경기성남-0048</li>
+            <li>경기도 성남시 분당구 불정로 90(정자동 206번지)</li>
+            <li>Copyright &copy; 2018 kt Corp. All rights reserved.</li>
+        </ul>
+    </div>
+</footer>
+<!-- allMenu -->
+    <div class="allMenu-wrap">
+        <div class="all_menu">
+            <dl>
+                <dt>이용가이드</dt>
+                <dd><a th:href="@{/guide/mvUseList.do}" title="이용가이드">이용가이드</a></dd>
+                <dd><a th:href="@{/guide/mvShubList.do}" title="SHUB 가이드">SHUB 가이드</a></dd>
+            </dl>
+
+            <dl>
+                <dt>API 등록</dt>
+                <dd><a href="javascript:;" onclick="fapiReg();" title="API 등록">API 등록</a></dd>
+            </dl>
+
+            <dl>
+                <dt>Open API</dt>
+                <dd><a href="javascript:;" onclick="apiRegSearch();"  title="Open API 검색">Open API 검색</a></dd>
+                <dd><a th:href="@{/guide/mvShubList.do}" title="SHUB">SHUB</a></dd>
+                <dd><a th:href="@{/guide/mvUseList.do(tabCurrent=3)}" title="IoT Makers">IoT Makers</a></dd>
+                <dd><a th:href="@{/guide/mvUseList.do(tabCurrent=4)}" title="Geo master">Geo master</a></dd>
+                <dd><a th:href="@{/guide/mvUseList.do(tabCurrent=5)}" title="uCloud Biz">uCloud Biz</a></dd>
+                <dd><a th:href="@{/guide/mvUseList.do(tabCurrent=6)}" title="GIGA genie">GIGA genie</a></dd>
+            </dl>
+            <dl>
+                <dt>MY 페이지</dt>
+                <dd><a href="javascript:;" onclick="floginChkAut();" title="MY 페이지">MY 페이지</a></dd>
+            </dl>
+        </div>
+
+        <ul class="memship_menu">
+            <li th:if="${ssUserVo == null or ssUserVo.mbrId == null}"><a th:href="@{/login/loginForm.do}" title="로그인">로그인</a></li>
+            <li th:if="${ssUserVo != null and ssUserVo.mbrId != null}"><a th:href="@{/login/pssoLogout.do}" title="로그아웃">로그아웃</a></li>
+            <li><a href="#" onclick="fmlink();" title="회원가입">회원가입</a></li>
+            <li th:if="${ssUserVo != null and ssUserVo.mbrId != null}"><a href="#" onclick="fsessionChk();" title="API 권한신청">API 권한신청</a></li>
+        </ul>
+        <button type="button" title="전체메뉴 끄기" class="allmenu_close"><span>전체메뉴 끄기</span></button>
+    </div>
+
+    <!-- allMenu -->
+    <div class="mv-wrap">
+        <div>
+            <h3>뛰어난 변화, API 산출물 자동생성</h3>
+            <div id="mv_boxing">
+
+            </div>
+        </div>
+
+        <button type="button" title="전체메뉴 끄기" class="mv_close"><span>전체메뉴 끄기</span></button>
+    </div>
+
+    <div class="dim_layer"></div>
+    <!-- allMenu -->
+
+</th:block>
+</div>

@@ -1,0 +1,170 @@
+<!--/*
+    layout.tag -> Thymeleaf 레이아웃 변환 (thymeleaf-layout-dialect 사용).
+    사용법: 각 페이지 템플릿에서
+      <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+            layout:decorate="~{layout/default(layoutType='error', bodyClass=null)}">
+    처럼 layoutType(필수, 기본값 'default' 취급은 아래 th:with에서 처리)과 bodyClass(선택)를 넘긴다.
+    title은 Thymeleaf의 <title> 자동 병합 기능으로 처리 (자식 템플릿의 <title>이 우선 적용됨).
+    head 확장은 자식 템플릿의 <head> 안에 그냥 추가 요소를 두면 layout-dialect가 자동 병합한다.
+    본문은 layout:fragment="content", 하단 추가 스크립트는 layout:fragment="script"로 넘긴다.
+*/-->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      th:with="layoutType=${layoutType != null ? layoutType : 'default'}">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>KT Open API</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <meta name="description" content="Visual API Designer for OpenAPI (swagger) specification. Design beautiful, functional APIs with zero coding, using OpenAPI" />
+    <meta property="og:description" content="Visual API Designer for OpenAPI (swagger) specification. Design beautiful, functional APIs with zero coding, using OpenAPI" />
+
+    <link rel="icon" type="image/png" th:href="@{/resources/images/common/icon/icon_32.png}" >
+
+    <!--/* [고도화] 레이아웃 타입별 전용 CSS 분기 (Legacy Tiles 기반) */-->
+    <link th:if="${layoutType == 'apiReg'}" th:href="@{/resources/css/registration.css}" rel="stylesheet" media="screen">
+    <link th:unless="${layoutType == 'apiReg'}" th:href="@{/resources/css/style.css}" rel="stylesheet" media="screen">
+
+    <th:block th:if="${bIs2022PrjMode}">
+        <link th:href="@{/resources/css/jquery.mCustomScrollbar.css}" rel="stylesheet" media="screen">
+        <link th:if="${layoutType == 'apiReg'}" th:href="@{/resources/css/swiper.min.css}" rel="stylesheet" media="screen">
+    </th:block>
+
+    <!-- Include the plug-in -->
+    <script th:src="@{/resources/js/pub/jquery-2.1.4.min.js}"></script>
+    <script th:src="@{/resources/js/pub/jquery.fullPage.js}"></script>
+    <script th:src="@{/resources/js/pub/jquery.bxslider.js}"></script>
+    <script th:src="@{/resources/js/pub/jquery.als-1.1.min.js}"></script>
+    <script th:src="@{/resources/js/pub/jquery-ui.js}"></script>
+
+    <th:block th:if="${bIs2022PrjMode}">
+        <script th:src="@{/resources/js/pub/jquery.mCustomScrollbar.js}"></script>
+        <script th:if="${layoutType == 'apiReg'}" th:src="@{/resources/js/pub/swiper.min.js}"></script>
+    </th:block>
+
+    <script th:src="@{/resources/js/pub/ui.js}"></script>
+    <script th:src="@{/resources/js/pub/jquery.easing.1.3.js}"></script>
+
+    <!--/* 특정 모듈에서 불필요한 스크립트 제외 (Legacy 대응) */-->
+    <th:block th:if="${layoutType != 'adptran' and layoutType != 'beast'}">
+        <script th:src="@{/resources/js/jquery.number.min.js}"></script>
+        <script th:src="@{/resources/js/jquery.form.min.js}"></script>
+    </th:block>
+
+    <script th:src="@{/resources/js/common/common.js}"></script>
+    <script th:src="@{/resources/js/common/paging.js}"></script>
+
+    <th:block th:if="${layoutType != 'adptran' and layoutType != 'beast'}">
+        <script th:src="@{/resources/js/jquery-validator/jquery.validate.js}"></script>
+        <script th:if="${layoutType != 'apiReg'}" th:src="@{/resources/js/jquery-validator/validate.fn.js}"></script>
+    </th:block>
+
+    <script th:src="@{/resources/js/jquery.blockUI.js}"></script>
+
+    <!--/* API 관리 전용 라이브러리 (apiReg, apiInfo) */-->
+    <th:block th:if="${layoutType == 'apiReg' or layoutType == 'apiInfo'}">
+        <script th:src="@{/resources/js/api_reg/swagger-parser.min.js}"></script>
+        <script th:src="@{/resources/js/api_reg/apiInfoMenuReg.js}"></script>
+    </th:block>
+
+    <script th:src="@{/resources/adptran/js/ksmutil.js}"></script>
+
+    <th:block th:if="${bIs2022PrjMode}">
+        <!--[if lt IE 9]>
+        <script th:src="@{/resources/js/pub/html5.js}"></script>
+        <script th:src="@{/resources/js/pub/respond.min.js}"></script>
+        <![endif]-->
+        <!--[if lt IE 9]>
+        <script th:src="@{/resources/js/pub/css3-mediaqueries.js}"></script>
+        <![endif]-->
+        <!--[if IE]>
+        <script type="text/javascript">
+          var console = { log: function() {} };
+        </script>
+        <![endif]-->
+    </th:block>
+
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        var c_url = /*[[@{/}]]*/ '/';
+
+        function fnOpenLayer(btnHtm, titleMsg , msg) {
+            $('#popupConfirm').find('.lPop_bottom.brd_tp').html(btnHtm);
+            $('#popupConfirm').parent().find('div').eq(0).children('span').text(titleMsg);
+            $('#popupConfirm').find('#alertTxt').html(msg);
+            $('#popupConfirm .btn_confirm, #popupConfirm .btn_popup_close').off('click').on('click', function() { $('#popupConfirm').dialog('close'); });
+            $('#popupConfirm .cid_btn_close').off('click').on('click', function() { $('#popupConfirm').dialog('close'); });
+            $('#popupConfirm').dialog('open');
+        }
+
+        function fnLogin() {
+            location.href = /*[[@{/login/loginForm.do}]]*/ '/login/loginForm.do';
+        }
+        function mypageGo() {
+            location.href = /*[[@{/mypage/mypageInfo.do}]]*/ '/mypage/mypageInfo.do';
+        }
+        /*]]>*/
+    </script>
+    <th:block th:if="${layoutType == 'apiInfo'}">
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $('.search_bar > div > input[type="text"]').keypress(function (e) {
+                    if (e.which == 13){
+                        fnApiSearch(1,this);
+                    }
+                });
+            });
+        </script>
+    </th:block>
+</head>
+<body th:class="${(bIs2022PrjMode == true ? 'renew' : '') + (bodyClass != null ? ' ' + bodyClass : '')}"
+      th:attr="tag=${layoutType + 'Layout'}">
+    <div th:if="${layoutType == 'apiReg'}">
+        <div class="lod_icon" style="display:none;"><img th:src="@{/resources/images/common/icon/spinningwheel.gif}"></div>
+        <div class="dim_layer"></div>
+    </div>
+
+    <div class="wrap">
+        <div id="accessibility">
+            <ul><li><a accesskey="1" href="#content">Go content</a></li></ul>
+        </div>
+
+        <!--/* Header (top.jsp) — error 타입은 헤더 제외 (마이그레이션 이전과 동일) */-->
+        <!--/* 주의: th:if와 th:replace를 같은 태그에 두면 th:replace가 먼저 처리되어 th:if가 무시된다 (Thymeleaf 속성 우선순위) - 반드시 바깥 요소를 분리할 것 */-->
+        <th:block th:if="${layoutType != 'error'}">
+            <th:block th:replace="~{fragments/top :: top}"></th:block>
+        </th:block>
+
+        <!--/* Body Content */-->
+        <div layout:fragment="content"></div>
+
+        <!--/* Footer 노출 제어 (Legacy Tiles 기반 복원): main, apiInfo, error 타입은 Footer를 포함하지 않음 */-->
+        <th:block th:if="${layoutType != 'main' and layoutType != 'apiInfo' and layoutType != 'error'}">
+            <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+        </th:block>
+    </div>
+
+    <!-- #popupConfirm { -->
+    <div id="popupConfirm" class="pop_alert_top" th:title="${layoutType == 'apiReg' ? 'API 등록' : '알림'}" style="display:none;">
+        <div class="popup_content">
+            <div class="alert_txt mb15" style="padding:5px; max-height:450px;overflow-y:auto;"><div id="alertTxt"></div></div>
+            <div class="lPop_bottom brd_tp">
+                <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close">확인</button>
+                <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#popupConfirm').dialog({ autoOpen: false, dialogClass: 'pop_alert_wrap', modal: true, resizable: false });
+            $('#popupConfirm .cid_btn_close').on('click', function() {
+                $('#popupConfirm').dialog('close');
+            });
+        });
+    </script>
+    <div layout:fragment="script"></div>
+</body>
+</html>
