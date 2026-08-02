@@ -227,7 +227,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "login/newLoginForm",
             "userJoin/userForm",
             "userJoin/userInfo",
-            "userJoin/userJoin"
+            "userJoin/userJoin",
+            "mypage/console",
+            "mypage/mypage"
         });
         return resolver;
     }
