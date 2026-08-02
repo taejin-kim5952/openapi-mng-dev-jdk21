@@ -4,7 +4,7 @@ import com.kt.openapi.fwk.online.filter.SessionCheckInterceptor;
 import org.apache.tomcat.util.descriptor.web.JspConfigDescriptorImpl;
 import org.apache.tomcat.util.descriptor.web.JspPropertyGroup;
 import org.apache.tomcat.util.descriptor.web.JspPropertyGroupDescriptorImpl;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -91,16 +91,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+        // [Boot4 마이그레이션] favorPathExtension(boolean)이 Spring Framework에서 제거됨.
+        // 확장자 기반 콘텐츠 협상은 이미 프레임워크 기본값이 비활성화(false)라 동작 변화 없음.
         configurer
-                .favorPathExtension(false)          // 확장자 기반 추론 비활성화
                 .favorParameter(false)              // 파라미터 기반 추론 비활성화
                 .ignoreAcceptHeader(false)           // Accept 헤더는 사용
                 .defaultContentType(MediaType.APPLICATION_JSON);  // 기본값 JSON
-    }
-
-    @Override
-    public void configurePathMatch(PathMatchConfigurer configurer) {
-        configurer.setUseSuffixPatternMatch(false);  // 확장자 패턴 매칭 비활성화
     }
 
     /**

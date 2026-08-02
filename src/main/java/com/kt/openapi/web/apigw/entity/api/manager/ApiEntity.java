@@ -7,7 +7,7 @@ import com.kt.openapi.web.apigw.type.URLScheme;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import org.springframework.http.HttpMethod;
 
 import java.io.Serial;

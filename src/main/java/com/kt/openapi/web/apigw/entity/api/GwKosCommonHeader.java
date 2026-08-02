@@ -1,6 +1,6 @@
 package com.kt.openapi.web.apigw.entity.api;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 import java.io.Serial;
 import java.io.Serializable;

@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.14</version> <!-- [2026-05-19] 보안 취약점 패치: 3.5.13→3.5.14 (Spring Security 6.5.9→6.5.10) -->
+    <version>4.1.0</version> <!-- [JDK21/Boot4 마이그레이션] 3.5.14 → 4.1.0 -->
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
 
@@ -16,11 +16,11 @@
   <packaging>war</packaging>
 
   <properties>
-    <java.version>17</java.version>
+    <java.version>21</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.lib.dir>${project.basedir}/src/main/webapp/WEB-INF/lib</project.lib.dir>
-    <mybatis.version>3.0.4</mybatis.version>
+    <mybatis.version>4.0.1</mybatis.version>
   </properties>
 
   <dependencies>
@@ -28,6 +28,12 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- [Boot4 마이그레이션] WAR 배포 시 spring-boot-starter-tomcat 대신 tomcat-runtime 사용 필요 (공식 마이그레이션 가이드) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-tomcat-runtime</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -37,13 +43,16 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jdbc</artifactId>
     </dependency>
+    <!-- [Boot4 마이그레이션] spring-boot-starter-aop → spring-boot-starter-aspectj로 이름 변경 (TransactionConfig.java의 @Aspect/Advisor 기반 트랜잭션 AOP에서 실사용 중) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
+      <artifactId>spring-boot-starter-aspectj</artifactId>
     </dependency>
+    <!-- [Boot4 마이그레이션] Boot4 BOM에서 관리 제외되어 버전 명시 필요 -->
     <dependency>
       <groupId>org.springframework.retry</groupId>
       <artifactId>spring-retry</artifactId>
+      <version>2.0.13</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -92,7 +101,7 @@
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>2.8.4</version>
+      <version>3.0.1</version> <!-- [Boot4 마이그레이션] 2.8.4 → 3.0.1 (Boot 4.0.1 대응 릴리스) -->
     </dependency>
 
     <!-- Swagger v1 (레거시 YAML 파싱용) - 버전 통일 -->
