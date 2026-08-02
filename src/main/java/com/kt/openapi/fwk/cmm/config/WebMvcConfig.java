@@ -224,7 +224,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "devsupport/devsupport/list",
             "devsupport/devsupport/write",
             "devsupport/devsupport/view",
-            "login/newLoginForm"
+            "login/newLoginForm",
+            "userJoin/userForm",
+            "userJoin/userInfo",
+            "userJoin/userJoin"
         });
         return resolver;
     }

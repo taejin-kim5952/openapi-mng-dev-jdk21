@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--/* userJoin/userJoin.jsp -> Thymeleaf 변환. 원본 JSP는 </t:layout>이 </form>/</div>*4보다
+     먼저 닫혀 있어(불균형 마크업) 그 닫는 태그들이 레이아웃 밖에서 렌더링되던 기존 버그가 있었으나,
+     브라우저가 짝없는 닫는 태그를 무시해 렌더링/동작에 실질적 영향이 없었으므로 여기서는 정상적으로
+     중첩된 마크업으로 작성함(Thymeleaf는 well-formed 마크업을 요구하기도 함). */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='default', bodyClass=null)}">
+<head>
+    <title>KT Open API - 회원가입</title>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        function goMain(){
+        	location.href = /*[[@{/main/index.do}]]*/ '/main/index.do';
+        }
+
+        function goApiChk(){
+        	location.href = /*[[@{/login/loginForm.do}]]*/ '/login/loginForm.do';
+        }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content">
+<div id="container">
+		<div class="sVisual sv_login">
+			<div>
+				<h2>회원가입</h2>
+				<p>회원가입 하시면 Open API 웹사이트에서 제공하는 서비스를 이용하실 수 있습니다</p>
+			</div>
+		</div>
+		<div class="contents">
+			<div class="conBox">
+				<div class="pg_location"><a>Go home</a> <span>&gt;</span> 회원가입</div>
+
+				<div id="content">
+                    <form>
+                        <div class="join_wrap">
+                            <ul class="step_navigation">
+                                <!-- 활성화된 tap에 onpg class 추가 -->
+                                <li class="stp01">
+                                    <div>
+                                        <strong>STEP 01</strong>
+                                        <p>이용약관</p>
+                                    </div>
+                                </li>
+                                <li class="stp02">
+                                    <div>
+                                        <strong>STEP 02</strong>
+                                        <p>정보입력</p>
+                                    </div>
+                                </li>
+                                <li class="stp03 onpg">
+                                    <div>
+                                        <strong>STEP 03</strong>
+                                        <p>가입완료</p>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <div class="join-complite_wrap">
+                                <div class="join-complite_msg">
+                                    <p><span>회원가입</span>이 완료 되었습니다.</p>
+                                    <div>
+                                        <dl>
+                                            <dt>아이디</dt>
+                                            <dd th:if="${jmap.userId != null and jmap.userId != ''}" th:text="${#strings.substring(jmap.userId, 0, #strings.length(jmap.userId)-3)} + '***'"></dd>
+                                        </dl>
+                                        <dl>
+                                            <dt>이름</dt>
+                                            <dd th:if="${jmap.userName != null and jmap.userName != ''}" th:text="${#strings.substring(jmap.userName, 0, #strings.length(jmap.userName)-1)} + '*'"></dd>
+                                        </dl>
+                                        <dl>
+                                            <dt><th:block th:if="${jmap.authCode == 'MBRDIV1010'}">부서명</th:block><th:block th:if="${jmap.authCode == 'MBRDIV1020'}">업체명</th:block></dt>
+                                            <dd th:text="${jmap.company}"></dd>
+                                        </dl>
+                                    </div>
+                                </div>
+
+                                <div class="btn_set">
+                                    <p class="join_ment">API 개발자는 API 개발 권한 요청이 필요합니다. <br>
+                                    로그인 후 API 개발 권한을 요청하십시오.</p>
+                                    <button type="button" title="메인으로" onclick="javascript:goMain();" class="btn btn_black"><span>메인으로</span></button>
+                                    <button type="button" title="API권한요청" onclick="javascript:goApiChk();"  class="btn"><span>로그인 페이지로</span></button>
+		</div>
+	</div>
+</div>
+                    </form>
+                </div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<!--/* userJoin/userInfo.jsp -> Thymeleaf 변환 */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='default', bodyClass=null)}">
+<head>
+    <title>KT Open API - 회원가입</title>
+    <script th:src="@{/resources/js/login/rsa.js}"></script>
+    <script th:src="@{/resources/js/login/jsbn.js}"></script>
+    <script th:src="@{/resources/js/login/prng4.js}"></script>
+    <script th:src="@{/resources/js/login/rng.js}"></script>
+
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        $(function(){
+
+        if(/*[[${userInfo.stpltAgreeYn != null ? userInfo.stpltAgreeYn : ''}]]*/ '' != 'Y' || /*[[${userInfo.indvInfoAgreeYn != null ? userInfo.indvInfoAgreeYn : ''}]]*/ '' != 'Y'){
+        	location.href = /*[[@{/userJoin/userJoinForm.do}]]*/ '/userJoin/userJoinForm.do';
+        }
+
+        $("#cmpnNm").focus(); // 업체명 input
+        // 라디오 체크 이벤트에 따라 이 값이 변하고  , kt 이면 input 값이 B_MASTER, 협력사이면 input 값이 CP
+
+        $("input[name=idDivCd]").click(function() {  //click 함수
+        	if ($(this).val() == "MBRDIV1010" ){
+        		$("#depTitle").text("부서명"); // 부서명 필드 값
+        	}else{
+        		$("#depTitle").text("업체명"); // 업체명 필드 값
+        	}
+        });
+        $("#joinFrm").validate({
+          ignore: ".ignore :hidden",
+          focusCleanup:true,
+          rules: {
+          	mbrNm : {
+          		required : true
+          	}
+          },
+        	messages: {
+        		mbrNm: {
+        			required: /*[[#{question.join.mbrNm}]]*/ ''
+        		}
+        	},
+        	errorPlacement: function(error, element) {
+        		//-- [2023:codeeyes][empty_block issue]
+          },
+        	invalidHandler: function(form, validator) {
+            var errors = validator.numberOfInvalids();
+            if (errors) {
+            	var btnHtm = "";
+            btnHtm=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button> ';
+            fnOpenLayer(btnHtm, '내용 미입력', validator.errorList[0].message);
+            	validator.errorList[0].element.focus();
+            }
+        	},
+        	submitHandler: function(form) {
+            var telNo = $("#telNo").val();
+            var email = $("#email").val();
+            var cmpnNm = $("#cmpnNm").val();
+
+            if(telNo =='' || email =='' ||cmpnNm ==''){
+             fnOpenLayer(' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button> ', '내용 미입력', '정보를 모두 입력해주세요.');
+             return;
+             }
+
+             if(/*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '' == ""){
+               //--@@console.log("전번 신규 입력 시");
+               let phoneNoRule = /^(01[016789]{1})[0-9]{3,4}[0-9]{4}$/;
+               if(!phoneNoRule.test(telNo)){
+            			fnOpenLayer(' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button> ', 'Alert', '전화번호 형식을 확인해주세요');
+            			return;
+            		}
+             }
+
+             if(/*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '' == ""){
+               //--@@console.log("이메일 신규 입력 시");
+               let emailRule = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
+
+               if(!emailRule.test(email)){
+                 fnOpenLayer(' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button> ', 'Alert', '이메일 형식을 확인해주세요');
+                 return;
+               }
+             }
+             var btnHtm = "";
+             btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="userIns()"  id="cBtton">확인</button> ';
+             btnHtm+=' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close" id="cCbtn">취소</button> ';
+             fnOpenLayer(btnHtm, '회원가입', /*[[#{question.userj.add}]]*/ '' );
+            }
+        	});
+        });
+
+        function userIns(){
+        	var encEmail;
+          var encTelNo;
+          var rsa = new RSAKey();
+          rsa.setPublic($('input#pkm').val(),$('input#pke').val());
+
+        	var param ={
+        		stpltAgreeYn : $("#stpltAgreeYn").val(),
+        		indvInfoAgreeYn : $("#indvInfoAgreeYn").val(),
+        		idDivCd : $('input[name=idDivCd]:checked').val(),
+        		cmpnNm : $("#cmpnNm").val()
+        	}
+
+          if(/*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '' == ""){
+          	encTelNo = rsa.encrypt($("#telNo").val());
+          	param.telNo = encTelNo;
+          }
+
+          if(/*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '' == ""){
+          	encEmail = rsa.encrypt($("#email").val());
+          	param.email = encEmail;
+          }
+
+        	$.ajax({
+            type : 'POST',
+            url : /*[[@{/userJoin/insertJoin.do}]]*/ '/userJoin/insertJoin.do',
+            data : param,
+            dataType : "json",
+            success : function(data){
+            	if(data.message == "success"){
+            		fnOpenLayer('<button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" id="cBtton">확인</button>','저장','가입에 성공하였습니다.');
+            		location.href= /*[[@{/userJoin/sJoinInfo.do}]]*/ '/userJoin/sJoinInfo.do';
+            	}else{
+            		fnOpenLayer('<button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" id="cBtton">확인</button>','Alert','가입에 실패하였습니다.');
+              }
+            },
+            error: function(request, status, error) {
+              //--@@console.log("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+            }
+          });
+        }
+
+        // 회원 가입 저장
+        var user_join = function() {
+        	if($('input[name=idDivCd]:checked').val() == 'MBRDIV1010'){ // kt
+        		$('#joinFrm').find('input[name=cmpnNm]').rules('add', { required:true, messages:{ required:'부서명을 입력하십시오.'} });
+        	}else{
+        		$('#joinFrm').find('input[name=cmpnNm]').rules('add', { required:true, messages:{ required:'업체명을 입력하십시오.'} });
+        	}
+        	$('#joinFrm').submit();
+        }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content">
+<form id="joinFrm" name="joinFrm" method="post" onsubmit="return false;">
+    <input type="hidden" name="pkm" id="pkm" th:value="${publickeymodulus}" />
+    <input type="hidden" name="pke" id="pke" th:value="${publickeyexponent}" />
+	<input type="hidden" name="stpltAgreeYn" id="stpltAgreeYn" th:value="${userInfo.stpltAgreeYn}" />
+	<input type="hidden" name="indvInfoAgreeYn" id="indvInfoAgreeYn" th:value="${userInfo.indvInfoAgreeYn}" />
+	<input type="hidden" name="phoneNo" id="phoneNo" />
+	<div id="container">
+		<div class="sVisual sv_login">
+			<div>
+				<h2>회원가입</h2>
+				<p>회원가입 하시면 Open API 웹사이트에서 제공하는 서비스를 이용하실 수 있습니다</p>
+			</div>
+		</div>
+		<div class="contents">
+			<div class="conBox">
+				<div class="pg_location">
+					<a>Go home</a> <span>&gt;</span> 회원가입
+				</div>
+
+				<div id="content">
+					<div class="join_wrap">
+						<ul class="step_navigation">
+							<!-- 활성화된 tap에 onpg class 추가 -->
+							<li class="stp01">
+								<div>
+									<strong>STEP 01</strong>
+									<p>이용약관</p>
+								</div>
+							</li>
+							<li class="stp02 onpg">
+								<div>
+									<strong>STEP 02</strong>
+									<p>정보입력</p>
+								</div>
+							</li>
+							<li class="stp03">
+								<div>
+									<strong>STEP 03</strong>
+									<p>가입완료</p>
+								</div>
+							</li>
+						</ul>
+
+						<div class="pkg_board">
+							<table class="table-vw">
+								<caption>개발자 포럼 Write Table</caption>
+								<colgroup>
+									<col style="width: 16%;">
+									<col style="width: 84%;">
+								</colgroup>
+
+								<tbody>
+									<tr>
+										<th scope="row"><div>아이디 구분</div></th>
+										<td><div class="radio_set">
+												<em><input type="radio" id="r011" name="idDivCd"
+													value="MBRDIV1010" title="KT"> <label for="r011"><span></span>KT</label></em>
+												<em><input type="radio" id="r012" name="idDivCd"
+													value="MBRDIV1020" title="협력사" checked="checked"> <label
+													for="r012"><span></span>협력사</label></em>
+											</div></td>
+									</tr>
+									<tr>
+										<th scope="row"><div>아이디</div></th>
+										<td>
+											<div>
+												<input type="text" name="mbrId" id="mbrId" th:value="${userInfo.mbrId}" readonly />
+											</div>
+										</td>
+									</tr>
+									<tr>
+										<th scope="row"><div class="essential">이름</div></th>
+										<td><div>
+												<input type="text" name="mbrNm" id="mbrNm" maxlength="30" th:value="${userInfo.mbrNm}" readonly />
+											</div></td>
+									</tr>
+									<tr>
+										<th scope="row"><div class="essential" id="depTitle">업체명</div></th>
+										<td><div>
+												<input type="text" name="cmpnNm" id="cmpnNm" maxlength="30">
+											</div></td>
+									</tr>
+									<tr>
+										<th scope="row"><div class="essential">휴대폰번호</div></th>
+										<td>
+											<div>
+												<input type="text" name="telNo" id="telNo" th:if="${userInfo.telNo != null}" th:value="${userInfo.telNo}" maxlength="30" readonly>
+												<input type="text" name="telNo" id="telNo" th:if="${userInfo.telNo == null}" placeholder="숫자만 입력해주세요" maxlength="30" >
+											</div>
+										</td>
+									</tr>
+									<tr>
+										<th scope="row"><div class="essential">이메일</div></th>
+										<td>
+											<div>
+												<input type="text" name="email" id="email" th:if="${userInfo.email != null}" th:value="${userInfo.email}" maxlength="30" readonly>
+												<input type="text" name="email" id="email" th:if="${userInfo.email == null}" maxlength="30">
+											</div>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<div class="btn_set">
+							<button type="button" title="다음단계" onclick="user_join();"
+								class="btn btn_black">
+								<span>다음단계</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</form>
+</div>
+</body>
+</html>
