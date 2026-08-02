@@ -223,7 +223,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "devsupport/tdapply/testdataapply",
             "devsupport/devsupport/list",
             "devsupport/devsupport/write",
-            "devsupport/devsupport/view"
+            "devsupport/devsupport/view",
+            "login/newLoginForm"
         });
         return resolver;
     }
