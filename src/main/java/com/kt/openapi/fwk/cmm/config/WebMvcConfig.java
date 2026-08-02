@@ -217,7 +217,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "cmmn/public_error",
             "agree/view",
             "priv/view",
-            "main/main"
+            "main/main",
+            "guide/useList",
+            "guide/shubList"
         });
         return resolver;
     }
