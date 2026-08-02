@@ -1,0 +1,25 @@
+<!--/* vue_page_mount_apistatus.jsp -> Thymeleaf 변환. t:layout 미사용 독립 페이지(원본과 동일). */-->
+<!--/* dpBundleScriptSrc 모델 속성은 AdptranViewModelAdvice에서 주입 (Thymeleaf 3.1+ #request 사용 불가) */-->
+<div>
+
+    <link th:href="@{/resources/css/apistatus.css}" rel="stylesheet" />
+    <script defer th:src="@{${dpBundleScriptSrc}}"></script>
+
+    <div id="container">
+        <div class="sVisual sv_login">
+            <div>
+                <h2>상황판</h2>
+                <p>최근에 사용한 API의 상태를 한눈에 확인하실 수 있습니다</p>
+            </div>
+        </div>
+        <div class="contents">
+            <div class="conBox">
+                <div class="pg_location"><a>Go home</a> <span>&gt;</span> 상황판</div>
+                <div id="content">
+                    <div id="vid_vue_page_mount_apistatus" v-cloak></div>
+                </div><!-- #content -->
+            </div><!-- .conBox -->
+        </div><!-- .contents -->
+    </div><!-- #container -->
+
+</div>

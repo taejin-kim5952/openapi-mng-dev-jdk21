@@ -69,7 +69,16 @@
       <scope>runtime</scope>
       <optional>true</optional>
     </dependency>
-    <!-- JSP Support -->
+    <!-- [JSP->Thymeleaf 마이그레이션] Thymeleaf (전환 완료 전까지 JSP와 공존) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>nz.net.ultraq.thymeleaf</groupId>
+      <artifactId>thymeleaf-layout-dialect</artifactId>
+    </dependency>
+    <!-- JSP Support (전환 완료 후 제거 예정) -->
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
       <artifactId>tomcat-embed-jasper</artifactId>

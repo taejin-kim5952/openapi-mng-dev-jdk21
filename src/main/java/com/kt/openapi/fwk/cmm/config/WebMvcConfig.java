@@ -18,6 +18,9 @@ import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+import nz.net.ultraq.thymeleaf.layoutdialect.LayoutDialect;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.spring6.view.ThymeleafViewResolver;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -179,7 +182,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     /**
      * 표준 JSP ViewResolver 설정
-     * [마이그레이션] Tiles 제거를 대비하여 순수 JSP 리졸버의 우선순위를 조정 가능
+     * [JSP->Thymeleaf 마이그레이션] Thymeleaf가 먼저(order=1) 템플릿을 찾고,
+     * 없으면 null을 반환해 이 리졸버(order=2)로 폴백 - 전환 중인 페이지와 공존.
      */
     @Bean
     public InternalResourceViewResolver viewResolver() {
@@ -187,8 +191,38 @@ public class WebMvcConfig implements WebMvcConfigurer {
         resolver.setViewClass(JstlView.class);
         resolver.setPrefix("/WEB-INF/jsp/");
         resolver.setSuffix(".jsp");
-        resolver.setOrder(1);
+        resolver.setOrder(2);
         return resolver;
+    }
+
+    /**
+     * [JSP->Thymeleaf 마이그레이션] Thymeleaf ViewResolver
+     * Boot가 자동구성한 SpringTemplateEngine을 재사용하고, JSP보다 우선순위를 높게(order=1) 설정.
+     * ThymeleafViewResolver는 뷰 이름 존재 여부와 무관하게 항상 뷰를 만들어내고 실제 렌더링
+     * 시점에야 실패하기 때문에(JSP 리졸버로 자연 폴백이 안 됨), setViewNames로 "이미 Thymeleaf로
+     * 전환된 뷰 이름 패턴"만 명시적으로 처리하도록 제한한다. 전환이 끝나지 않은 나머지 뷰 이름은
+     * 이 리졸버가 애초에 관여하지 않아 JSP 리졸버(order=2)로 넘어간다.
+     * 새 화면을 Thymeleaf로 전환할 때마다 이 목록에 패턴을 추가할 것.
+     */
+    @Bean
+    public ThymeleafViewResolver thymeleafViewResolver(SpringTemplateEngine templateEngine) {
+        ThymeleafViewResolver resolver = new ThymeleafViewResolver();
+        resolver.setTemplateEngine(templateEngine);
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setContentType("text/html;charset=UTF-8");
+        resolver.setOrder(1);
+        resolver.setViewNames(new String[]{
+            "adptran/vue_page_mount_apistatus"
+        });
+        return resolver;
+    }
+
+    /**
+     * [JSP->Thymeleaf 마이그레이션] layout.tag 대체용 레이아웃 다이얼렉트
+     */
+    @Bean
+    public LayoutDialect layoutDialect() {
+        return new LayoutDialect();
     }
 
     /**
