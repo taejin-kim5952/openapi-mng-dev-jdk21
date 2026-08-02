@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -13,10 +14,13 @@ import java.io.File;
 /**
  * 앱 기동 시 인프라 정상 동작 여부를 체크하는 컴포넌트
  * [mngOnm 표준 이식]
+ * [JDK21/Boot4 마이그레이션] local 프로파일은 SafeDB Agent(포트 19001)가 없는 환경이라
+ * 이 시작 검사만 건너뜀 - safeDbEncrypt/Decrypt 로직 자체는 수정하지 않음.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!local")
 public class SafeDBChecker implements ApplicationRunner {
 
     @Override
