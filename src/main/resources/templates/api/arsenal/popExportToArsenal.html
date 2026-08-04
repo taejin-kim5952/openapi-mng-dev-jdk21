@@ -1,0 +1,87 @@
+<!--/* popExportToArsenal.jsp -> Thymeleaf 프래그먼트 변환 */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="popExportToArsenal">
+
+<link th:href="@{/resources/css/arsenal.css}" rel="stylesheet" />
+
+<!-- API 동기화 이력  -->
+<th:block th:replace="~{api/arsenal/popSyncHistory :: popSyncHistory}"></th:block>
+<!-- API 동기화 이력 끝 -->
+
+<div class="popArsenal" style="display:none;">
+  <div class="popup_content distribution_cont">
+    <div class="scroll_wrap">
+      <div class="wrap_content">
+        <input type="hidden" id="idGitlabArsenalHost" th:value="${gitlabArsenalHost}" />
+        <input type="hidden" id="idGitlabArsenalBasePath" th:value="${gitlabArsenalBasePath}" />
+
+        <div class="pkg_board ">
+          <table class="table-vw table-vw6">
+            <caption>내보내기결과 Table</caption>
+            <colgroup><col style="width:17%;"><col style="width:auto;"></colgroup>
+            <tbody>
+              <tr>
+                <th scope="row">YAML파일 경로</th>
+                <td><span id="idSpanYamlPath"></span></td>
+              </tr>
+              <tr>
+                <th scope="row">내보내기 결과</th>
+                <td><span id="idSpanReturn"></span></td>
+              </tr>
+              <tr>
+                <th scope="row">에러 코드</th>
+                <td><span id="idSpanErrorCode"></span></td>
+              </tr>
+              <tr>
+                <th scope="row">에러 메세지</th>
+                <td><span id="idSpanErrorMsg"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div><!-- .pkg_board -->
+
+        <div class="pkg_board">
+          <table class="table-vw table-vw4 table-vw5">
+            <caption>내보내기결과 Table</caption>
+            <colgroup><col style="width:17%;"><col style="width:auto;"></colgroup>
+            <tbody>
+
+              <tr>
+                <th scope="row">API동기화 Process</th>
+                <td class="text_process">
+                  <div class="text_process_cont">
+                    <!-- [D]process_success_next, process_success_prev, process_failure_next, process_failure_prev -->
+                    <div class="data process_failure_next"><span class="data_link">img</span><p>Link</p></div>
+                    <div class="data"><span class="data_Gw">img</span><p>Gitlab</p></div>
+                    <!-- <div :class="['data', computed_verify_info('css_req_1_arrow')]"><span class="data_link">img</span><p>Link</p></div>
+                    <div :class="['data', computed_verify_info('css_res_1_arrow'), computed_verify_info('css_req_2_arrow')]"><span class="data_Gw">img</span><p>G/W</p></div>
+                    <div :class="['data', computed_verify_info('css_res_2_arrow')]"><span class="data_enabler">img</span><p>Enabler</p></div>
+                    <div class="data"><span class="data_link">img</span><p>Enabler</p></div>-->
+                  </div>
+                  <a class="btn7 btn_gray" href="javascript:fn_export_history_ARSENAL();">API동기화이력조회</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div><!-- .pkg_board -->
+
+        <div class="pkg_board pkg_board2">
+          <table class="table-vw table-vw6">
+            <tbody>
+              <tr>
+                <th class="lPop_bottom">
+                  <a href="javascript:fn_export_GITLAB()"><button type="button" title="내보내기" class="btn btn_black btn_sml">내보내기</button></a>
+                  <a href="javascript:$('.popArsenal').dialog('close')"><button type="button" title="취소" class="btn btn_black btn_sml">취소</button></a>
+                </th>
+              </tr>
+            </tbody>
+          </table>
+        </div><!-- .pkg_board .pkg_board2 -->
+
+      </div><!-- .wrap_content -->
+    </div><!-- .scroll_wrap -->
+  </div><!-- .popup_content -->
+</div><!-- .popArsenal  -->
+
+</th:block>
+</div>

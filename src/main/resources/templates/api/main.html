@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<!--/* api/main.jsp -> Thymeleaf 변환. ${param.xxx}는 Thymeleaf 3.1에서 제거된 요청 파라미터 암묵 객체라
+     클라이언트 JS의 URLSearchParams로 대체(계획서에서 이미 확립한 패턴). b_is_master/sIsAuthYn은 세션 기반이라
+     컨트롤러에서 모델 속성으로 새로 노출함 */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='default', bodyClass=null)}">
+<head>
+    <title>KT Open API</title>
+</head>
+<body>
+<div layout:fragment="content">
+<script th:src="@{/resources/js/api_reg/swagger-parser.min.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+
+//Arsenal 내보내기 전역변수///////
+var YAML     	  = SwaggerParser.YAML; // Yaml 파서
+var g_yamlPath    = "";   // YMAL파일 경로 (Gitlab서버에 올려진 YAML파일 Full Path)
+var g_projectName = "";   // 프로젝트명 (POD명)
+var g_bIsExsist   = false;  // YMAL 파일 동기화 플래그(Gitlab에 파일이 존재한다면 true)
+var g_yamlOb      = "";   // YMAL 데이터
+var g_szProjectId = "";   // 프로젝트 ID
+var g_szNamespace = "";   // 프로젝트 네임스페이스
+var g_apiSpcNo    = "";   // 프로젝트 코드
+var g_isAuthYn 	  = /*[[${sIsAuthYn}]]*/ "N";	// 삭제권한(Y:권한있음, N:권한없음)
+var g_enCmbrId    = /*[[${ssUserVo != null ? ssUserVo.enCmbrId : ''}]]*/ '';	// 로그인 사용자 enCmbrId
+var g_bIsMaster   = /*[[${b_is_master}]]*/ false;	// master 여부
+/////////////////////////////////
+
+  var selTab    = (new URLSearchParams(window.location.search).get('selTab') || '1');
+
+  var pageIndex   = 1;
+
+  $(function() {
+    $('#selTab').val(selTab);
+    $('#schText').val(new URLSearchParams(window.location.search).get('schText') || '');
+
+    pageGo(1);//조회
+
+    // 검색
+    $('.btn_search').on('click', function() {
+      pageGo(1);
+    });
+
+    // API 버전 업
+    $('#btnApiVerUp').on('click', function() {
+      savApiVerUp();
+    });
+
+    // 새로고침
+    $('.btn_refresh').on('click', function() {
+      $('#schText').val('');
+      selTabFnc('1');
+    });
+
+    // 개발 요청으로 이동
+    $('#devReqBtn').on('click', function() {
+      $('#selTab').val('4');
+      $('#actionForm').attr("action", /*[[@{/api/main/mvDevReqReg.do}]]*/ '/api/main/mvDevReqReg.do').submit();
+    });
+
+  })
+
+  // 검토요청 화면으로 이동
+  function mvReqReg(apiSpcNo, selTab) {
+    $('#apiSpcNo').val(apiSpcNo);
+    $('#selTab').val(selTab);
+    $('#tabCode').val(selTab);
+    $('#actionForm').attr("action", /*[[@{/api/main/mvDevReqReg.do}]]*/ '/api/main/mvDevReqReg.do').submit();
+  }
+
+  //페이징 조회
+  function pageGo(pageNo) {
+    pageIndex = pageNo;
+    selList(selTab);
+  }
+
+  // 메뉴의 탭선택시
+  function selTabFnc(tabCode) {
+    pageIndex = 1;
+    selList(tabCode);
+  }
+
+  // 작성 상태 탭 클릭시에 리스트 조회
+  function selList(tabCode) {
+    $(".tab_list > li").each(function() {
+      $(this).removeClass('current');
+    });
+
+    $("[id^='tab']").removeClass('current');
+
+    $("#tab"+tabCode).addClass('current');
+    $("#tabId"+tabCode).addClass('current');
+
+    selTab = tabCode;
+
+    // param setting
+        var param     = new Object();
+        param.schText = $('#schText').val();
+        param.tabCode   = tabCode;
+        param.pageIndex = pageIndex;
+
+    $.ajax({
+      url    : /*[[@{/api/main/selMainListAjax.do}]]*/ '/api/main/selMainListAjax.do',
+      type   : 'POST',
+      data   : param,
+      success: function(data) {
+
+        // console.log("성공", data);
+
+        setTabData(data);
+
+      },
+      error:function(request,status,error) {
+        console.log("code:"+request.status+"\n"+"error:"+error);
+        }
+    });
+  };
+
+  function setTabData(data) {
+    if (selTab != '4') {
+      setTabData1(data);
+    }else {
+      setTabData2(data);
+    }
+  }
+
+  // 작업중, 등록완료, 검토의견 목록 셋팅
+  function setTabData1(data) {
+    var html = '';
+
+    if (data.info != null) {
+      if (data.info.mainList != null) {
+        if (data.info.mainList.length > 0) {
+          for (var i=0; i < data.info.mainList.length; i++) {
+            var mainInfo = data.info.mainList[i];
+            var regSttusCdClass = '';
+
+            /* [tag:job-20200420][add] */
+            var b_is_ARSENAL = (mainInfo.sysId == /*[[${@environment.getProperty('apisystem.sysid.arsenal')}]]*/ '');
+
+            if ('1' == selTab) {
+              if ('APIREG1010' == mainInfo.regSttusCd) {
+                regSttusCdClass = 'tag_writing';
+              }
+              else if ('APIREG1020' == mainInfo.regSttusCd) {
+                regSttusCdClass = 'tag_regi-request';
+              }
+              else if ('APIREG1030' == mainInfo.regSttusCd) {
+                regSttusCdClass = 'tag_regi-review';
+              }
+              else {
+                regSttusCdClass = 'tag_regi-complete';
+              }
+            }
+            else if ('2' == selTab) {
+              regSttusCdClass = 'tag_regi-complete';
+            }
+            else if ('3' == selTab) {
+              regSttusCdClass = 'tag_writing';
+            }
+            html += '<li>';
+            var divClass = '';
+            var identify = '';
+            if ('3' == selTab) {
+              if (mainInfo.replyCnt > 0) {
+                identify += '';
+              }
+              else {
+                identify += ' identify '; // 작성중
+              }
+              if (mainInfo.amdr.trim() == g_enCmbrId.trim()) {
+                identify += 'send';
+              }
+              else {
+                identify += 'take';
+              }
+            }
+            html += '<div class="' + identify + '">';
+            var regSttusCdNm = mainInfo.regSttusCdNm;
+            if ('3' == selTab) {
+              if (mainInfo.replyCnt > 0) {
+                regSttusCdNm = '답변완료';
+              }
+              else {
+                regSttusCdNm = '작성중';
+              }
+            }
+            html += '<h4><span>' + mainInfo.sysIdNm + '</span>';
+            html += '<em class="' + regSttusCdClass + '">' + regSttusCdNm + '</em>';
+            html += '</h4>';
+             html += '<ol class="edit_btns">';
+            /* [tag:20200913][add] */
+            if (g_bIsMaster) {
+            html += '<li><a href="javascript:void(0)" onclick="fn_popApiYamlTool(\'' + mainInfo.apiSpcNo + '\');" title="ApiYamlTool"><span>ApiYamlTool</span></a></li>';
+            }
+
+            if ('1' == selTab) {
+              html += '<li><a href="javascript:void(0)" onclick="mvApiReg(\'' + mainInfo.apiSpcNo + '\',\'' + mainInfo.sysId + '\');" title="수정"><span>수정</span></a></li>';
+             //html += '<li><a href="javascript:void(0)" onclick="mvReqReg(\'' + mainInfo.apiSpcNo + '\', \'3\')" title="검토요청"><span>검토요청</span></a></li>';
+               html += '<li><a href="javascript:void(0)" title="삭제" onclick="delDevApiPopup(\'' + mainInfo.apiSpcNo + '\');"><span>삭제</span></a></li>';
+               /* [tag:job-20200420][add] */
+               if (true == b_is_ARSENAL) {
+                html += '<li><a href="javascript:void(0)" onclick="fn_export_ARSENAL(\'' + mainInfo.apiSpcNo + '\')" title="내보내기"><span>내보내기</span></a></li>';
+                html += '<li><a href="javascript:void(0)" onclick="fn_export_history_ARSENAL(\'' + mainInfo.apiSpcNo + '\')" title="API동기화이력"><span>API동기화이력</span></a></li>';
+              }
+            }
+            else if ('2' == selTab) {
+              /* [tag:adpt][drm][add] */
+              html += '<li><a href="javascript:void(0)" onclick="metaUpdate(\'' + mainInfo.apiSpcNo + '\')" title="Meta수정"><span>Meta수정</span></a></li>';
+              html += '<li><a href="javascript:void(0)" onclick="openVerPop(\'' + mainInfo.apiSpcNo + '\', \'' + mainInfo.ver + '\')" title="버전업"><span>버전업</span></a></li>';
+              if ('APIGUB1020' != mainInfo.apiClass) { //-- != private
+                html += '<li><a href="javascript:void(0)" onclick="convertPrivateApiPopup(\'' + mainInfo.apiSpcNo + '\')" title="Private전환"><span>Private전환</span></a></li>';
+              }
+              else {
+                html += '<li class="wx80"></li>';
+              }
+              if (mainInfo.verDesc != null) {
+                html += '<li><input type="hidden" id="ver_' + mainInfo.apiSpcNo + '" name="ver_' + mainInfo.apiSpcNo + '" value="' + mainInfo.ver + '" />';
+                html += '<input type="hidden" id="desc_' + mainInfo.apiSpcNo + '" name="desc_' + mainInfo.apiSpcNo + '" value="' + mainInfo.verDesc + '" />';
+                 html += '<a href="javascript:void(0)" onclick="openCommentPop(\'' + mainInfo.apiSpcNo + '\')" title="코멘트"><span>코멘트</span></a></li>';
+               }
+               /* [tag:job-20200420][add] */
+               if (true == b_is_ARSENAL) {
+                html += '<li><a href="javascript:void(0)" onclick="fn_export_ARSENAL(\'' + mainInfo.apiSpcNo + '\')" title="내보내기"><span>내보내기</span></a></li>';
+                html += '<li><a href="javascript:void(0)" onclick="fn_export_history_ARSENAL(\'' + mainInfo.apiSpcNo + '\')" title="API동기화이력"><span>API동기화이력</span></a></li>';
+              }
+            }
+            else if ('3' == selTab) {
+              html += '<li><a href="javascript:void(0)" onclick="mvReqDetailView(\'' + mainInfo.apiReviewRqtNo + '\')" title="검토의견"><span>검토의견</span></a></li>';
+            }
+            html += '</ol>';
+            html += '<p class="lst_title">';
+            if ('1' == selTab) {
+              html += '<a href="javascript:void(0)" onclick="mvApiReg(\'' + mainInfo.apiSpcNo + '\',\'' + mainInfo.sysId + '\');" >';
+            }
+            else if ('2' == selTab) {
+              html += '<a href="javascript:void(0)" onclick="yamlEditorOpen(\'' + mainInfo.apiSpcNo + '\');" >';
+            }
+            else {
+              html += '<a href="javascript:void(0)" onclick="yamlEditorOpen(\'' + mainInfo.apiSpcNo + '\');" >';
+            }
+            html += '<strong></strong>' + mainInfo.apiNm + '</a>';
+            html += '<span class="lst_writer">수정자 :<em>' + mainInfo.amdrNm + '</em> <em>' + mainInfo.amdDtStr + '</em></span>';
+            html += '<span class="lst_version">버전 ' + mainInfo.ver + '</span>';
+            html += '</p>';
+
+            var apiDesc = $sf_html(mainInfo.apiDesc);
+            if (selTab == '3') {
+              apiDesc = mainInfo.reviewRqtSbst; // 작성중
+            }
+            // apiDesc가 null 일 경우 공백으로 변환
+            if (apiDesc == null) {
+              apiDesc = "";
+            }
+            html += '<p class="lst_cont">' + apiDesc.replace(/\\n/gi, "<br />") + '</p>';
+
+            if ((('1' == selTab) && (mainInfo.completeCnt > 0)) || (('2' == selTab) && (mainInfo.completeCnt > 1))) {
+              html += '<a class="acco_toggle" href="javascript:void(0)">accordion toggle</a>';
+            }
+
+            html += '</div>';
+            html += '<!-- 2depth Content -->';
+
+            if (selTab != '4') {
+              if (data.info.subList != null) {
+                if (data.info.subList.length > 0) {
+                  html += ' <div class="hidden_div">';
+                  html += '   <ul class="apiVer-list">';
+                  for(var j=0 ; j < data.info.subList.length ; j++) {
+                    var subInfo = data.info.subList[j];
+                    //console.log(subInfo.apiSpcId, mainInfo.apiSpcId, ' === ', subInfo.apiSpcNo, mainInfo.apiSpcNo);
+                    if (subInfo.apiSpcId == mainInfo.apiSpcId) {
+                      if (mainInfo.apiSpcNo != subInfo.apiSpcNo) {
+                        html += '<li>';
+                        html += '<div class="lst_title"><a href="javascript:void(0)" onclick="yamlEditorOpen(\'' + mainInfo.apiSpcNo + '\');"  >' + subInfo.apiNm + '</a></div>';
+                        html += '<div class="lst_writer">수정자 :<em>' + mainInfo.amdrNm + '</em> <em>' + mainInfo.amdDtStr + '</em></div>';
+                        html += '<div class="edit_btns">';
+                        html += '<ol>';
+                        html += '<li><a href="javascript:void(0)" onclick="openVerPop(\'' + subInfo.apiSpcNo + '\', \'' + mainInfo.ver + '\')" title="버전업"><span>버전업</span></a></li>';
+                        if (subInfo.verDesc!=null) {
+                          html += '<li><input type="hidden" id="ver_' + subInfo.apiSpcNo + '" name="ver_' + subInfo.apiSpcNo + '" value="' + subInfo.ver + '" />';
+                          html += '<input type="hidden" id="desc_' + subInfo.apiSpcNo + '" name="desc_' + subInfo.apiSpcNo + '" value="' + subInfo.verDesc + '" />'
+                          html += '<a href="javascript:void(0)" onclick="openCommentPop(\'' + subInfo.apiSpcNo + '\')" title="코멘트"><span>코멘트</span></a></li>';
+                        }
+                        html += '</ol>';
+                        html += '</div>';
+                        html += '<div class="lst_version">버전 ' + subInfo.ver + '</div>';
+                        html += '</li>';
+                      }
+                    }
+                  }
+                  html += '   </ul>';
+                  html += ' </div>';
+                }
+              }
+            } // end : selTab != '4'
+            html += '</li>';
+          }
+        } // end : if (data.mainList.length > 0) {
+      }else{
+        //
+
+        // end : if (data.mainList != null) {
+      }
+    } // end : if (data != null) {
+
+    $('#tab' + selTab + ' > .accordion').removeClass('nodata');
+    if (data.info.mainList == null || data.info.mainList.length < 1) {
+      html += '입력하신 검색어에 해당하는 결과가 없습니다.';
+      $('#tab' + selTab + ' > .accordion').addClass('nodata');
+    }
+    $('#tab' + selTab + ' > .accordion').html(html);
+
+    drawPaging('noticePaging', data.paginationInfo.currentPageNo, data.paginationInfo.firstPageNoOnPageList, data.paginationInfo.totalPageCount,data.paginationInfo.lastPageNoOnPageList, 'pageGo');
+
+    setTogle();
+  }
+
+  // 개발요청 목록 부분 셋팅
+  function setTabData2(data) {
+    var html = '';
+    if (data.info != null) {
+      if (data.info.mainList != null) {
+        if (data.info.mainList.length > 0) {
+          for (var i=0; i < data.info.mainList.length; i++) {
+            var mainInfo = data.info.mainList[i];
+            html += '<li>';
+            html += '<!-- 답변이 완료된 list 는 identify class 추가 -->';
+            var divClass = '';
+            if (mainInfo.replyCnt < 1) {
+              divClass += 'identify';
+            }
+            if (g_enCmbrId == mainInfo.amdr) { // 사용자의 아이디
+              divClass += ' send';
+            }
+            else {
+              divClass += ' take';
+            }
+            html += '<div class="' + divClass + '">';
+            html += '<!-- tag_writing:답변등록 -->';
+            html += '<h4><span>' + mainInfo.sysIdNm + '</span><em class="tag_writing">답변등록</em></h4>';
+            html += '<p class="lst_title">';
+            html += '<a href="javascript:void(0)" onclick="mvReqDetailView(\'' + mainInfo.apiReviewRqtNo + '\');" >' + mainInfo.reviewRqtTitle + '</a>';
+            html += '<span class="lst_writer">요청자 :<em>' + mainInfo.amdrNm + '</em> <em>' + mainInfo.amdDtStr + '</em></span>';
+            html += '</p>';
+            html += '</div>';
+            html += '</li>';
+          }
+        } // end : if (data.mainList.length > 0) {
+      } // end : if (data.mainList != null) {
+    } // end : if (data != null) {
+
+    drawPaging('noticePaging', data.paginationInfo.currentPageNo, data.paginationInfo.firstPageNoOnPageList, data.paginationInfo.totalPageCount,data.paginationInfo.lastPageNoOnPageList, 'pageGo');
+
+    $('#tab' + selTab + ' > .defualt_list').removeClass('nodata');
+    if (data.info.mainList == null || data.info.mainList.length < 1) {
+      html += '입력하신 검색어에 해당하는 결과가 없습니다.';
+      $('#tab' + selTab + ' > .defualt_list').addClass('nodata');
+    }
+    $('#tab' + selTab + '> .defualt_list').html(html);
+
+    setTogle();
+  }
+
+  function setTogle() {
+    $(".accordion > li a.acco_toggle, .accordion > li > ul > li a.acco_toggle, .accordion > dd a.acco_toggle, .accordion > dd > ul > li a.acco_toggle").on("click", function(e) {
+      if ($(this).parent().has("ul")) {
+        e.preventDefault();
+      }
+      if (!$(this).hasClass("active")) {
+        // open our new menu and add the open class
+        $(this).parent().next().slideDown(350);
+        $(this).addClass("active");
+      }
+      else if ($(this).hasClass("active")) {
+        $(this).removeClass("active");
+        $(this).parent().next().slideUp(350);
+      }
+    });
+  }
+
+  // 상세 화면
+  function mvReqDetailView(apiReviewRqtNo) {
+    $('#selTab').val(selTab);
+    $('#apiReviewRqtNo').val(apiReviewRqtNo);
+    $('#actionForm').attr("action", /*[[@{/api/main/mvDevReqView.do}]]*/ '/api/main/mvDevReqView.do').submit();
+  }
+
+  // API 수정 화면으로 이동
+  function mvApiReg(apiSpcNo, sysId) {
+    $('#apiSpcNo').val(apiSpcNo);
+    $('#sysId').val(sysId);
+    $('#actionForm').attr("action", /*[[@{/api/reg/mvApiInfoReg.do}]]*/ '/api/reg/mvApiInfoReg.do').submit();
+    //alert("SYS_ID=>" + $('#sysId').val() + ", Param=>" + sysId);
+  }
+
+  // 마이페이지로 이동
+  function goMyPage() {
+    $('#actionForm').attr("action", /*[[@{/mypage/mypageInfo.do}]]*/ '/mypage/mypageInfo.do').submit();
+  }
+
+  // 버전업 팝업 호출
+  function openVerPop(apiSpcNo, lastVer) {
+    $('#apiSpcNo').val(apiSpcNo);
+    $('#popLastVer').text(lastVer);
+    $(".pop_versionup").dialog("open");
+  }
+
+  // 버전업 등록 팝업셋팅
+  function savApiVerUp() {
+
+    if ($('#popVerValue').val()=='') {
+      $(".alert_txt").html("버전을 입력하십시오.");
+      setBasicAlertBtn();
+      $(".pop_alert_main").dialog("open");
+      $('#popVerValue').focus();
+      return;
+    }
+
+    if ($('#popVerDesc').val()=='') {
+      $(".alert_txt").html("코멘트를 입력하십시오.");
+      setBasicAlertBtn();
+      $(".pop_alert_main").dialog("open");
+      $('#popVerDesc').focus();
+      return;
+    }
+
+    $(".alert_txt").html("새로운 버전의 API를 생성 하시겠습니까?");
+    $('.cid_btn_popup ').hide();
+    $('.btn_popup_cancel').show();
+    $('.btn_popup_save').show();
+    $(".pop_alert_main").dialog("open");
+
+  }
+
+  // 동일한 버전 체크
+  function savApiVerProgress() {
+    var param     = new Object();
+    param.apiSpcNo  = $('#apiSpcNo').val();
+    param.ver   = $('#popVerValue').val();
+    param.verDesc = $('#popVerDesc').val();
+
+    $.ajax({
+      url    : /*[[@{/api/main/salApiVerDupCheckAjax.do}]]*/ '/api/main/salApiVerDupCheckAjax.do',
+      type   : 'POST',
+      data   : param,
+      success: function(data) {
+        // console.log("성공", data);
+        if (data.dupCnt>0) {
+          $(".alert_txt").html("동일한 버전이 존재합니다.<br>버전을 다시 입력해 주십시오.");
+          $(".pop_alert_main").dialog("open");
+          setBasicAlertBtn();
+        }else{
+          savApiVerProgress2();
+        }
+      },
+      error:function(request,status,error) {
+        console.log("code:"+request.status+"\n"+"error:"+error);
+        }
+    });
+
+  }
+
+  // 버전업 실행
+  var verProgressFlag = true;
+  function savApiVerProgress2() {
+
+    if (!verProgressFlag) {
+      return;
+    }
+
+    var param     = new Object();
+    param.apiSpcNo  = $('#apiSpcNo').val();
+    param.ver   = $('#popVerValue').val();
+    param.verDesc = $('#popVerDesc').val();
+
+    verProgressFlag = false;
+
+    closeVerUpPopup();
+
+    $.ajax({
+      url    : /*[[@{/api/main/savApiVerAjax.do}]]*/ '/api/main/savApiVerAjax.do',
+      type   : 'POST',
+      data   : param,
+      success: function(data) {
+        // console.log("성공", data);
+
+        $(".alert_txt").html("새로운 버전으로 등록 되었습니다.");
+        setBasicAlertBtn();
+
+        selList('1');
+
+        verProgressFlag = true;
+      },
+      error:function(request,status,error) {
+        console.log("code:"+request.status+"\n"+"error:"+error);
+        }
+    });
+
+  }
+
+  var delApiSpcNo = '';
+  // 삭제확인 레이어 알럿 호출
+  function delDevApiPopup(apiSpcNo) {
+    delApiSpcNo = apiSpcNo;
+
+ 	// API 권한 체크
+	if(!fnApiAuthCheck()) return;
+
+    $(".alert_txt").html("API를 삭제하시면 복구가 불가능합니다<br>삭제하시겠습니까?");
+    $('.cid_btn_popup ').hide();
+    $('.btn_popup_cancel').show();
+    $('.btn_popup_delete').show();
+    $(".pop_alert_main").dialog("open");
+  }
+
+  // 작업중인 API 삭제
+  var delProgressFlag = true;
+  function delDevApi() {
+	$(".pop_alert_main").dialog("close");
+
+    if (!delProgressFlag) {
+      return;
+    }
+
+    var param     = new Object();
+        param.apiSpcNo  = delApiSpcNo;
+
+        delProgressFlag = false;
+
+    $.ajax({
+      url    : /*[[@{/api/main/delDevApiAjax.do}]]*/ '/api/main/delDevApiAjax.do',
+      type   : 'POST',
+      data   : param,
+      success: function(data) {
+
+			if(data.cnt > 0){
+				$(".alert_txt").html("삭제되었습니다.");
+				       setBasicAlertBtn();
+				       $(".pop_alert_main").dialog("open");
+				       delProgressFlag = true;
+				       selList(1);
+			}else{
+				$(".alert_txt").html("삭제 권한이 없습니다.");
+				fnOpenLayer('<button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button>', 'Alert', "");
+				delProgressFlag = true;
+			}
+      },
+      error:function(request,status,error) {
+        console.log("code:"+request.status+"\n"+"error:"+error);
+      }
+    });
+  }
+
+  // 코멘트 레이어
+  function openCommentPop(apiSpcNo) {
+    $('#popupVer').html($('#ver_' +  apiSpcNo).val());
+    $('#popupDesc').html($('#desc_' +  apiSpcNo).val());
+    $(".pop_comment").dialog("open");
+  }
+
+  // 코멘트 닫기
+  function closeCommentPop() {
+    $(".pop_comment").dialog("close");
+  }
+
+  // 버전업 팝업 닫기
+  function closeVerUpPopup() {
+    $("#popVerValue").val('');
+    $("#popVerDesc").val('');
+    $(".pop_versionup").dialog("close");
+  }
+
+  // 버전 체크
+  function checkNumber(field) {
+    if (!(IsNumber(field.value))) {
+
+    $(".alert_txt").html("숫자형식만 입력해주십시오.");
+    setBasicAlertBtn();
+    $(".pop_alert_main").dialog("open");
+
+    field.focus();
+    field.select();
+
+     }
+  }
+
+  // 버전 정규식
+  function IsNumber(strNumber) {
+      var reg = RegExp(/^[0-9|''.'']*$/);
+      return reg .test(strNumber);
+  }
+
+  // 기본 버튼 레이어 셋팅 : 확인버튼만 노출
+  function setBasicAlertBtn() {
+    $('.cid_btn_popup').hide();
+    $('.btn_popup_close').show();
+  }
+
+  var convertPrivateApiSpcNo = '';
+  // 삭제확인 레이어 알럿 호출
+  function convertPrivateApiPopup(apiSpcNo) {
+    convertPrivateApiSpcNo = apiSpcNo;
+
+    $(".alert_txt").html("Private API로 전환하여 새로운 API를 생성 하시겠습니까?");
+    $('.cid_btn_popup').hide();
+    $('.btn_popup_cancel').show();
+    $('.btn_popup_convert_private').show();
+    $(".pop_alert_main").dialog("open");
+  }
+
+  /* [tag:adpt][drm][add] { */
+  var b_is_convertPrivate_Progress = false;
+  // Private전환
+  function convertPrivateApi() {
+    if (true == b_is_convertPrivate_Progress) {
+      return;
+    }
+    b_is_convertPrivate_Progress = true;
+
+    var param = {
+      'apiSpcNo': convertPrivateApiSpcNo
+    };
+    $.ajax({
+      url    : /*[[@{/api/main/savApiPrivateAjax.do}]]*/ '/api/main/savApiPrivateAjax.do',
+      type   : 'POST',
+      data   : param,
+      success: function(data) {
+        // console.log("성공", data);
+        $(".alert_txt").html("새로운 Private API로 등록 되었습니다.");
+        setBasicAlertBtn();
+
+        selList('1');
+
+        b_is_convertPrivate_Progress = false;
+      },
+      error:function(request,status,error) {
+        console.log("code:" + request.status + "\n" + "error:" + error);
+      }
+    });
+  }
+
+  // Meta수정
+  function metaUpdate(apiSpcNo) {
+    $('#apiSpcNo').val(apiSpcNo);
+    $('#actionForm').attr("action", /*[[@{/api/reg/mvApiInfoReg.do}]]*/ '/api/reg/mvApiInfoReg.do').submit();
+  }
+  /* [tag:adpt][drm][add] } */
+
+
+
+
+  function fn_export_ARSENAL(apiSpcNo) {
+
+    var szArsenalHost = $("#idGitlabArsenalHost").val();
+    var szArsenalPath = $("#idGitlabArsenalBasePath").val();
+    var szProjectName = "";
+    var szNamespace   = "";
+
+    fnGetYamlInfoFromDB(apiSpcNo);
+    g_apiSpcNo    = typeof apiSpcNo == "undefined" ? "0" : apiSpcNo;
+    //g_projectName = typeof projectName == "undefined" ? "" : projectName;
+    szProjectName = "<b><font color='blur'>" + g_projectName + "</font></b>";
+    szNamespace   = g_szNamespace;
+
+    // 작업을 위한 임시 테스트용
+    if(confirm("내보기내기를 진행하시겠습니까?")) {
+      // 검증이력 dialog
+      g_yamlPath = szArsenalHost + szNamespace + "/" + szProjectName + szArsenalPath + szProjectName + ".yaml";
+      //$(".popArsenal").dialog("close");
+      $(".popArsenal").dialog({title:"EXPORT TO ARSENAL", minWidth:1000, resizable: false, modal:false});
+      $("#idSpanReturn").text("");  // 내보내기 결과 셋업
+        $("#idSpanErrorCode").text(""); // 에러코드 셋업
+        $("#idSpanErrorMsg").text("");  // 에러메세지 셋업
+        $(".data_link").parent().removeClass("process_failure_next");
+        $(".data_link").parent().removeClass("process_success_next");
+        $(".data_link").parent().removeClass("process_failure_prev");
+        $(".data_link").parent().removeClass("process_success_prev");
+
+        //event.preventDefault();
+        // 프로젝트 ID 전역변수에 담음
+      //g_szProjectId = fnGetProjectIdFromGitlab(szNamespace);
+        //console.log("Project ID:" + g_szProjectId);
+
+        fnGetFileInfoFromGitlab(szNamespace);
+        if(g_bIsExsist) {
+        g_bIsExsist = true;
+        $(".data_link").parent().addClass("process_success_next");
+        $("#idSpanReturn").text("성공");  // 내보내기 결과 셋업
+    }
+
+      window.setTimeout((function () { $(".popArsenal").dialog("open"); }), 50);
+      $("#idSpanYamlPath").html(g_yamlPath);
+
+    }
+  }
+
+  /* Gitlab 내보내기 콜백함수
+   * Ymal 파일을 Gitlab에 업로드처리
+   * Program By CYD - 2020.05.07
+   */
+    function fn_export_GITLAB() {
+    var confirmMsg = g_bIsExsist == true ? "Gitlab서버에 해당 파일이 존재합니다.\n파일을 덮어쓰기 하시겠습니까?" : "내보기내기를 진행하시겠습니까?"
+    var szNamespace = "";
+    var szProjectId = "";
+
+    //szNamespace = typeof g_yamlOb['info']['termsOfService'] == "undefined" ? "" : g_yamlOb['info']['termsOfService'];
+
+    if(g_szNamespace == "") {
+      $("#idSpanReturn").text("실패"); // 내보내기 결과 셋업
+        $("#idSpanErrorCode").text("0"); // 에러코드 셋업
+        $("#idSpanErrorMsg").text("네임스페이스명이 Null입니다.");   // 에러메세지 셋업
+        return;
+    } else {
+      if(g_szProjectId == "E404") {
+        $("#idSpanReturn").text("실패"); // 내보내기 결과 셋업
+          $("#idSpanErrorCode").text(g_szProjectId); // 에러코드 셋업
+          $("#idSpanErrorMsg").text("Gitlab서버에 " + g_projectName + "프로젝트가 존재하지 않습니다.");   // 에러메세지 셋업
+          return;
+      } else if(g_szProjectId == "E500") {
+          $("#idSpanReturn").text("실패"); // 내보내기 결과 셋업
+            $("#idSpanErrorCode").text(g_szProjectId); // 에러코드 셋업
+            $("#idSpanErrorMsg").text("서버 오류가 발생했습니다.");   // 에러메세지 셋업
+            return;
+        }
+    }
+
+    if(confirm(confirmMsg)) {
+      // Gitlab서버에 해당 프로젝트가 존재하지 않습니다. 프로젝트 생성을 하시고 다시 진행해 주세요. 계속 같은 오류가 발생하면 운영팀(adc@kt.com)으로 문의 바랍니다
+      // Gitlab서버 동기화 중 네트워크 오류가 발생하여 내보내기 실패했습니다. 잠시 후 다시 진행해 주세요. 계속 같은 오류가 발생하면 운영팀(adc@kt.com)으로 문의 바랍니다
+      //alert(g_yamlPath + "Gitlab서버에 내보내기를 완료하였습니다");
+      var mothod    = "POST";
+      var commitMsg = "create a new file";
+
+      if(g_bIsExsist) {
+        mothod    = "PUT";
+        commitMsg = "update file";
+        //alert("Gitlab서버에 '" + g_projectName + ".yaml' 파일이 존재하지 않습니다. 잠시 후 다시 진행해 주세요.\n\n계속 같은 오류가 발생하면 운영팀(adc@kt.com)으로 문의 바랍니다");
+        //return;
+      }
+
+      var szGitlabHost = $("#idGitlabArsenalHost").val() + "api/v4/projects/" + g_szProjectId + "/repository/files/devops%2Fswagger%2F";
+      var szFilePath   = g_projectName + "%2Eyaml";
+      var szAjaxUr   = "/apidev/api/arsenal/exportApiToGitlab";
+
+      //console.log(szFilePath);
+      var param          = new Object();
+      param.branch     = "master";
+        param.content        = YAML.stringify(g_yamlOb);//YAML.stringify($('#yamlSbst').val());
+        param.commit_message = commitMsg;
+        param.projectId    = g_szProjectId;
+        param.projectName    = g_projectName;
+        param.methodType   = mothod;
+        param.apiSpcNo     = g_apiSpcNo;
+
+      $.ajax({
+          url    : szAjaxUr,//szGitlabHost + szFilePath,
+          type   : "POST",
+          data   : JSON.stringify(param),
+          async  : false,
+          cache  : false,
+          crossDomain: true,
+          dataType:'json',
+            contentType: 'application/json;charset=utf-8',
+          success: function(data){
+            var projectData = JSON.parse(data.info.jsonResponse);
+            $("#idSpanErrorCode").text(""); // 에러코드 셋업
+            $("#idSpanErrorMsg").text("");  // 에러메세지 셋업
+            $(".data_link").parent().removeClass("process_failure_next");
+            $(".data_link").parent().removeClass("process_success_next");
+            $(".data_link").parent().addClass("process_success_next");
+            $("#idSpanReturn").text("성공");  // 내보내기 결과 셋업
+            alert("Gitlab서버에 내보내기를 완료하였습니다");
+
+            /*$.each(data, function() {
+              $.each(this, function(k,v){
+                console.log("K:" + k + "=>V:" + v);
+              });
+            });*/
+            console.log("Gitlab:" + data.file_path);
+          },
+          error:function(request,status,error){
+            //err_message(status, error);
+            $("#idSpanReturn").text("실패");  // 내보내기 결과 셋업
+            $("#idSpanErrorCode").text(status); // 에러코드 셋업
+            $("#idSpanErrorMsg").text(error);   // 에러메세지 셋업
+            $(".data_link").parent().removeClass("process_failure_next");
+            $(".data_link").parent().removeClass("process_success_next");
+            $(".data_link").parent().addClass("process_failure_next");
+
+            alert("Gitlab서버 동기화 중 오류가 발생하여 내보내기 실패\n하였습니다. 잠시 후 다시 진행해 주세요.\n\n계속 같은 오류가 발생하면 운영팀(adc@kt.com)으로 문의 바랍니다");
+          }
+      });
+
+    }
+  }
+
+    /* 프로젝트 Yaml 파일 존재유무 확인 함수
+     * Gitlab서버에 Yaml파일이 존재하는지 확인하는 함수
+     * Program By CYD - 2020.05.07
+     */
+  function fnGetFileInfoFromGitlab(projectNamespace) {
+
+    var szNamespace  = typeof projectNamespace == "undefined" ? "" : projectNamespace;
+    var szGitlabHost = $("#idGitlabArsenalHost").val() + "api/v4/projects/" + g_szProjectId + "/repository/files/devops%2Fswagger%2F";
+    var szFilePath   = g_projectName + "%2Eyaml?ref=master";
+    var szReturn   = true;
+    var szAjaxUr   = "/apidev/api/arsenal/getFileFromGitlabAjax";//szGitlabHost + szFilePath;
+    var param        = new Object();
+
+    param.projectName = g_projectName;
+    param.namespace   = szNamespace;
+
+    $.ajax({
+        url    : szAjaxUr,
+        type   : 'POST',
+        data   : JSON.stringify(param),
+        async  : false,
+        cache  : false,
+        crossDomain: true,
+        contentType: 'application/json',
+        dataType:'json',
+        success: function(data){
+          var projectData = JSON.parse(data.info.jsonResponse);
+
+          if(data.projectId != "") {
+
+            if(projectData.file_name != g_projectName + ".yaml") {
+              g_bIsExsist = false;
+            } else {
+              g_bIsExsist = true;
+            }
+
+            g_szProjectId = data.projectId;
+
+          } else {
+            if(projectData.errorCode == "404") {
+              g_bIsExsist   = false;
+                g_szProjectId = "E404";
+            } else {
+              g_bIsExsist   = false;
+              g_szProjectId = "E500";
+            }
+          }
+
+          console.log("Gitlab: " + g_szProjectId);
+          //alert(data.errorcode + ": " + data.errordescription);
+          //fn_export_GITLAB_(YAML.stringify(data.Content));
+          //console.log("ProjectName: " + YAML.stringify(data.Content));
+        },
+        error:function(request,status,error){
+          g_bIsExsist   = false;
+          g_szProjectId = "";
+          console.log("Gitlab Error: " + error);
+        }
+      });
+  }
+
+  function fnGetYamlInfoFromDB(apiSpcNo) {
+    var szReturn = true;
+
+    var param = {
+        'apiSpcNo': apiSpcNo
+      };
+
+    $.ajax({
+      url    : /*[[@{/api/main/getYmalAjax.do}]]*/ '/api/main/getYmalAjax.do',
+      type   : 'POST',
+      data   : param,
+      dataType:'json',
+      async  : false,
+        cache  : false,
+      success: function(data){
+        if(data == null || data.file_name != g_projectName + ".yaml") {
+          szReturn = false;
+        }
+        g_yamlOb = YAML.parse(data.info.yamlSbst);
+        g_projectName = data.info.apiNm;
+        g_szNamespace = data.info.projectNamespace;
+        console.log("YMAL:" + g_yamlOb);
+        console.log("Project Name:" + g_projectName);
+      },
+      error:function(request,status,error){
+        szReturn = false;
+        console.log("code:" + request.status + "\n" + "error:" + error);
+      }
+    });
+
+    return szReturn;
+  }
+
+  // 20250821 CodeScanning
+  /* 프로젝트 ID 정보 가져오기 함수
+   * Gitlab서버에서 가져온 프로젝트 목록 중에서 프로젝트명에 해당하는 식별값을 읽어옴
+   * Program By CYD - 2020.05.15
+   */
+  /*function fnGetProjectIdFromGitlab(a_szNamespace) {
+
+    // 작업을 위한 임시 테스트용
+    var szGitlabHost = $("#idGitlabArsenalHost").val() + "api/v4/projects/";
+    var szFilePath   = a_szNamespace + "%2F" + g_projectName;
+    var szProjectId  = "0";
+
+    $.ajax({
+      url    : szGitlabHost + szFilePath,
+      type   : 'GET',
+      async  : false,
+      cache  : false,
+      crossDomain: true,
+      dataType:'json',
+      headers: {"PRIVATE-TOKEN": "yyuCn4SDn_N5Abyyzbsa"},
+      success: function(data){
+        if(data != null) {
+          szProjectId = data.id;
+        }
+      },
+      error:function(request,status,error){
+        szProjectId = "E404";
+        console.log(status + ":" + error);
+        //alert("파일 불러오기 실패:" + error);
+      }
+    });
+
+    return szProjectId;
+  }
+*/
+
+    function fn_export_history_ARSENAL(apiSpcNo) {
+      apiSpcNo = typeof apiSpcNo == "undefined" ? g_apiSpcNo : apiSpcNo;
+      apiArsenalHstAjax(apiSpcNo);
+    }
+
+
+    /*
+    ** 권한체크기준
+    **  1. 등록한 사용자
+    **  2. 수정권한이 있는 사용자(관리자 및 운영자가 부여)
+    ** 위 두가지 조건을 제외한 나머지 사용자들은 수정불가
+    **
+    ** CYD - 2020.07.14
+    *///////////////////////////////////////////////
+    function fnApiAuthCheck() {
+      //var b_is_spc_loaded = (($('#pApiSpcNo').val()||'').length > 0);
+      if(g_isAuthYn == "N") {
+        //alert("수정권한이 없습니다!");
+        var btnHtm = "";
+        btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_confirm" id="cCbtn">확인</button> ';
+        fnOpenLayer(btnHtm, 'API권한경고','권한이 없습니다!<br>권한이 필요하시다면 운영팀(apilink@kt.com)으로 문의 주세요.' );
+        return false;
+      }
+
+      return true;
+    }
+    ///////////////////////////////////////////////
+   /* [tag:job-20200420][add] } */
+
+  var editorTomcatUse     = /*[[${@environment.getProperty('editor.tomcat.use')}]]*/ ''      // 에디터 톰캣 사용여부
+  var editorTomcatHostUse = /*[[${@environment.getProperty('editor.tomcathost.url')}]]*/ ''    // 에디터 톰캣 사용여부
+  var editorHostUrl       = /*[[${@environment.getProperty('editor.host.url')}]]*/ ''            // 에디터 호스트 url
+  var editorDefultHost    = /*[[${@environment.getProperty('editor.defult.host')}]]*/ ''     // 에디터 기본정보 디폴트 호스트
+
+  var userId    = (g_enCmbrId == '') ? 'nouser' : g_enCmbrId;
+  var sessionKey  = 'sessionkey';
+
+  // yaml 테스트 버튼 (클릭시 팝업창으로 연결)
+  /**
+   * userId : 유저 ID
+   * import : yaml 저장 경로
+   * */
+  function yamlEditorOpen(apiSpcNo) {
+    userwidth   = (screen.width - 15);
+    userheight  = (screen.height - 130);
+
+    if ('true' == editorTomcatUse) {
+      window.sessionStorage.setItem('sessionkey', sessionKey);
+      window.sessionStorage.setItem('mbrid', userId);
+      window.sessionStorage.setItem('apino', apiSpcNo);
+      window.sessionStorage.setItem('new', false);
+      window.sessionStorage.setItem('no-proxy', true);
+      openOnceTomcat(editorTomcatHostUse, 'MyWindowName', 'left=0, top=0, width=' + userwidth + ', height=' + userheight + ', resizable=yes, men ubar=no, status=no, toolbar=no');
+    }
+    else {
+      openOnce(editorHostUrl + 'mbrid=' + userId + '&apino=' + apiSpcNo + '&new=true&no-proxy=false&sessionkey=' + sessionKey, 'MyWindowName', 'left=0, top=0, width=' + userwidth + ', height=' + userheight + ', resizable=yes, menubar=no, status=no, toolbar=no');
+    }
+  }
+
+  // yaml 에디터 관련 이벤트
+  var winref
+  function openOnceTomcat(url, target, options) {
+    if (winref) {
+      winref.close();
+    }
+    // open a blank "target" window
+    // or get the reference to the existing "target" window
+    winref = window.open('', target, options, false);
+    winref.location.href = url;
+    return winref;
+  }
+  function openOnce(url, target, options) {
+    if (winref) {
+      winref.close();
+    }
+    // open a blank "target" window
+    // or get the reference to the existing "target" window
+    winref = window.open('', target, options, false);
+    winref.location.href = url;
+    // winref.location.reload(true);
+    // winref.document.getElementById("onEditorBtn").click()
+    // if the "target" window was just opened, change its url
+    if (winref.location.href === 'about:blank') {
+      winref.location.href = url;
+    }
+    return winref;
+  }
+  //이미지 태그 클릭 시에도 이벤트 적용
+  $(document).on('click', '.call_review', function() {
+    selTabFnc('3')  ;
+  });
+  $(document).on('click', '.call_dev', function() {
+    selTabFnc('4')  ;
+  });
+</script>
+
+<!-- 아스날 내보내기 팝업 -->
+<th:block th:replace="~{api/arsenal/popExportToArsenal :: popExportToArsenal}"></th:block>
+
+<div id="container">
+  <div class="sVisual sv_regiapi">
+    <div>
+      <h2>API 등록</h2>
+      <p>여러분이 생각하는 모든 생각들을 API로 만들고 KT 플랫폼을 이용하여 서비스 해보세요</p>
+    </div>
+  </div>
+  <form id="actionForm" name="actionForm" method="post" >
+    <input type="hidden" id="selTab" name="selTab"  value="" />
+    <input type="hidden" id="tabCode" name="tabCode"  value="" />
+    <input type="hidden" id="apiSpcNo" name="apiSpcNo" value="" />
+    <input type="hidden" id="apiNm" name="apiNm"  value="" />
+    <input type="hidden" id="sysIdNm" name="sysIdNm"  value="" />
+    <input type="hidden" id="sysId" name="sysId"  value="" />
+    <input type="hidden" id="apiReviewRqtNo" name="apiReviewRqtNo" value="" />
+    <input type="hidden" id="lastVer" name="lastVer" value="" />
+
+    <div class="contents style_gray">
+      <div class="conBox">
+        <div class="pg_location"><a>Go home</a> <span>></span> API 등록</div>
+        <div id="content">
+          <!-- regiApi_wrap -->
+          <div class="regiApi_wrap">
+            <div class="regi_status_bar">
+              <div class="regi_user_info">
+                <p th:text="|${ssUserVo.maskingMbrId}님 환영합니다!|">홍길동님 환영합니다!</p>
+                <div th:with="firstAuth=${ssUserVo.authList != null and !ssUserVo.authList.isEmpty() ? ssUserVo.authList[0] : null}">
+                  <span>[[${firstAuth != null ? firstAuth.sysId : ''}]] / <strong>[[${firstAuth != null ? firstAuth.autNm : ''}]]</strong></span><a href="javascript:void(0)" onclick="goMyPage();" class="btn_detailView" title="DetailView">DetailView</a>
+                </div>
+              </div>
+              <div class="regi_dashBoard">
+               <!--<div class="call_review"><p>검토요청 : <a href="#tab3" onclick="selTabFnc('3');" title="10">${replyCnt}</a>건</p></div>-->
+                <div class="call_dev" ><p>개발요청 : <a href="#tab4" onclick="selTabFnc('4');" title="10" th:text="${reqCnt}">10</a>건</p></div>
+                <div class="btns">
+                 <!--<a href="javascript:void(0)" id="devReqBtn" class="btn-lg btn_gray" title="API 개발요청"><span>API 개발요청</span></a>-->
+                  <a href="javascript:void(0)" id="newApiBtn" onclick="mvApiReg('','');" target="_self" class="btn-lg btn_gray" title="신규 API 만들기"><span>신규 API 만들기</span></a>
+                </div>
+              </div>
+            </div>
+            <div class="search_wrap">
+              <p>Search</p>
+              <div class="search_bar">
+                <div><input type="text" id="schText" name="schText" value="" placeholder="검색어를 입력해주세요."></div>
+                <button type="button" class="btn_search"><span>검색</span></button>
+              </div>
+              <button type="button" class="btn_refresh"><span>새로고침</span></button>
+            </div>
+          </div>
+          <!-- // regiApi_wrap -->
+
+          <div class="regi_list">
+            <ul class="tab_list">
+              <li id="tabId1" data-tab="tab1" class="current"><a href="#tab1" onclick="selTabFnc('1');"><span>작성중</span></a></li>
+
+            </ul>
+
+            <div id="tab1" class="tabcontent current">
+              <h6>작성중 Tab</h6>
+              <!-- accordion list start one Set -->
+              <ul class="accordion"></ul>
+            </div>
+
+            <div id="tab2" class="tabcontent">
+              <h6>등록완료 Tab</h6>
+              <!-- accordion list start one Set -->
+              <ul class="accordion"></ul>
+            </div>
+
+            <div id="tab3" class="tabcontent">
+              <h6>검토요청 Tab</h6>
+              <!-- accordion list start three Set -->
+              <ul class="accordion"></ul>
+              <!-- // accordion list start three Set -->
+            </div>
+
+            <div id="tab4" class="tabcontent request_dev">
+              <h6>개발요청 Tab</h6>
+              <ul class="defualt_list"></ul>
+            </div>
+
+            <!-- paging -->
+            <div class="paging"  id="noticePaging"></div>
+
+          </div><!-- .regi_list -->
+        </div><!-- #content -->
+      </div><!-- .conBox -->
+    </div><!-- .contents style_gray -->
+  </form>
+</div><!-- #container -->
+
+<div class="dim_layer"></div>
+
+<!--// popup content 버전업 -->
+<div class="pop_versionup" title="버전업">
+  <!--  popup content Start  -->
+  <div class="popup_content">
+    <div class="pkg_board">
+      <table class="table-vw">
+        <caption>API 검토요청 내용 Table</caption>
+        <colgroup><col style="width:20%;"><col></colgroup>
+        <tbody>
+          <tr>
+            <th scope="row"><div>버전</div></th>
+            <td class="ver_field"><div><input type="text" id="popVerValue" name="popVerValue" title="버전 입력" onkeyup="checkNumber(this);" maxlength=10 ></div><span class="new_ver">최신버전 : <strong id="popLastVer">1.01</strong></span></td>
+          </tr>
+          <tr>
+            <th scope="row"><div>코멘트</div></th>
+            <td><div class="txtarea_wrap"><textarea title="코멘트 입력" id="popVerDesc" name="popVerDesc"></textarea></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div><!-- .pkg_board -->
+    <div class="lPop_bottom brd_tp">
+      <button type="button" title="API생성" class="btn btn_black" id="btnApiVerUp">API생성</button>
+      <button type="button" title="취소" class="btn" onclick="closeVerUpPopup();">취소</button>
+    </div><!-- .lPop_bottom brd_tp -->
+  </div><!-- .popup_content -->
+</div><!-- ."pop_versionup" -->
+<!-- popup content 버전업 //-->
+
+<!--// popup content 코멘트 -->
+<div class="pop_comment" title="코멘트">
+  <!--  popup content Start  -->
+  <div class="popup_content">
+    <div class="pkg_board">
+      <table class="table-vw">
+        <caption>API 검토요청 내용 Table</caption>
+        <colgroup><col style="width:20%;"><col></colgroup>
+        <tbody>
+          <tr>
+            <th scope="row"><div>버전</div></th>
+            <td class="ver_field" id="popupVer"  ></td>
+          </tr>
+          <tr>
+            <th scope="row"><div>코멘트</div></th>
+            <td><div class="txtarea_wrap" id="popupDesc" >인증 툴 부분에 대한 스크립트가 추가 되었습니다.</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div><!-- .pkg_board -->
+    <div class="lPop_bottom brd_tp">
+      <button type="button" title="닫기" class="btn btn_black" onclick="closeCommentPop();" >닫기</button>
+    </div><!-- .lPop_bottom brd_tp -->
+
+  </div><!-- .popup_content -->
+</div><!-- .pop_comment -->
+<!-- popup content 코멘트 //-->
+
+<!--// popup content 알림 -->
+<div class="pop_alert_main" title="알림">
+  <!--  popup content Start  -->
+  <div class="popup_content">
+    <div class="alert_txt"></div><!-- .alert_txt -->
+    <div class="lPop_bottom brd_tp">
+      <!-- <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm">확인</button> -->
+      <button type="button" title="Ok" class="btn btn_sml3 btn_black cid_btn_popup btn_popup_close">확인</button>
+      <button type="button" title="Save" class="btn btn_sml3 btn_black cid_btn_popup btn_popup_save" style="display:none;" onclick="savApiVerProgress();">확인</button>
+      <button type="button" title="delete" class="btn btn_sml3 btn_black cid_btn_popup btn_popup_delete" style="display:none;" onclick="delDevApi();">삭제</button>
+      <button type="button" title="convertPrivate" class="btn btn_sml3 btn_black cid_btn_popup btn_popup_convert_private" style="display:none;" onclick="convertPrivateApi();">전환생성</button>
+      <button type="button" title="Cancel" class="btn btn_sml3 cid_btn_popup btn_popup_cancel" style="display:none;">취소</button>
+    </div><!-- .lPop_bottom brd_tp -->
+  </div><!-- .popup_content -->
+</div><!-- .pop_alert_main -->
+<!-- popup content 알림 //-->
+
+<script>
+  $(".pop_versionup, .pop_comment").dialog({
+    autoOpen: false, width: 600, modal:true, resizable: false
+  });
+  $(".pop_alert_main").dialog({
+    autoOpen: false, dialogClass: 'pop_alert_wrap', modal: true, resizable: false
+  });
+
+  $(".btn_confirm, .btn_popup_cancel, .btn_popup_close").click(function(event) {
+    event.preventDefault();
+    $(".pop_alert_main").dialog("close");
+    setBasicAlertBtn();
+  });
+</script>
+
+<!-- [tag:20200913][add] -->
+<th:block th:if="${b_is_master}">
+<!-- ApiYamlTool { -->
+<th:block th:replace="~{api/popApiYamlTool :: popApiYamlTool}"></th:block>
+<!-- ApiYamlTool } -->
+</th:block>
+</div>
+</body>
+</html>

@@ -161,7 +161,11 @@ public class ApiMainController {
 		
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
-		
+		model.addAttribute("sIsAuthYn", isAuthYn);
+
+		String devMasterId = (String) session.getAttribute("dev.master.id");
+		model.addAttribute("b_is_master", devMasterId != null && devMasterId.equalsIgnoreCase("master"));
+
 		mv.setViewName("api/main");
 		
 		return mv;

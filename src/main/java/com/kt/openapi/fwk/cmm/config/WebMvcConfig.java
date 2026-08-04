@@ -234,7 +234,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/apiSearchList",
             "api/info/list",
             "api/sensitiveInfoReport",
-            "api/sensitiveInfoRegister"
+            "api/sensitiveInfoRegister",
+            "api/main"
         });
         return resolver;
     }
