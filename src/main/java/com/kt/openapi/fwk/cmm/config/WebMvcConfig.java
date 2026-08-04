@@ -229,7 +229,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "userJoin/userInfo",
             "userJoin/userJoin",
             "mypage/console",
-            "mypage/mypage"
+            "mypage/mypage",
+            "api/searchMain",
+            "api/apiSearchList",
+            "api/info/list"
         });
         return resolver;
     }

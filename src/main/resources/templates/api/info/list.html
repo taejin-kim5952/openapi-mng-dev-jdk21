@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!--/* api/info/list.jsp -> Thymeleaf 변환. mvInfoList() 컨트롤러가 totalCnt/sysList/cateList를 모델에
+     추가한 적이 없어(grep 확인) 전부 항상 null - 원본에서도 카테고리 드롭다운의 동적 부분(sysList/cateList
+     forEach)이 실제로는 항상 비어서 렌더링되지 않던 페이지. th:each/th:if는 null/빈 컬렉션에 대해 JSTL
+     forEach와 동일하게 0회 반복하므로 별도 하드코딩 없이 그대로 변환. mvInfoView.do(상세보기, api/info/view.jsp
+     대상)는 컨트롤러 전체가 주석 처리된 죽은 코드로 확인 - 2252줄짜리 info/view.jsp는 변환하지 않음. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiInfo', bodyClass=null)}">
+<head>
+    <title>KT Open API</title>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        //api 선택에 따른 데이터 조회
+        function fnSelApiSearch(){
+        	var param 		= new Object();
+        	param.schText	= $('#schText').val();
+        	param.ctgryNm	= $('#ctgryNm').val();
+
+        	$.ajax({
+        		url    : /*[[@{/api/info/selApiAjax.do}]]*/ '/api/info/selApiAjax.do',
+        		type   : 'POST',
+        		data   : param,
+        		success: function(data){
+        			setTabData(data);
+        		},
+        		error:function(request,status,error){
+        			alert("code:"+request.status+"\n"+"error:"+error);
+        	    }
+        	});
+        }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content">
+<input type="text" id="ctgryNm" name="ctgryNm" value="" />
+<form id="actionForm" name="actionForm" method="post">
+</form>
+<div id="container">
+		<div class="sVisual sv_apisearch">
+			<div>
+				<h2>OPEN API 검색</h2>
+				<p>KT 플랫폼을 통해 개발된 다양한 Open API 서비스를 검색해 보세요</p>
+			</div>
+		</div>
+		<div class="contents style_gray search_only">
+			<div class="conBox">
+				<div class="pg_location"><a>Go home</a> <span>&gt;</span> OPEN API 검색</div>
+
+				<div id="content">
+                    <!-- regiApi_wrap -->
+                    <div class="regiApi_wrap ">
+                        <div class="search_wrap">
+                            <p>Search</p>
+                            <div class="search_bar">
+                                <div><input type="text" id="schText" placeholder="검색어를 입력해주세요."></div>
+                                <button type="button" class="btn_search"><span>검색</span></button>
+                            </div>
+                            <button type="button" class="btn_refresh"><span>새로고침</span></button>
+                        </div>
+                    </div>
+                    <!-- // regiApi_wrap -->
+
+                    <div class="regi_list">
+                        <p class="search_result">&#8220; Open API <span th:text="${totalCnt} + '건'"></span>을 찾았습니다.&#8221;</p>
+
+                        <ul class="tab_list tab_c7">
+                        	<li id="sysIdtotal" data-tab="tab1" class="current"><a href="javascript:;" title="전체" onClick="javascript:selList('' );" ><span>전체</span></a></li>
+                        	<li id="SHUB" data-tab="tab2" class=""><a href="javascript:;" title="" onClick="javascript:selList('SHUB');" ><span>SHUB</span></a></li>
+                        	<li id="IOTMAKERS" data-tab="tab3" class=""><a href="javascript:;" title="" onClick="javascript:selList('IOTMAKERS');" ><span>IoTMakers</span></a></li>
+                        	<li id="UCLOUDBIZ" data-tab="tab4" class=""><a href="javascript:;" title="" onClick="javascript:selList('UCLOUDBIZ');" ><span>ucloud biz</span></a></li>
+                        	<li id="GIGAGENIE" data-tab="tab5" class=""><a href="javascript:;" title="" onClick="javascript:selList('GIGAGENIE');" ><span>GiGA Genie</span></a></li>
+                        	<li id="OLLEHMAP" data-tab="tab6" class=""><a href="javascript:;" title="" onClick="javascript:selList('OLLEHMAP');" ><span>olleh map biz</span></a></li>
+                        	<li id="ETC" data-tab="tab7" class=""><a href="javascript:;" title="" onClick="javascript:selList('ETC');" ><span>기타</span></a></li>
+                        </ul>
+
+                        <div class="category_wrap">
+                            <strong>검색결과</strong>
+
+                            <div class="category_select">
+                                <div class="select open">
+                                    <span class="ctrl"><span class="arrow"></span></span>
+                                    <button type="button" class="myValue">카테고리 검색</button>
+                                    <div class="category_list">
+                                        <p><span>카테고리</span> 검색</p>
+
+                                        <ul class="innertab_list vertical">
+                                        	<li th:each="item, status : ${sysList}" th:class="${status.index == 0} ? 'innercurrent' : ''" th:attr="data-tab2='inner_tab' + ${status.count}">
+                                        		<a href="javascript:;" th:title="${item.sysNm}"><span th:text="${item.sysNm}"></span></a>
+                                        	</li>
+                                        </ul>
+										<div th:each="item, status : ${sysList}" th:id="'inner_tab' + ${status.count}" th:class="'innertabcontent ' + (${status.index == 0} ? 'innercurrent' : '')">
+											<ul class="aList">
+											<li th:each="ctItem : ${cateList}" th:if="${item.sysId == ctItem.sysId}">
+												<a href="javascript:;" th:attr="onclick=|selCateList( '${item.sysId}' , '${ctItem.ctgryNm}' );|" title="카테고리명" th:text="${ctItem.ctgryNm}"></a>
+											</li>
+											<h4 th:if="${cateList == null or cateList.?[sysId == item.sysId].isEmpty()}">등록된 카테고리가 없습니다.</h4>
+											</ul>
+										</div>
+
+                                        <button type="button" title="카테고리검색 끄기" class="layer_close"><span>카테고리검색 끄기</span></button>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="tab1" class="tabcontent current">
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

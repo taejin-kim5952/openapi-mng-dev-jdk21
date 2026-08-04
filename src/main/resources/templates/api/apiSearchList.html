@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!--/* api/apiSearchList.jsp -> Thymeleaf 변환. 컨트롤러(ApiSearchController.apiSearch)가 모델에 "sysId"를
+     추가한 적이 없어(grep 0건) ${sysId}는 항상 null인 dead 참조 - "전체" 탭이 항상 on 상태이고 다른 서비스
+     탭은 절대 on이 되지 않는 원본의 실제 동작을 그대로 보존. 원본 마크업에 class 속성이 svscd 뒤에 중복
+     선언되어 있었으나(브라우저는 첫 번째 class만 사용, 두 번째는 무시) 실효 결과는 동일하므로 단일
+     th:class로 정리. b_is_except_group_A(c:set+c:forEach로 "A/G 운영자 그룹" 권한 존재 여부를 누적 판정하던
+     로직)는 SpEL selection 연산자로 단일 불리언 계산으로 축약(동작 동일, 로직 단순화일 뿐 의미 변경 없음). */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='default', bodyClass=null)}"
+      th:with="bIsExceptGroupA=${ssUserVo != null and ssUserVo.authList != null and not ssUserVo.authList.?[autNm == 'A/G 운영자 그룹'].isEmpty()}">
+<head>
+    <title>API 검색</title>
+    <script th:src="@{/resources/js/pub/swiper.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        $(document).ready(function() {
+        	fnSearch(1);//조회
+        });
+
+        function fnSearch(pageIdx){
+        	var sysId = "";
+        	$(".swiper-wrapper > .swiper-slide").each(function(idx){
+           		if($(this).hasClass("on") == true  ){
+           			sysId = $(this).attr("svscd");
+           		}
+        	});
+
+        	var param = {
+        			searchKeyword: $("#searchKeyword").val(),
+        			searchCondition: $("#searchCondition").val(),
+        			pageIndex: pageIdx,
+        			sysId:sysId,
+        			searchYn : 'true'
+        	};
+        	/*[# th:if="${bIsExceptGroupA}"]*/
+        	//-- regSttusCd: [all, APIREG1010, APIREG1020, APIREG1030, APIREG1040]
+        	param['regSttusCd'] = 'all';
+        	/*[/]*/
+        	$.ajax({
+        	 	url    : /*[[@{/api/search/apiSearchListAjax.do}]]*/ '/api/search/apiSearchListAjax.do',
+        	 	type   : 'POST',
+        	 	data   : param,
+        	 	dataType: "json",
+        	 	success: function(data){
+        	 		$('.tb_search').children().remove();
+        	 		var htm = "";
+        	 		if(data.nlist != null && data.nlist.length != 0){
+        	 			$('#serachResult').children().remove();
+        	 			var resultMsg = 'API <span>'+comma(data.paginationInfo.totalRecordCount)+'건</span>을 찾았습니다.';
+        	 			$('#serachResult').html(resultMsg);
+        	 			$.each(data.nlist, function(i, item) {
+        	 				htm +='<li>';
+        		 			htm +='	<div class="tit_api">';
+        		 			htm +='		<span>'+item.sysIdNm+'</span> <strong>'+item.apiSpcNm+'</strong>';
+        		 			htm +='	</div>';
+        		 			htm +='	<div class="con_api">';
+        		 			htm +='		<a href="javascript:goApiInfo(\''+item.apiSpcNo+'\', \''+item.apiNo+'\');">';
+        		 			if(item.showStatusCd == 'SHOWST1010'){//대내
+        		 				htm += '<span class="ico_keyR">';
+        		 			}else if(item.showStatusCd == 'SHOWST1020'){//대외
+        		 				htm += '<span class="ico_keyB">';
+        		 			}
+        		 			htm += item.fApiNm+'</span>';
+        		 			htm +='			<p>'+item.fApiDesc+'</p>';
+        		 			htm +='		</a>';
+        		 			htm +='	</div>';
+        		 			htm +='</li>';
+        				});
+        				drawPaging('paging' ,data.paginationInfo.currentPageNo ,data.paginationInfo.firstPageNoOnPageList ,data.paginationInfo.totalPageCount,data.paginationInfo.lastPageNoOnPageList  ,'pageGo');
+        	 		}else{
+        	 			$('#serachResult').children().remove();
+        	 			var resultMsg = 'API <span>0건</span>을 찾았습니다.';
+        	 			$('#serachResult').html(resultMsg);
+        	 			htm +='<li>';
+        	 			htm +='	<div class="ac">데이터가 없습니다.</div>';
+        	 			htm +='</li>';
+        	 		}
+        	 		$('.tb_search').append(htm);
+        	    }
+        	});
+        }
+
+        var goApiInfo = function(apiSpcNo, apiNo){
+        	window.open("about:blank").location.href = c_url+'api/info/mvInfoView.do?apiSpcNo='+apiSpcNo+'&apiNo='+apiNo;
+        }
+
+        //서비스 메뉴 클릭
+        function fnService(obj){
+        	if($(obj).attr('svscd') == ''){//서비스 전체 클릭 시 검색 항목 초기화
+        		$('#searchCondition option').eq(0).prop('selected', true);
+        		$('#searchKeyword').val('');
+        	}
+        	$(".swiper-wrapper > .swiper-slide").removeClass("on");
+        	$(obj).parent().addClass("on");
+        	fnSearch(1);
+        }
+
+        //페이징 조회
+        function pageGo(pageIndex){
+        	fnSearch(pageIndex);
+        }
+
+        //키워드 검색
+        function fnKeywordSearch(){
+        	if($("#searchCondition option:selected").val() != "" && $('#searchKeyword').val().trim() == ""){
+        		alert('검색어를 입력해 주세요.');
+        		return;
+        	}
+        	fnSearch(1);
+        }
+
+        /*]]>*/
+    </script>
+    <style>
+    	header{
+    	    position: fixed;
+    	    width: 100%;
+    	    height: 107px;
+    	    background: rgba(24,24,24,.85);
+    	    z-index: 3;
+    	    top: 0;
+    	}
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+<div id="container">
+	<div class="tit_contents tit_Api" style="margin-top: 107px;">
+		<div style="padding-top:180px important;">
+			<h2>API 검색</h2>
+			<span style="line-height:50px !important;">무엇이 궁금하신가요?</span>
+			</div>
+	</div>
+	<div>
+		<div class="conBox">
+			<div class="pg_location" style="top:2% !important;"><a>Go home</a> <span>&gt;</span> OPEN API 검색</div>
+			<div id="content">
+				<div class="box_searchred">
+					<select id="searchCondition">
+						<option value="">API이름 + API설명</option>
+						<option th:each="searchList : ${searchList}" th:value="${searchList.comnCd}" th:text="${searchList.cdNm}"></option>
+					</select> <span><input type="text" placeholder="검색어를 입력하세요" id="searchKeyword" name="searchKeyword" onkeyup="CheckStrLength(100,'searchKeyword')" onKeyPress="if (event.keyCode==13){fnKeywordSearch()};"/>
+					<button onclick="fnKeywordSearch()">검색</button></span>
+				</div>
+				<div class="tab_board02">
+					<div  class="btn_l swiper-button-prev">◀</div>
+					<div class="list_navi swiper-container">
+						<div class="swiper-wrapper">
+							<div class="swiper-slide on"><a th:href="@{/api/search/apiSearch.do}">전체</a></div>
+							<th:block th:if="${serviceList != null and not serviceList.isEmpty()}">
+								<div class="swiper-slide" th:each="serviceList : ${serviceList}" th:attr="svscd=${serviceList.sysId}"><a href="javascript:;" onclick="fnService(this)" th:text="${serviceList.sysNm}"></a></div>
+							</th:block>
+						</div>
+					</div>
+					<div class="btn_R swiper-button-next">▶</div>
+				</div>
+
+				<div class="txt_apiSearch" style="line-height: initial;">
+					<strong>검색결과</strong>
+					<div id="serachResult">
+					</div>
+				</div>
+
+				<ul class="tb_search"></ul>
+
+				<div class="wrap_paging" id="paging"></div>
+		    </div>
+		</div>
+	</div>
+</div>
+</div>
+</body>
+</html>
