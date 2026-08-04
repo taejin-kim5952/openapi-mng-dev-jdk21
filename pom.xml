@@ -311,6 +311,7 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
           <includeSystemScope>true</includeSystemScope>
+          <addResources>true</addResources>
         </configuration>
       </plugin>
       <plugin>

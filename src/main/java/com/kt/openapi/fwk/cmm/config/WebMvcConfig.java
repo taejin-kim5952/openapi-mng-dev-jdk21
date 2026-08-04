@@ -71,8 +71,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // [로컬 개발] "/resources/"(스킴 없음)는 ServletContext 루트 기준이라, 실제 WAR로
+        // 배포됐을 때만(webapp이 컨텍스트 루트에 그대로 있음) 유효함. mvn spring-boot:run으로
+        // 내장 Tomcat을 띄우면 webapp이 docBase가 아니라서 정적 리소스가 전부 404가 남 -
+        // file: 로 src/main/webapp/resources를 추가 위치로 넣어 로컬 실행에서도 서빙되게 함
+        // (운영 WAR 배포 환경에는 이 경로가 없어서 그냥 무시됨, 기존 동작에 영향 없음).
         registry.addResourceHandler("/resources/**")
-                .addResourceLocations("/resources/");
+                .addResourceLocations("/resources/", "file:src/main/webapp/resources/");
     }
 
 //    /**
@@ -240,7 +245,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/deploy/deployView",
             "api/deploy/approvalListNew",
             "api/deploy/verifyExecute",
-            "api/cateInfoRegForm"
+            "api/cateInfoRegForm",
+            "api/dataTypeRegForm",
+            "api/infoRegForm",
+            "api/pathRegForm",
+            "api/pathRegFormArsenal"
         });
         return resolver;
     }

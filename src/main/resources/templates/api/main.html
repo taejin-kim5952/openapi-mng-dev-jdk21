@@ -21,7 +21,7 @@ var g_yamlOb      = "";   // YMAL 데이터
 var g_szProjectId = "";   // 프로젝트 ID
 var g_szNamespace = "";   // 프로젝트 네임스페이스
 var g_apiSpcNo    = "";   // 프로젝트 코드
-var g_isAuthYn 	  = /*[[${sIsAuthYn}]]*/ "N";	// 삭제권한(Y:권한있음, N:권한없음)
+var g_isAuthYn 	  = /*[[${sIsAuthYn != null ? sIsAuthYn : ''}]]*/ "N";	// 삭제권한(Y:권한있음, N:권한없음)
 var g_enCmbrId    = /*[[${ssUserVo != null ? ssUserVo.enCmbrId : ''}]]*/ '';	// 로그인 사용자 enCmbrId
 var g_bIsMaster   = /*[[${b_is_master}]]*/ false;	// master 여부
 /////////////////////////////////

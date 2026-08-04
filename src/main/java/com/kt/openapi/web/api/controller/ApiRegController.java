@@ -241,14 +241,34 @@ public class ApiRegController {
 		 * Obsever권한자는 전체시스템목록 할당하고 아닌 경우에는 신청한 권한 시스템 목록 할당
 		 * CYD - 2020.07.14
 		 */
+		// [JSP->Thymeleaf] infoRegForm.jsp의 서비스 선택 select가 authList를 sysId 기준으로
+		// 중복제거(첫 값 유지)해서 쓰던 것(<c:forEach>+fn:indexOf로 이미 나온 sysId 스킵)을
+		// Thymeleaf에는 distinct-by 표현식이 없어 여기서 미리 계산해 별도 모델 속성으로 내려줌
+		LinkedHashMap<String, AuthVO> authListDistinctBySysId = new LinkedHashMap<>();
 		if ("Y".equalsIgnoreCase(userJVo.getObserverYn())) {
 			List<Map<String, Object>> sysSelectBox = mypageService.selboxSysNm(null);
 			mv.addObject("authList", sysSelectBox);
+			for (Map<String, Object> item : sysSelectBox) {
+				String sysId = String.valueOf(item.get("sysId"));
+				if (!authListDistinctBySysId.containsKey(sysId)) {
+					AuthVO vo = new AuthVO();
+					vo.setSysId(sysId);
+					vo.setSysNm(String.valueOf(item.get("sysNm")));
+					authListDistinctBySysId.put(sysId, vo);
+				}
+			}
 		}
 		else {
-			mv.addObject("authList", userJVo.getAuthList());
+			List<AuthVO> userAuthList = userJVo.getAuthList();
+			mv.addObject("authList", userAuthList);
+			if (userAuthList != null) {
+				for (AuthVO vo : userAuthList) {
+					authListDistinctBySysId.putIfAbsent(vo.getSysId(), vo);
+				}
+			}
 		}
-		
+		mv.addObject("authListDistinctBySysId", new ArrayList<>(authListDistinctBySysId.values()));
+
 		LOG.debug(" Session Auth List ========== {} ", userJVo.getAuthList());
 		
 		// 권한 세션 셋업

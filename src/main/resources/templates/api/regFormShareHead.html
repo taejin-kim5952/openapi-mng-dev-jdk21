@@ -9,7 +9,7 @@
     .mv-wrap { display: none; }
   </style>
 
-  <textarea id="yamlSbst" name="yamlSbst" class="tempTextarea" th:text="${info.yamlSbst}"></textarea>
+  <textarea id="yamlSbst" name="yamlSbst" class="tempTextarea" th:text="${info != null ? info.yamlSbst : ''}"></textarea>
 
   <script th:src="@{/resources/adptran/js/ksmutil.js}"></script>
   <script type="text/javascript" th:inline="javascript">
@@ -32,16 +32,16 @@
     var editorTomcatHostUse  = /*[[${@environment.getProperty('editor.tomcathost.url')}]]*/ ''     // 에디터 톰캣 사용여부
     var editorHostUrl      = /*[[${@environment.getProperty('editor.host.url')}]]*/ ''           // 에디터 호스트 url
     var editorDefultHost   = /*[[${@environment.getProperty('editor.defult.host')}]]*/ ''      // 에디터 기본정보 디폴트 호스트
-    var sttusCd              = /*[[${info.regSttusCd}]]*/ '';
-    var sttusCdNm            = /*[[${info.regSttusCdNm}]]*/ '';
+    var sttusCd              = /*[[${info != null ? info.regSttusCd : ''}]]*/ '';
+    var sttusCdNm            = /*[[${info != null ? info.regSttusCdNm : ''}]]*/ '';
     var dataInfoOb           = /*[[${dataTypeInfo}]]*/ '';
     var selCategoryNo        =  /*[[@{/api/reg/selApiCategoryNoAjax.do}]]*/ '/api/reg/selApiCategoryNoAjax.do';      // API그룹 번호 조회
 
     //-- [tag:job-20200420][add]
-    var g_sysId = /*[[${info.sysId}]]*/ '';
+    var g_sysId = /*[[${info != null ? info.sysId : ''}]]*/ '';
     var con_SYSTEMID_ARSENAL = /*[[${@environment.getProperty('apisystem.sysid.arsenal')}]]*/ '';
     var g_is_Aasenal = (g_sysId == con_SYSTEMID_ARSENAL);
-    var g_is_PrivateApi = (/*[[${info.apiClass}]]*/ '' == 'APIGUB1020'); //-- Public: APIGUB1010, Private: APIGUB1020, Internal: APIGUB1030
+    var g_is_PrivateApi = (/*[[${info != null ? info.apiClass : ''}]]*/ '' == 'APIGUB1020'); //-- Public: APIGUB1010, Private: APIGUB1020, Internal: APIGUB1030
 
 
     /*
@@ -54,7 +54,7 @@
     **
     ** CYD - 2020.07.14
     *///////////////////////////////////////////////
-    var g_isAuthYn = /*[[${sIsAuthYn}]]*/ "N";
+    var g_isAuthYn = /*[[${sIsAuthYn != null ? sIsAuthYn : ''}]]*/ "N";
     ////////////////////////////////////////////////
 
     var g_map_apiDef = {};
@@ -113,7 +113,7 @@
     });
 
     function regformsh_fn_init_page() {
-      var api_spc_no = /*[[${info.apiSpcNo}]]*/ '';
+      var api_spc_no = /*[[${info != null ? info.apiSpcNo : ''}]]*/ '';
       var api_ctgry_no = /*[[${cate != null ? cate.apiCtgryNo : ''}]]*/ '';
       //-- [i][secondary select]
       if (!$is_positive_number(api_spc_no)) {

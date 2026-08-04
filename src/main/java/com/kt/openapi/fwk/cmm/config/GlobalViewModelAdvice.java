@@ -28,6 +28,11 @@ public class GlobalViewModelAdvice {
         return CommonFunc.isRunmodeTag("2022_prj_mode");
     }
 
+    @ModelAttribute("bIsBstgwMode")
+    public boolean bIsBstgwMode() {
+        return CommonFunc.isRunmodeTag("bstgw_mode");
+    }
+
     @ModelAttribute("ssUserVo")
     public UserJoinVO ssUserVo(HttpSession session) {
         return (UserJoinVO) session.getAttribute("ssUserVo");

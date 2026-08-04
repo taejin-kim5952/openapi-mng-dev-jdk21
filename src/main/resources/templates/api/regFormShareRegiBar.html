@@ -36,14 +36,14 @@
     //-- [i] private일시 button hidden
     //-- Public: APIGUB1010, Private: APIGUB1020, Internal: APIGUB1030'
         -->
-        <span th:if="${info.apiClass != 'APIGUB1020'}" class="disp_none cid_arsenal_hidden">
-          <button type="button" title="테스트/등록요청" class="btn btn_re-test" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info.apiClass}'});|">
+        <span th:if="${info == null or info.apiClass != 'APIGUB1020'}" class="disp_none cid_arsenal_hidden">
+          <button type="button" title="테스트/등록요청" class="btn btn_re-test" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info != null ? info.apiClass : ''}'});|">
             <span>테스트/등록요청</span>
           </button>
         </span>
 
         <span class="disp_none cid_arsenal_show">
-          <button type="button" title="SWAGGER 에디터 수정" class="btn btn_swagger_editor" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info.apiClass}'});|">
+          <button type="button" title="SWAGGER 에디터 수정" class="btn btn_swagger_editor" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info != null ? info.apiClass : ''}'});|">
             <span>SWAGGER 에디터 수정</span>
           </button>
         </span>
