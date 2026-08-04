@@ -253,7 +253,8 @@ public class ApiRegController {
 		
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
-		
+		model.addAttribute("sIsAuthYn", isAuthYn);
+
 		mv.setViewName("api/infoRegForm");
 		return mv;
 	}
@@ -446,8 +447,9 @@ public class ApiRegController {
 		
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
+		model.addAttribute("sIsAuthYn", isAuthYn);
 		////////////////////////////////////////////////
-		
+
 		//--[tag:job-20200420]
 		String sysId = map_apiSpc.getSysId();
 		boolean isSysIdArsenal = this.apisystemSysidArsenal.equals(sysId);
@@ -1161,8 +1163,9 @@ public class ApiRegController {
 		
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
+		model.addAttribute("sIsAuthYn", isAuthYn);
 		////////////////////////////////////////////////
-		
+
 		model.addAttribute("info", map_apiSpc);
 		model.addAttribute("cate", map_cateInfo);
 		//-- [tag:SR-20210222][cmt][i][cateInfo, dataTypeInfo deprecated]

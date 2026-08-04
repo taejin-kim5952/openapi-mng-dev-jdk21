@@ -75,4 +75,14 @@ public class GlobalViewModelAdvice {
     public String dpBundleScriptSrc(HttpServletRequest request) {
         return AdptranUtil.getBundleScriptSrc(request);
     }
+
+    // [JSP->Thymeleaf] regFormShareHead.jsp 등 여러 화면이 ${sIsAuthYn}(세션 값)을 읽음.
+    // 일부 컨트롤러(예: ApiRegController.mvApiInfoReg/mvApiPathReg/mvApiCateInfoReg)는
+    // 매 요청마다 새로 계산해서 session.setAttribute + model.addAttribute 둘 다 하므로
+    // 이 값을 그 결과로 덮어씀. 계산하지 않는 컨트롤러(예: mvApiDataTypeReg)는 원본 JSP처럼
+    // 이전 요청에서 세션에 남아있던 값을 그대로 상속받는 순수 읽기 전용 폴백.
+    @ModelAttribute("sIsAuthYn")
+    public String sIsAuthYn(HttpSession session) {
+        return (String) session.getAttribute("sIsAuthYn");
+    }
 }

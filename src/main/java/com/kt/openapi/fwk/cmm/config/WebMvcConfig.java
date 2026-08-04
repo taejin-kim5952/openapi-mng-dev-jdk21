@@ -239,7 +239,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/deploy/deployList",
             "api/deploy/deployView",
             "api/deploy/approvalListNew",
-            "api/deploy/verifyExecute"
+            "api/deploy/verifyExecute",
+            "api/cateInfoRegForm"
         });
         return resolver;
     }

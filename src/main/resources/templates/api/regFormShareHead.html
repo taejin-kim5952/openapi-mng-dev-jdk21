@@ -1,0 +1,155 @@
+<!--/* regFormShareHead.jsp -> Thymeleaf 프래그먼트 변환. sIsAuthYn은 GlobalViewModelAdvice가
+     세션 값(컨트롤러가 계산해서 넣었으면 그 값, 아니면 이전 요청에서 남은 세션 값)을 그대로 노출.
+     ${param.apiNo}는 죽은 함수(_dep_gfn_query_apiDef, 호출부 전체 검색 결과 어디서도 호출되지 않음)
+     안에서만 쓰이지만 문법상 유효해야 하므로 URLSearchParams로 동일하게 대체 */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="regFormShareHead">
+  <style type="text/css">
+    .disp_none { display: none !important; }
+    .mv-wrap { display: none; }
+  </style>
+
+  <textarea id="yamlSbst" name="yamlSbst" class="tempTextarea" th:text="${info.yamlSbst}"></textarea>
+
+  <script th:src="@{/resources/adptran/js/ksmutil.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    var importUrltoYml  = /*[[@{/api/reg/selUrlToYamlAjax.do}]]*/ '/api/reg/selUrlToYamlAjax.do';
+    var importUrl   = /*[[@{/api/reg/selImportApiListAjax.do}]]*/ '/api/reg/selImportApiListAjax.do';
+    var importUrlSelect = /*[[@{/api/main/savApiVerAjax.do}]]*/ '/api/main/savApiVerAjax.do';
+    var importYamlSelect = /*[[@{/api/reg/savApiYamlAjax.do}]]*/ '/api/reg/savApiYamlAjax.do';
+    var regUrl    = /*[[@{/api/reg/mvApiInfoReg.do}]]*/ '/api/reg/mvApiInfoReg.do';
+    var delCategoryUrl   = /*[[@{/api/reg/delApiCateInfoAjax.do}]]*/ '/api/reg/delApiCateInfoAjax.do';     // API그룹 삭제 url
+    var delDatatypeUrl   = /*[[@{/api/reg/savApiDataTypeRegAjax.do}]]*/ '/api/reg/savApiDataTypeRegAjax.do';    // 데이터 타입 삭제 url
+    var mvApiInfoUrl     = /*[[@{/api/reg/mvApiInfoReg.do}]]*/ '/api/reg/mvApiInfoReg.do';       // 기본정보 페이지 url
+    var mvCategoryUrl    = /*[[@{/api/reg/mvApiCateInfoReg.do}]]*/ '/api/reg/mvApiCateInfoReg.do';     // API그룹 페이지 url
+    var mvApiPathUrl     = /*[[@{/api/reg/mvApiPathReg.do}]]*/ '/api/reg/mvApiPathReg.do';       // api 패스 등록 페이지 url
+    var mvDatatypeUrl    = /*[[@{/api/reg/mvApiDataTypeReg.do}]]*/ '/api/reg/mvApiDataTypeReg.do';     // 데이터 타입 등록 url
+    var delApiMethodUrl  = /*[[@{/api/reg/delApiPathAjax.do}]]*/ '/api/reg/delApiPathAjax.do';       // api 패스에 대한 매소드 삭제 url
+    var delApiPathUrl    = /*[[@{/api/reg/delApiPathAjax.do}]]*/ '/api/reg/delApiPathAjax.do';       // api 패스 삭제 삭제 url
+    var delApiPathAllUrl   = /*[[@{/api/reg/delApiAllPathAjax.do}]]*/ '/api/reg/delApiAllPathAjax.do';      // api 전체 패스 삭제 삭제 url
+    var selApiInfoNmDupleUrl = /*[[@{/api/reg/selApiInfoNmCheckAjax.do}]]*/ '/api/reg/selApiInfoNmCheckAjax.do';    // api 기본정보 이름중복검사 url
+    var editorTomcatUse    = /*[[${@environment.getProperty('editor.tomcat.use')}]]*/ ''       // 에디터 톰캣 사용여부
+    var editorTomcatHostUse  = /*[[${@environment.getProperty('editor.tomcathost.url')}]]*/ ''     // 에디터 톰캣 사용여부
+    var editorHostUrl      = /*[[${@environment.getProperty('editor.host.url')}]]*/ ''           // 에디터 호스트 url
+    var editorDefultHost   = /*[[${@environment.getProperty('editor.defult.host')}]]*/ ''      // 에디터 기본정보 디폴트 호스트
+    var sttusCd              = /*[[${info.regSttusCd}]]*/ '';
+    var sttusCdNm            = /*[[${info.regSttusCdNm}]]*/ '';
+    var dataInfoOb           = /*[[${dataTypeInfo}]]*/ '';
+    var selCategoryNo        =  /*[[@{/api/reg/selApiCategoryNoAjax.do}]]*/ '/api/reg/selApiCategoryNoAjax.do';      // API그룹 번호 조회
+
+    //-- [tag:job-20200420][add]
+    var g_sysId = /*[[${info.sysId}]]*/ '';
+    var con_SYSTEMID_ARSENAL = /*[[${@environment.getProperty('apisystem.sysid.arsenal')}]]*/ '';
+    var g_is_Aasenal = (g_sysId == con_SYSTEMID_ARSENAL);
+    var g_is_PrivateApi = (/*[[${info.apiClass}]]*/ '' == 'APIGUB1020'); //-- Public: APIGUB1010, Private: APIGUB1020, Internal: APIGUB1030
+
+
+    /*
+    ** 권한체크기준
+    **  1. 등록한 사용자
+    **  2. 수정권한이 있는 사용자(관리자 및 운영자가 부여)
+    **
+    ** 위 두가지 조건을 제외한 나머지 사용자들은 수정불가
+    ** Y:권한있음, N:권한없음
+    **
+    ** CYD - 2020.07.14
+    *///////////////////////////////////////////////
+    var g_isAuthYn = /*[[${sIsAuthYn}]]*/ "N";
+    ////////////////////////////////////////////////
+
+    var g_map_apiDef = {};
+    var gfn_cb_apiDef;  //-- [i]초기 gfn_query_apiDef() 호출 callback 지정용
+
+    function gfn_get_apiDef(p_key) {
+      return $sf_obj_val(g_map_apiDef, p_key);
+    }
+
+    function gfn_query_apiDef(api_no, fn_cb) {
+      if (false == $is_integer(api_no)) { return; }
+
+      var param = new Object();
+      param['cmd'] = 'selApiDef';
+      param['apiNo'] = api_no;
+
+      var fn_beforeSend = (function(xhr) { (('function' == typeof($.ajaxSetup()['beforeSend'])) && ($.ajaxSetup()['beforeSend'])(xhr)); });
+      var fn_error = (function(request, status, error) { alert('status: ' + request.status + '\n' + 'error: ' + error); });
+      var fn_success = (function(data, textStatus, request) {
+        g_map_apiDef = $sf_obj_val(data, 'apiDef');
+        if ('function' == typeof(fn_cb)) {
+          fn_cb(data);
+        }
+      });
+      $.ajax({
+        url: /*[[@{/api/reg/common/ajax_query.do}]]*/ '/api/reg/common/ajax_query.do' + '?cmd=' + param['cmd'],
+        type : 'POST',
+        data: param, cache: false,
+        async: false, //-- [i][must async:false]
+        beforeSend: fn_beforeSend,
+        success: fn_success,
+        error: fn_error,
+      });
+    }
+
+    function _dep_gfn_query_apiDef() {
+      var param_apiNo = new URLSearchParams(window.location.search).get('apiNo') || '';
+      if (param_apiNo.length > 0) {
+        $.ajax({
+          url: /*[[@{/api/reg/selApiDefAjax.do}]]*/ '/api/reg/selApiDefAjax.do', type : 'POST', cache: false, async: false,
+          data: { 'apiNo': param_apiNo },
+          success: function(data) {
+            g_map_apiDef = $sf_obj_val(data, 'apiDef');
+          },
+          error:function(request,status,error) {
+            //-- [2023:codeeyes][empty_block issue]
+          }
+        });
+      }
+    }
+  </script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      regformsh_fn_init_page();
+    });
+
+    function regformsh_fn_init_page() {
+      var api_spc_no = /*[[${info.apiSpcNo}]]*/ '';
+      var api_ctgry_no = /*[[${cate != null ? cate.apiCtgryNo : ''}]]*/ '';
+      //-- [i][secondary select]
+      if (!$is_positive_number(api_spc_no)) {
+        api_spc_no = $('#pApiSpcNo').val();
+      }
+      if (!$is_positive_number(api_ctgry_no)) {
+        api_ctgry_no = $('#pApiCtgryNo').val();
+      }
+      var b_spc_selected = $is_positive_number(api_spc_no);
+      var b_spc_ctgry_selected = $is_positive_number(api_ctgry_no);
+
+      var b_is_append = (b_spc_selected && b_spc_ctgry_selected);
+
+      var jq_btn_simple_reg = $('.right_menu .cid_btn_simple_reg');
+      jq_btn_simple_reg.hide();
+      if ('function' == typeof(gfn_simple_api_reg_popup)) {
+        if (b_is_append) {
+          jq_btn_simple_reg.find('span').text('간편 API 추가');
+          jq_btn_simple_reg.on('click', function(p_evt) { gfn_simple_api_reg_popup(api_spc_no, api_ctgry_no); });
+        }
+        else {
+          jq_btn_simple_reg.find('span').text('간편 API 신규등록');
+          jq_btn_simple_reg.on('click', function(p_evt) { gfn_simple_api_reg_popup(); });
+        }
+        jq_btn_simple_reg.show();
+      }
+
+      var api_no = $('#pApiNo').val();
+      var b_def_loaded = $is_integer(api_no);
+      if (b_def_loaded) {
+        gfn_query_apiDef(api_no, gfn_cb_apiDef);
+      }
+    }
+    //-- function gfn_simple_api_reg_popup() { alert('coming_soon'); }
+  </script>
+
+  <script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+</th:block>
+</div>

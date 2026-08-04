@@ -1,0 +1,23 @@
+<!--/* regFormShareLeft.jsp -> Thymeleaf 프래그먼트 변환 */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="regFormShareLeft">
+  <div class="default_info">
+    <p title=""><!-- API명 --></p>
+    <button type="button" class="btn btn_deft-info" onclick="nextInfoPage()" title="기본정보 보기"><span>기본정보 보기</span></button>
+    <ul>
+      <li><a href="javascript:void(0)" onclick="mvPage('cate')" title="API그룹 추가">API그룹<br>추가</a></li>
+      <li><a href="javascript:void(0)" onclick="mvPage('api')" title="API 추가">API 추가</a></li>
+      <li><a href="javascript:void(0)" onclick="mvPage('dataType')" title="DATA TYPE 추가">DATA TYPE<br>추가</a></li>
+    </ul>
+  </div><!-- .default_info -->
+  <h5 class="lTitle">API</h5>
+  <!--// [i]dynamic embed api search <div class="cid_api_search api_search"></div> //-->
+  <div class="dragToggle">
+    <ul class="acco_opened" id="leftList"></ul><!-- .acco_opened -->
+    <div class="dataType_wrap">
+      <h5>DATA TYPE</h5>
+      <ul></ul>
+    </div><!-- .dataType_wrap -->
+  </div><!-- .dragToggle -->
+</th:block>
+</div>

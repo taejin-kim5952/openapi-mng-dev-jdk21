@@ -1,0 +1,58 @@
+<!--/* regFormShareRegiBar.jsp -> Thymeleaf 프래그먼트 변환. ${param.apiSpcNo}는 Thymeleaf 3.1에서
+     제거된 요청 파라미터 암묵객체라 클라이언트 JS의 URLSearchParams로 대체(계획서에서 이미 확립한 패턴).
+     bIs2022PrjMode 스크립틀릿은 GlobalViewModelAdvice가 이미 전역으로 노출하는 모델 속성을 그대로 재사용. */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="regFormShareRegiBar">
+  <script th:inline="javascript">
+    var g_param_apiSpcNo = new URLSearchParams(window.location.search).get('apiSpcNo') || '';
+  </script>
+  <div class="left_menu">
+    <p>
+      <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+      <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+    </p>
+    <ol class="left_ext_menu_bar disp_none cid_arsenal_hide">
+      <li><button type="button" title="API 불러오기" class="btn" onClick="javascript:preOpenPopup(1);"><span>API 불러오기</span></button></li>
+      <li><button type="button" title="외부파일 불러오기" class="btn" onClick="javascript:openPopupEtc();"><span>외부파일 불러오기</span></button></li>
+      <li><button type="button" title="템플릿 불러오기" class="btn" onClick="javascript:preOpenPopup(2);"><span>템플릿 불러오기</span></button></li>
+    </ol>
+    <span class="disp_none cid_arsenal_show">
+      <span class="disp_none cid_spc_loaded_show">
+        <button type="button" title="ARSENAL로 내보내기" class="btn btn_export_arsenal" onclick="fn_export_ARSENAL(g_param_apiSpcNo);">
+          <span>ARSENAL로 내보내기</span>
+        </button>
+      </span>
+    </span>
+  </div><!-- .left_menu -->
+  <div class="right_menu">
+    <p class="err_count" onclick="$('.err_tooltip').show();">
+      <span>오류 <em>0</em>건
+      </span>
+    </p>
+    <p>
+      <span class="disp_none cid_spc_loaded_show">
+        <!--
+    //-- [tag:20200617]
+    //-- [i] private일시 button hidden
+    //-- Public: APIGUB1010, Private: APIGUB1020, Internal: APIGUB1030'
+        -->
+        <span th:if="${info.apiClass != 'APIGUB1020'}" class="disp_none cid_arsenal_hidden">
+          <button type="button" title="테스트/등록요청" class="btn btn_re-test" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info.apiClass}'});|">
+            <span>테스트/등록요청</span>
+          </button>
+        </span>
+
+        <span class="disp_none cid_arsenal_show">
+          <button type="button" title="SWAGGER 에디터 수정" class="btn btn_swagger_editor" th:attr="onclick=|yamlEditorOpen('${ssUserVo != null ? ssUserVo.enCmbrId : ''}', g_param_apiSpcNo, 'sessionkey', {'apiClass':'${info.apiClass}'});|">
+            <span>SWAGGER 에디터 수정</span>
+          </button>
+        </span>
+      </span>
+      <button th:if="${bIs2022PrjMode}" type="button" title="간편등록" class="btn btn_orange dp_none cid_btn_simple_reg"><span>간편등록</span></button>
+      <a th:href="@{/api/main/mvMainList.do}" title="목록" class="btn btn_list">
+        <span>목록</span>
+      </a>
+    </p>
+  </div><!-- .right_menu -->
+</th:block>
+</div>
