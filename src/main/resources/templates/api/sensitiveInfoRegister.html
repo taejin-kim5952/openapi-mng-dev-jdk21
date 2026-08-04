@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 민감정보 등록</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pub/common.css}">
+    <style>
+        /* 탑메뉴 숨기기 */
+        header, .top_area, .global_navi, .gnb {
+            display: none !important;
+        }
+
+        /* 바디 여백 조정 */
+        body {
+            padding-top: 0 !important;
+        }
+    </style>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #007bff; }
+
+        .form-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-section h2 { color: #007bff; margin-bottom: 20px; font-size: 18px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; color: #555; margin-bottom: 8px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .btn-group { display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px; }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: 2px solid #007bff;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+        .btn-secondary {
+            background: white;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .btn-secondary:hover {
+            background: #f8f9fa;
+            border-color: #ccc;
+        }
+
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        .grade1-option { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .grade2-option { background: #fff3cd; border-color: #fd7e14; color: #856404; }
+        .grade-none-option { background: #f8f9fa; border-color: #6c757d; color: #6c757d; }
+
+        /* 동적 폼 스타일 */
+        .dynamic-form-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            position: relative;
+            border: 2px solid #dee2e6;
+        }
+        .dynamic-form-container:hover {
+            border-color: #007bff;
+        }
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .remove-btn:hover {
+            background: #c82333;
+        }
+        .add-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .add-btn:hover {
+            background: #218838;
+        }
+
+        /* API 선택 팝업 스타일 */
+        .api-select-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .api-select-btn:hover {
+            background: #138496;
+        }
+        .api-popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .api-popup-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .api-popup-header {
+            padding: 20px;
+            background: #007bff;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .api-popup-header h3 {
+            margin: 0;
+        }
+        .api-popup-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .api-popup-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .api-search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .api-search-bar select,
+        .api-search-bar input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .api-search-bar select {
+            width: 120px;
+        }
+        .api-search-bar input {
+            flex: 1;
+        }
+        .api-search-bar button {
+            padding: 8px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .api-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .api-table th,
+        .api-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .api-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .api-table tr:hover {
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .api-table tr.selected {
+            background: #d1ecf1;
+        }
+        .api-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .api-pagination button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .api-pagination button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+        }
+        .api-pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .api-pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API 민감정보 등록</h1>
+
+        <div id="formsContainer"></div>
+
+        <button type="button" class="add-btn" onclick="addForm()">
+            <span>+</span> 폼 추가
+        </button>
+
+        <div class="btn-group">
+            <a class="btn btn-secondary" style="text-decoration: none; display: inline-block;" th:href="@{/api/sensitiveInfo/report.do}">취소</a>
+            <button type="button" class="btn btn-primary" onclick="submitAllForms()">등록하기</button>
+        </div>
+    </div>
+
+    <script type="text/javascript" th:inline="javascript">
+    //<![CDATA[
+    let formCount = 0;
+    const userId = /*[[${userId}]]*/ '';
+
+    // 폼 템플릿 생성 (createFormTemplate 은 현재 미사용이나 원본 동작 그대로 보존)
+    function createFormTemplate() {
+        const index = formCount++;
+        const now = new Date();
+        const regDate = now.getFullYear() + '-' +
+                       String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                       String(now.getDate()).padStart(2, '0') + ' ' +
+                       String(now.getHours()).padStart(2, '0') + ':' +
+                       String(now.getMinutes()).padStart(2, '0') + ':' +
+                       String(now.getSeconds()).padStart(2, '0');
+
+         return `
+         <div class="dynamic-form-container" id="form-${index}" data-form-index="${index}">
+             <button type="button" class="remove-btn" data-index="${index}">×</button>
+              <div class="form-row">
+                  <div class="form-group">
+                      <label class="required">API ID</label>
+                      <div style="display: flex; gap: 10px;">
+                          <button type="button" class="api-select-btn" data-index="${index}" style="width: 120px;">🔍 API 선택</button>
+                          <input type="text" name="apiId_${index}" id="apiId_${index}" data-field="apiId" required placeholder="예: OIF_24501" readonly style="background: #e9ecef; cursor: not-allowed; flex: 1;">
+                      </div>
+                  </div>
+                 <div class="form-group">
+                     <label class="required">시스템 ID</label>
+                     <input type="text" name="sysId_${index}" id="sysId_${index}" data-field="sysId" required placeholder="예: SYS001" readonly style="background: #e9ecef; cursor: not-allowed;">
+                 </div>
+             </div>
+
+             <div class="form-group">
+                 <label class="required">시스템명</label>
+                 <input type="text" name="sysNm_${index}" id="sysNm_${index}" data-field="sysNm" required placeholder="예: Application-Service" readonly style="background: #e9ecef; cursor: not-allowed;">
+             </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">파라미터 타입</label>
+                    <select name="parameterType_${index}" id="parameterType_${index}" required>
+                        <option value="">선택하세요</option>
+                        <option value="Request">Request</option>
+                        <option value="Response">Response</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="required">파라미터명</label>
+                    <input type="text" name="parameterName_${index}" id="parameterName_${index}" required placeholder="예: userId, phone">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="required">등급</label>
+                <select name="sensitivityLevel_${index}" id="sensitivityLevel_${index}" required onchange="updateGradeStyle(this)">
+                    <option value="none">선택 안됨</option>
+                    <option value="1 등급">1 등급 (단말정보)</option>
+                    <option value="2 등급">2 등급 (개인식별정보)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>설명</label>
+                <textarea name="parameterDesc_${index}" id="parameterDesc_${index}" placeholder="파라미터 설명을 입력하세요" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <input type="hidden" name="createdBy_${index}" id="createdBy_${index}" value="${userId}">
+            </div>
+        </div>
+        `;
+    }
+
+    // 폼 추가
+    function addForm() {
+        const index = formCount++;
+
+        const container = document.getElementById('formsContainer');
+
+        // 폼 컨테이너 생성
+        const formDiv = document.createElement('div');
+        formDiv.className = 'dynamic-form-container';
+        const formId = 'form-' + index;
+        formDiv.id = formId;
+        formDiv.setAttribute('data-form-index', index);
+
+        // 제거 버튼 생성
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('data-index', index);
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', function() {
+            removeForm(index);
+        });
+        formDiv.appendChild(removeBtn);
+
+        // 첫 번째 행 (API ID, 시스템 ID)
+        const row1 = document.createElement('div');
+        row1.className = 'form-row';
+
+        // API ID 필드
+        const apiIdGroup = document.createElement('div');
+        apiIdGroup.className = 'form-group';
+        const apiIdLabel = document.createElement('label');
+        apiIdLabel.className = 'required';
+        apiIdLabel.textContent = 'API ID';
+        const apiIdBtnWrapper = document.createElement('div');
+        apiIdBtnWrapper.style.cssText = 'display: flex; gap: 10px;';
+
+        const apiSelectBtn = document.createElement('button');
+        apiSelectBtn.type = 'button';
+        apiSelectBtn.className = 'api-select-btn';
+        apiSelectBtn.setAttribute('data-index', index);
+        apiSelectBtn.style.width = '120px';
+        apiSelectBtn.textContent = '🔍 API 선택';
+        apiSelectBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            openApiPopup(index);
+        });
+
+        const apiIdInput = document.createElement('input');
+        apiIdInput.type = 'text';
+        apiIdInput.name = `apiId_${index}`;
+        apiIdInput.id = `apiId_${index}`;
+        apiIdInput.setAttribute('data-field', 'apiId');
+        apiIdInput.required = true;
+        apiIdInput.placeholder = '예: OIF_24501';
+        apiIdInput.readOnly = true;
+        apiIdInput.style.cssText = 'background: #e9ecef; cursor: not-allowed; flex: 1;';
+
+        apiIdBtnWrapper.appendChild(apiSelectBtn);
+        apiIdBtnWrapper.appendChild(apiIdInput);
+        apiIdGroup.appendChild(apiIdLabel);
+        apiIdGroup.appendChild(apiIdBtnWrapper);
+
+        // 시스템 ID 필드
+        const sysIdGroup = document.createElement('div');
+        sysIdGroup.className = 'form-group';
+        const sysIdLabel = document.createElement('label');
+        sysIdLabel.className = 'required';
+        sysIdLabel.textContent = '시스템 ID';
+        const sysIdInput = document.createElement('input');
+        sysIdInput.type = 'text';
+        sysIdInput.name = `sysId_${index}`;
+        sysIdInput.id = `sysId_${index}`;
+        sysIdInput.setAttribute('data-field', 'sysId');
+        sysIdInput.required = true;
+        sysIdInput.placeholder = '예: SYS001';
+        sysIdInput.readOnly = true;
+        sysIdInput.style.cssText = 'background: #e9ecef; cursor: not-allowed;';
+
+        sysIdGroup.appendChild(sysIdLabel);
+        sysIdGroup.appendChild(sysIdInput);
+
+        row1.appendChild(apiIdGroup);
+        row1.appendChild(sysIdGroup);
+        formDiv.appendChild(row1);
+
+        // 시스템명 필드
+        const sysNmGroup = document.createElement('div');
+        sysNmGroup.className = 'form-group';
+        const sysNmLabel = document.createElement('label');
+        sysNmLabel.className = 'required';
+        sysNmLabel.textContent = '시스템명';
+        const sysNmInput = document.createElement('input');
+        sysNmInput.type = 'text';
+        sysNmInput.name = `sysNm_${index}`;
+        sysNmInput.id = `sysNm_${index}`;
+        sysNmInput.setAttribute('data-field', 'sysNm');
+        sysNmInput.required = true;
+        sysNmInput.placeholder = '예: Application-Service';
+        sysNmInput.readOnly = true;
+        sysNmInput.style.cssText = 'background: #e9ecef; cursor: not-allowed;';
+
+        sysNmGroup.appendChild(sysNmLabel);
+        sysNmGroup.appendChild(sysNmInput);
+        formDiv.appendChild(sysNmGroup);
+
+        // 파라미터 타입, 파라미터명 행
+        const row2 = document.createElement('div');
+        row2.className = 'form-row';
+
+        const paramTypeGroup = document.createElement('div');
+        paramTypeGroup.className = 'form-group';
+        const paramTypeLabel = document.createElement('label');
+        paramTypeLabel.className = 'required';
+        paramTypeLabel.textContent = '파라미터 타입';
+        const paramTypeSelect = document.createElement('select');
+        paramTypeSelect.name = `parameterType_${index}`;
+        paramTypeSelect.id = `parameterType_${index}`;
+        paramTypeSelect.required = true;
+
+        const opt1 = document.createElement('option');
+        opt1.value = '';
+        opt1.textContent = '선택하세요';
+        const opt2 = document.createElement('option');
+        opt2.value = 'Request';
+        opt2.textContent = 'Request';
+        const opt3 = document.createElement('option');
+        opt3.value = 'Response';
+        opt3.textContent = 'Response';
+
+        paramTypeSelect.appendChild(opt1);
+        paramTypeSelect.appendChild(opt2);
+        paramTypeSelect.appendChild(opt3);
+
+        paramTypeGroup.appendChild(paramTypeLabel);
+        paramTypeGroup.appendChild(paramTypeSelect);
+
+        const paramNameGroup = document.createElement('div');
+        paramNameGroup.className = 'form-group';
+        const paramNameLabel = document.createElement('label');
+        paramNameLabel.className = 'required';
+        paramNameLabel.textContent = '파라미터명';
+        const paramNameInput = document.createElement('input');
+        paramNameInput.type = 'text';
+        paramNameInput.name = `parameterName_${index}`;
+        paramNameInput.id = `parameterName_${index}`;
+        paramNameInput.required = true;
+        paramNameInput.placeholder = '예: userId, phone';
+
+        paramNameGroup.appendChild(paramNameLabel);
+        paramNameGroup.appendChild(paramNameInput);
+
+        row2.appendChild(paramTypeGroup);
+        row2.appendChild(paramNameGroup);
+        formDiv.appendChild(row2);
+
+        // 민감도 등급 필드
+        const sensitivityGroup = document.createElement('div');
+        sensitivityGroup.className = 'form-group';
+        const sensitivityLabel = document.createElement('label');
+        sensitivityLabel.className = 'required';
+        sensitivityLabel.textContent = '등급';
+        const sensitivitySelect = document.createElement('select');
+        sensitivitySelect.name = `sensitivityLevel_${index}`;
+        sensitivitySelect.id = `sensitivityLevel_${index}`;
+        sensitivitySelect.required = true;
+        sensitivitySelect.addEventListener('change', function() {
+            updateGradeStyle(this);
+        });
+
+        const noneOpt = document.createElement('option');
+        noneOpt.value = 'none';
+        noneOpt.textContent = '선택 안됨';
+        const grade1Opt = document.createElement('option');
+        grade1Opt.value = '1 등급';
+        grade1Opt.textContent = '1 등급 (단말정보)';
+        const grade2Opt = document.createElement('option');
+        grade2Opt.value = '2 등급';
+        grade2Opt.textContent = '2 등급 (개인식별정보)';
+
+        sensitivitySelect.appendChild(noneOpt);
+        sensitivitySelect.appendChild(grade1Opt);
+        sensitivitySelect.appendChild(grade2Opt);
+
+        sensitivityGroup.appendChild(sensitivityLabel);
+        sensitivityGroup.appendChild(sensitivitySelect);
+        formDiv.appendChild(sensitivityGroup);
+
+        // 설명 필드
+        const descGroup = document.createElement('div');
+        descGroup.className = 'form-group';
+        const descLabel = document.createElement('label');
+        descLabel.textContent = '설명';
+        const descTextarea = document.createElement('textarea');
+        descTextarea.name = `parameterDesc_${index}`;
+        descTextarea.id = `parameterDesc_${index}`;
+        descTextarea.placeholder = '파라미터 설명을 입력하세요';
+        descTextarea.rows = '3';
+
+        descGroup.appendChild(descLabel);
+        descGroup.appendChild(descTextarea);
+        formDiv.appendChild(descGroup);
+
+        // 등록 ID 필드 (hidden)
+        const createdByInput = document.createElement('input');
+        createdByInput.type = 'hidden';
+        createdByInput.name = `createdBy_${index}`;
+        createdByInput.id = `createdBy_${index}`;
+        createdByInput.value = userId;
+        formDiv.appendChild(createdByInput);
+
+        // 컨테이너에 추가
+        container.appendChild(formDiv);
+
+        // 초기 스타일 적용
+        updateGradeStyle(sensitivitySelect);
+    }
+
+    // 폼 제거
+    function removeForm(index) {
+        // data-form-index 속성으로 폼 찾기
+        const forms = document.querySelectorAll('.dynamic-form-container');
+        let formToRemove = null;
+
+        forms.forEach(form => {
+            const formIndex = form.getAttribute('data-form-index');
+            if (formIndex === String(index)) {
+                formToRemove = form;
+            }
+        });
+
+        if (formToRemove) {
+            formToRemove.remove();
+        }
+    }
+
+    // 등급 선택 시 스타일 변경
+    function updateGradeStyle(select) {
+        select.className = '';
+
+        if (select.value === '1 등급') {
+            select.classList.add('grade1-option');
+        } else if (select.value === '2 등급') {
+            select.classList.add('grade2-option');
+        } else {
+            select.classList.add('grade-none-option');
+        }
+    }
+
+    // 모든 폼 제출
+    function submitAllForms() {
+        const forms = document.querySelectorAll('.dynamic-form-container');
+
+        if (forms.length === 0) {
+            alert('등록할 데이터를 추가해주세요.');
+            return;
+        }
+
+        let isValid = true;
+        let filledCount = 0;
+        let missingRequiredFields = [];
+
+        forms.forEach((form, idx) => {
+            // 폼에서 직접 값 조회 (ID 대신 name 속성 사용)
+            const sysIdInput = form.querySelector('[name^="sysId_"]');
+            const apiIdInput = form.querySelector('[name^="apiId_"]');
+            const sysNmInput = form.querySelector('[name^="sysNm_"]');
+            const paramTypeInput = form.querySelector('[name^="parameterType_"]');
+            const paramNameInput = form.querySelector('[name^="parameterName_"]');
+            const sensitivityInput = form.querySelector('[name^="sensitivityLevel_"]');
+
+            // 폼 인덱스 추출
+            const formIndex = form.getAttribute('data-form-index');
+
+            // 필수 항목 검증
+            const requiredFields = [
+                { element: sysIdInput, name: '시스템 ID' },
+                { element: apiIdInput, name: 'API ID' },
+                { element: sysNmInput, name: '시스템명' },
+                { element: paramTypeInput, name: '파라미터 타입' },
+                { element: paramNameInput, name: '파라미터명' },
+                { element: sensitivityInput, name: '등급' }
+            ];
+
+            requiredFields.forEach(field => {
+                if (field.element && !field.element.value.trim()) {
+                    field.element.style.borderColor = '#dc3545';
+                    isValid = false;
+                    missingRequiredFields.push(`폼 ${formIndex}: ${field.name}`);
+                } else if (field.element) {
+                    field.element.style.borderColor = '#ddd';
+                }
+            });
+
+            // 최소 1 개 이상 입력된 폼이 있는지 확인
+            if (sysIdInput && sysIdInput.value.trim()) {
+                filledCount++;
+            }
+        });
+
+        if (!isValid) {
+            alert('필수 항목을 모두 입력해주세요.');
+            return;
+        }
+
+        if (filledCount === 0) {
+            alert('최소 1 개 이상의 데이터를 입력해주세요.');
+            return;
+        }
+
+        // AJAX 로 여러 데이터 전송
+        const dataList = [];
+        forms.forEach((form) => {
+            // 각 폼 내부에서 직접 값 조회 (ID 에 의존하지 않음)
+            const sysIdInput = form.querySelector('[name^="sysId_"]');
+            const apiIdInput = form.querySelector('[name^="apiId_"]');
+            const sysNmInput = form.querySelector('[name^="sysNm_"]');
+            const paramTypeInput = form.querySelector('[name^="parameterType_"]');
+            const paramNameInput = form.querySelector('[name^="parameterName_"]');
+            const sensitivityInput = form.querySelector('[name^="sensitivityLevel_"]');
+            const paramDescInput = form.querySelector('[name^="parameterDesc_"]');
+            const createdByInput = form.querySelector('[name^="createdBy_"]');
+
+            if (sysIdInput && sysIdInput.value.trim()) {
+                dataList.push({
+                    sysId: sysIdInput.value,
+                    apiId: apiIdInput ? apiIdInput.value : '',
+                    sysNm: sysNmInput ? sysNmInput.value : '',
+                    parameterType: paramTypeInput ? paramTypeInput.value : '',
+                    parameterName: paramNameInput ? paramNameInput.value : '',
+                    sensitivityLevel: sensitivityInput ? sensitivityInput.value : '',
+                    parameterDesc: paramDescInput ? paramDescInput.value : '',
+                    createdBy: createdByInput ? createdByInput.value : ''
+                });
+            }
+        });
+
+        // 서버로 전송
+        fetch(/*[[@{/api/sensitiveInfo/registerBatch.do}]]*/ '/api/sensitiveInfo/registerBatch.do', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ dataList: dataList })
+        })
+        .then(response => {
+            if (response.ok) {
+                alert(dataList.length + "개의 데이터가 등록되었습니다.");
+                location.href = /*[[@{/api/sensitiveInfo/report.do}]]*/ '/api/sensitiveInfo/report.do';
+            } else {
+                alert('등록에 실패했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('등록 중 오류가 발생했습니다.');
+        });
+    }
+
+    // 페이지 로드 시 첫 번째 폼 생성
+    window.addEventListener('load', function() {
+        addForm();
+    });
+
+    // API 선택 팝업 관련 변수
+    let currentFormIndex = null;
+    let currentPage = 1;
+    let currentSearchTerm = '';
+
+    // API 선택 팝업 열기
+    function openApiPopup(index) {
+        currentFormIndex = parseInt(index, 10);
+        currentPage = 1;
+        currentSearchTerm = '';
+        document.getElementById('searchTerm').value = '';
+        document.getElementById('apiPopupOverlay').style.display = 'flex';
+        loadApiList(1);
+    }
+
+    // API 선택 팝업 닫기
+    function closeApiPopup() {
+        document.getElementById('apiPopupOverlay').style.display = 'none';
+        currentFormIndex = null;
+    }
+
+    // API 목록 로드
+    function loadApiList(page) {
+        currentPage = page;
+        const searchTerm = document.getElementById('searchTerm').value;
+
+        fetch(/*[[@{/api/sensitiveInfo/apiListPopup.do}]]*/ '/api/sensitiveInfo/apiListPopup.do', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                page: page,
+                pageSize: 10,
+                searchTerm: searchTerm
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // totalPages 가 없거나 잘못되면 직접 계산
+            if (!data.totalPages && data.apiList) {
+                const totalItems = data.totalCount || data.apiList.length;
+                data.totalPages = Math.ceil(totalItems / 10);
+            }
+            renderApiList(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('API 목록을 불러오는 중 오류가 발생했습니다.');
+        });
+    }
+
+    // API 검색
+    function searchApi() {
+        loadApiList(1);
+    }
+
+    // API 목록 렌더링
+    function renderApiList(data) {
+        const tbody = document.getElementById('apiListBody');
+        tbody.innerHTML = '';
+
+        if (!data.apiList || data.apiList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">검색 결과가 없습니다.</td></tr>';
+            return;
+        }
+
+        data.apiList.forEach((api, idx) => {
+            const tr = document.createElement('tr');
+
+            const td1 = document.createElement('td');
+            td1.textContent = api.apiId || '';
+            tr.appendChild(td1);
+
+            const td2 = document.createElement('td');
+            td2.textContent = api.apiNm || '';
+            tr.appendChild(td2);
+
+            const td3 = document.createElement('td');
+            td3.textContent = api.sysId || '';
+            tr.appendChild(td3);
+
+            const td4 = document.createElement('td');
+            td4.textContent = api.sysNm || '';
+            tr.appendChild(td4);
+
+            // 클릭 이벤트에 디버깅 로그 추가
+            tr.onclick = function() {
+                if (currentFormIndex !== null && !isNaN(currentFormIndex)) {
+                    selectApi(api, currentFormIndex);
+                } else {
+                    alert('폼 인덱스가 잘못되었습니다. 다시 시도해주세요.');
+                }
+            };
+            tbody.appendChild(tr);
+        });
+
+        // 페이지네이션 렌더링
+        renderPagination(data.page, data.totalPages);
+    }
+
+    // API 선택
+    function selectApi(api, formIndex) {
+        // 매개변수로 받은 formIndex 사용 (전역 변수 대신)
+        const targetIndex = formIndex;
+        const formId = 'form-' + targetIndex;
+
+        if (targetIndex !== null && !isNaN(targetIndex)) {
+            // 폼 컨테이너 찾기 (getElementById 사용)
+            const formContainer = document.getElementById(formId);
+
+            if (formContainer) {
+                // 폼 내부에서 data-field 속성으로 입력창 찾기
+                const apiIdInput = formContainer.querySelector('[data-field="apiId"]');
+                const sysIdInput = formContainer.querySelector('[data-field="sysId"]');
+                const sysNmInput = formContainer.querySelector('[data-field="sysNm"]');
+
+                if (apiIdInput) {
+                    apiIdInput.value = api.apiId || '';
+                }
+                if (sysIdInput) {
+                    sysIdInput.value = api.sysId || '';
+                }
+                if (sysNmInput) {
+                    sysNmInput.value = api.sysNm || '';
+                }
+            }
+        }
+        closeApiPopup();
+    }
+
+    // ESC 키로 팝업 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeApiPopup();
+        }
+    });
+
+    // 페이지네이션 렌더링
+    function renderPagination(currentPage, totalPages) {
+        const pagination = document.getElementById('apiPagination');
+        pagination.innerHTML = '';
+
+        // 이전 버튼
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '이전';
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.onclick = () => loadApiList(currentPage - 1);
+        pagination.appendChild(prevBtn);
+
+        // 페이지 번호 (최대 10 개까지 표시)
+        let startPage = Math.max(1, currentPage - 4);
+        let endPage = Math.min(totalPages, startPage + 9);
+
+        // endPage 가 10 개 미만이 되면 startPage 조정
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            if (i === currentPage) {
+                btn.classList.add('active');
+            }
+            btn.onclick = () => loadApiList(i);
+            pagination.appendChild(btn);
+        }
+
+        // 다음 버튼
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '다음';
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.onclick = () => loadApiList(currentPage + 1);
+        pagination.appendChild(nextBtn);
+    }
+    //]]>
+    </script>
+
+    <!-- API 선택 팝업 -->
+    <div id="apiPopupOverlay" class="api-popup-overlay" onclick="if(event.target === this) closeApiPopup()">
+        <div class="api-popup-content">
+            <div class="api-popup-header">
+                <h3>API 목록 선택</h3>
+                <button type="button" class="api-popup-close" onclick="closeApiPopup()">×</button>
+            </div>
+            <div class="api-popup-body">
+                <div class="api-search-bar">
+                    <select id="searchType">
+                        <option value="apiId">API ID</option>
+                        <option value="apiNm">API 명</option>
+                    </select>
+                    <input type="text" id="searchTerm" placeholder="검색어를 입력하세요" onkeypress="if(event.key==='Enter') searchApi()">
+                    <button type="button" onclick="searchApi()">검색</button>
+                </div>
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>API ID</th>
+                            <th>API 명</th>
+                            <th>시스템 ID</th>
+                            <th>시스템명</th>
+                        </tr>
+                    </thead>
+                    <tbody id="apiListBody">
+                        <tr><td colspan="4" style="text-align:center;">로딩 중...</td></tr>
+                    </tbody>
+                </table>
+                <div id="apiPagination" class="api-pagination"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

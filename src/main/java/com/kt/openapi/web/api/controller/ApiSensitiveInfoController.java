@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 /**
@@ -48,8 +51,16 @@ public class ApiSensitiveInfoController {
     @GetMapping("/report.do")
     public String sensitiveInfoReport(
             @RequestParam(value = "sysnm", required = false) String sysnm,
+            HttpServletRequest request,
+            HttpSession session,
             Model model) {
-        
+
+        // [JSP -> Thymeleaf 마이그레이션] 원본 JSP의 <c:choose>/<c:redirect> 로그인 체크를 컨트롤러 단으로 이관
+        String loginRedirect = redirectToLoginIfNotAuthenticated(request, session, "/api/sensitiveInfo/report.do");
+        if (loginRedirect != null) {
+            return loginRedirect;
+        }
+
         // 파라미터 목록 조회
         List<ApiSensitiveParamVO> paramList = sensitiveInfoService.getParamList(sysnm);
         
@@ -81,13 +92,44 @@ public class ApiSensitiveInfoController {
      * @return JSP 페이지
      */
     @GetMapping("/register.do")
-    public String sensitiveInfoRegister(Model model) {
+    public String sensitiveInfoRegister(HttpServletRequest request, HttpSession session, Model model) {
+        String loginRedirect = redirectToLoginIfNotAuthenticated(request, session, "/api/sensitiveInfo/register.do");
+        if (loginRedirect != null) {
+            return loginRedirect;
+        }
+
         // 등록 폼을 위한 초기 데이터 (필요시 수정)
         model.addAttribute("mode", "create");
-        
+        UserJoinVO ssUserVo = (UserJoinVO) session.getAttribute("ssUserVo");
+        model.addAttribute("userId", ssUserVo.getMbrId());
+
         return "api/sensitiveInfoRegister";
     }
-    
+
+    /**
+     * [JSP -> Thymeleaf 마이그레이션] 원본 JSP의 <c:choose>/<c:redirect> 로그인 체크를 컨트롤러 단으로 이관한 공통 헬퍼.
+     * Thymeleaf는 템플릿 렌더링 중간에 리다이렉트를 할 수 없으므로, 뷰 진입 전에 세션을 확인한다.
+     * 동작은 원본과 동일: 미로그인 시 현재 URL(쿼리스트링 포함)을 returnUrl로 붙여 로그인 페이지로 리다이렉트.
+     *
+     * @return 리다이렉트 대상 뷰 이름(미로그인 시), 로그인된 경우 null
+     */
+    private String redirectToLoginIfNotAuthenticated(HttpServletRequest request, HttpSession session, String defaultReturnUrl) {
+        if (session.getAttribute("ssUserVo") != null) {
+            return null;
+        }
+        String returnUrl = request.getRequestURI().substring(request.getContextPath().length());
+        if (returnUrl.isEmpty() || returnUrl.equals("/")) {
+            returnUrl = defaultReturnUrl;
+        }
+        if (request.getQueryString() != null && !request.getQueryString().isEmpty()) {
+            returnUrl = returnUrl + "?" + request.getQueryString();
+        }
+        String encodedReturnUrl = UriUtils.encode(returnUrl, StandardCharsets.UTF_8);
+        // "redirect:"로 시작하는 컨텍스트 상대경로는 Spring이 컨텍스트 패스를 자동으로 붙여주므로 여기서 직접 붙이지 않는다
+        // (직접 붙이면 "/apidev/apidev/login/..."처럼 두 번 붙는 버그가 생김 - 실제로 발생 확인 후 수정).
+        return "redirect:/login/loginForm.do?returnUrl=" + encodedReturnUrl;
+    }
+
     /**
      * API 민감정보 등록 처리 (단일)
      * @param vo 등록할 민감정보 정보

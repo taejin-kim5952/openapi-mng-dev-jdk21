@@ -232,7 +232,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "mypage/mypage",
             "api/searchMain",
             "api/apiSearchList",
-            "api/info/list"
+            "api/info/list",
+            "api/sensitiveInfoReport",
+            "api/sensitiveInfoRegister"
         });
         return resolver;
     }

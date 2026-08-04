@@ -10,9 +10,9 @@
   </parent>
 
   <groupId>com.kt</groupId>
-  <artifactId>openapi-mng-dev</artifactId>
+  <artifactId>openapi-mng-dev-jdk21</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>openapi-mng-dev</name>
+  <name>openapi-mng-dev-jdk21</name>
   <packaging>war</packaging>
 
   <properties>
