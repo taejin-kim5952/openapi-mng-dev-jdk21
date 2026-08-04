@@ -90,4 +90,11 @@ public class GlobalViewModelAdvice {
     public String sIsAuthYn(HttpSession session) {
         return (String) session.getAttribute("sIsAuthYn");
     }
+
+    // [JSP->Thymeleaf] pathRegFormPrivate.jsp가 <c:set var="dp_kos_apipath_prefix"
+    // value="${sessionScope['kos.apipath.prefix']}" />로 읽던 세션 값 - 읽기 전용 투영.
+    @ModelAttribute("dp_kos_apipath_prefix")
+    public String dpKosApipathPrefix(HttpSession session) {
+        return (String) session.getAttribute("kos.apipath.prefix");
+    }
 }

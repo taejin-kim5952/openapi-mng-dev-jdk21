@@ -249,7 +249,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/dataTypeRegForm",
             "api/infoRegForm",
             "api/pathRegForm",
-            "api/pathRegFormArsenal"
+            "api/pathRegFormArsenal",
+            "api/pathRegFormPrivate"
         });
         return resolver;
     }

@@ -1,0 +1,237 @@
+<!--/* popBstSysSelect.jsp -> Thymeleaf 프래그먼트 변환. */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="popBstSysSelect">
+<div class="pop_bst_sys_select" title="BEAST G/W 시스템 선택" >
+  <!--  popup content Start  -->
+  <div class="popup_content distribution_cont ">
+
+    <div class="search_panel cid_search_wrap">
+      <input type="hidden" class="cid_q_target">
+      <div class="line">
+        <span class="title">시스템 ID</span>
+        <span class="cont wx200"><input class="cid_q_sys_id cid_enter_search" type="text"></span>
+        <span class="title">시스템 명</span>
+        <span class="cont wx200"><input class="cid_q_sys_nm cid_enter_search" type="text"></span>
+        <span>
+            <input type="radio" id="sysKTC" name="sysTarget" value="KTC" data-value="KTC" title="KTC" checked>
+            <label for="sysKTC"><span></span>KTC</label>
+            <input type="radio" id="sysAZURE" name="sysTarget" value="AZURE" data-value="AZURE" title="AZURE">
+            <label for="sysAZURE"><span></span>AZURE</label>
+        </span>
+      </div>
+      <div class="line">
+        <span class="title">URL</span>
+        <span class="cont wx200"><input class="cid_q_edpt_atrib_url cid_enter_search" type="text"></span>
+        <span class="title">Studio ID</span>
+        <span class="cont wx200"><input class="cid_q_koa_sys_id cid_enter_search" type="text"></span>
+        <span class="btn_area"><button type="button" class="btn-lg btn_searching cid_btn_search">검색</button></span>
+      </div>
+    </div><!-- .search_panel -->
+
+    <div class="scroll_box">
+      <div class="pkg_board">
+        <!-- writeform -->
+        <table class="table-vw cid_item_list">
+          <caption>BEAST G/W 시스템 선택 Table</caption>
+          <colgroup>
+            <col style="width:60px;">
+            <col style="width:20%;">
+            <col style="width:30%;">
+            <col style="width:auto;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>선택</th>
+              <th>시스템ID</th>
+              <th>시스템명</th>
+              <th>URL</th>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div><!-- .pkg_board -->
+    </div><!-- .scroll_box -->
+    <div class="lPop_bottom brd_tp">
+      <button type="button" title="선택" class="btn btn_black btn_confirm cid_act_select">선택</button>
+      <button type="button" title="닫기" class="btn btn_popup_close cid_btn_popup_cancel">닫기</button>
+    </div>
+  </div>
+</div><!-- .pop_bst_sys_select -->
+
+<script th:inline="javascript">
+  $(document).ready(function() {
+    bstsyssel_fn_init_handler();
+    bstsyssel_fn_init_dialog();
+    bstsyssel_fn_init_page();
+  });
+  function bstsyssel_fn_init_handler() {
+    $('.pop_bst_sys_select .cid_btn_search').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      bstsyssel_fn_query_list();
+    });
+    $('.pop_bst_sys_select .cid_enter_search').on('keypress', function(p_evt) {
+      if (p_evt.keyCode == 13) {
+        p_evt.preventDefault();
+        $('.pop_bst_sys_select .cid_btn_search').trigger('click');
+      }
+    });
+    $('.pop_bst_sys_select .cid_act_select').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      bstsyssel_fn_item_select();
+    });
+  }
+  function bstsyssel_fn_init_dialog() {
+    $('.pop_bst_sys_select').dialog({
+      autoOpen: false, width: 800, modal: true, resizable: false
+    });
+    $('.pop_bst_sys_select .cid_btn_popup_cancel').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      $('.pop_bst_sys_select').dialog('close');
+    });
+  }
+  function bstsyssel_fn_init_page() {
+    //-- [2023:codeeyes][empty_block issue]
+  }
+
+  //-- [i][p_target: [tb, prd]][p_param: sysId, sysNm, edptAtribUrl, koaSysId]
+  function fn_pop_bst_sys_select(p_target, p_param) {
+    bstsyssel_ui_init_list();
+
+    $('.pop_bst_sys_select').dialog('open');
+    $('.pop_bst_sys_select').find('.scroll_box').scrollTop(0);  //-- scroll after visiable
+
+    $('.pop_bst_sys_select').find('.cid_search_wrap :input').val('');
+
+    var sysId = $sf_obj_val(p_param, 'sysId');
+    var sysNm = $sf_obj_val(p_param, 'sysNm');
+    var edptAtribUrl = $sf_obj_val(p_param, 'edptAtribUrl');
+    var koaSysId = $sf_obj_val(p_param, 'koaSysId');
+
+    $('.pop_bst_sys_select').find(':input.cid_q_target').val(p_target);
+    //-- [i][전달되는경우 readonly설정]
+    $('.pop_bst_sys_select').find(':input.cid_q_koa_sys_id').val(koaSysId).prop('readonly', (!$is_empty(koaSysId)));
+    $('.pop_bst_sys_select').find(':input.cid_q_sys_id').val(sysId);
+    $('.pop_bst_sys_select').find(':input.cid_q_sys_nm').val(sysNm);
+    $('.pop_bst_sys_select').find(':input.cid_q_edpt_atrib_url').val(edptAtribUrl);
+
+    if (!$is_empty(koaSysId) || !$is_empty(sysId) || !$is_empty(sysNm) || !$is_empty(edptAtribUrl)) {
+      bstsyssel_fn_query_list();
+    }
+  }
+
+  function bstsyssel_fn_get_target() {
+    return $('.pop_bst_sys_select').find(':input.cid_q_target').val();
+  }
+
+  function bstsyssel_fn_get_item_list_tbody() {
+    return $('.pop_bst_sys_select .cid_item_list').find('tbody');
+  }
+
+  function bstsyssel_fn_item_select() {
+    var jq_tbody = bstsyssel_fn_get_item_list_tbody();
+    var jq_rdo_rec = jq_tbody.find('input[name="rdo_rec"]:checked');
+    if (jq_rdo_rec.length == 0) { alert('선택정보가 없습니다.'); return; }
+
+    var sel_rec = jq_rdo_rec.closest('tr').data('rec');
+
+    //-- [i][fn_cb_pop_bst_sys_select() @caller]
+    if ('function' == typeof(fn_cb_pop_bst_sys_select)) {
+      fn_cb_pop_bst_sys_select(bstsyssel_fn_get_target(), sel_rec);
+    }
+
+    $('.pop_bst_sys_select').dialog('close');
+  }
+
+  function bstsyssel_ui_init_list() {
+    bstsyssel_fn_get_item_list_tbody().empty();
+  }
+
+  function bstsyssel_ui_display_message_list(p_msg) {
+    var colspan = $('.pop_bst_sys_select .cid_item_list > thead > tr').children().length;
+    var html = '<tr><td colspan="' + colspan + '">' + p_msg + '</td></tr>';
+    bstsyssel_fn_get_item_list_tbody().empty().append(html);
+  }
+
+  function bstsyssel_ui_display_list(p_nlist, p_msg) {
+    if (p_msg.length > 0) {
+      bstsyssel_ui_display_message_list(p_msg);
+    }
+    else {
+      bstsyssel_ui_init_list();
+      var jq_tbody = bstsyssel_fn_get_item_list_tbody();
+      $.each(p_nlist, function (idx, item) {
+        var jq_tr = $('<tr></tr>').data('rec', item);
+        var html = '';
+        html += '<td>';
+        html += '  <span>';
+        html += '    <a href="javascript:void(0)">';
+        html += '      <input type="radio" name="rdo_rec" id="bstsyssel_id_rdo_' + idx + '" title="정보선택">';
+        html += '      <label for="bstsyssel_id_rdo_' + idx + '"><span></span></label>';
+        html += '    </a>';
+        html += '  </span>';
+        html += '</td>';
+        html += '<td>' + $sf_str(item['SYS_ID']) + '</td>';
+        html += '<td>' + $sf_str(item['SYS_NM']) + '</td>';
+        html += '<td>' + $sf_str($sf_str(item['EDPT_ATRIB_URL']).split(';')[0]) + '</td>';
+        jq_tr.append(html);
+        jq_tbody.append(jq_tr);
+      });
+      jq_tbody.find('input:radio[name="rdo_rec"]').eq(0).prop('checked', true);
+    }
+  }
+
+  //-- list 검색
+  function bstsyssel_fn_query_list() {
+    var jq_dialog = $('.pop_bst_sys_select');
+
+    var param = new Object();
+    param['cmd'] = 'cmd_db_list';
+    param['target'] = bstsyssel_fn_get_target() + '_' + $('input:radio[name="sysTarget"]:checked').data('value');
+    param['koaSysId'] = jq_dialog.find(':input.cid_q_koa_sys_id').val();
+    param['sysId'] = jq_dialog.find(':input.cid_q_sys_id').val();
+    param['sysNm'] = jq_dialog.find(':input.cid_q_sys_nm').val();
+    param['edptAtribUrl'] = jq_dialog.find(':input.cid_q_edpt_atrib_url').val();
+
+    var s_msg = '';
+
+    if (s_msg.length > 0) {
+      (('manual' == s_cmd) ? alert(s_msg) : void(0))
+      return;
+    }
+
+    var fn_beforeSend = (function(xhr) {
+      (('function' == typeof($.ajaxSetup()['beforeSend'])) && ($.ajaxSetup()['beforeSend'])(xhr));
+      bstsyssel_ui_init_list();
+      bstsyssel_ui_display_message_list('검색중 입니다...');
+    });
+    var fn_error = (function(request, status, error) {
+      bstsyssel_ui_display_message_list('');
+      alert('status: ' + request.status + '\n' + 'error: ' + error);
+    });
+    var fn_success = (function(data, textStatus, request) {
+      bstsyssel_ui_display_message_list('');
+      var b_is_valid_data = ($has_own(data, 'nlist') == true);
+      var nlist = [];
+      if (true == b_is_valid_data) {
+        nlist = data['nlist'];
+        b_is_valid_data = (Array.isArray(nlist) == true);
+      }
+      if (true == b_is_valid_data) {
+        var s_msg = ((nlist.length == 0) ? '검색 결과가 없습니다.' : '');
+        bstsyssel_ui_display_list(nlist, s_msg);
+      }
+      else {
+        alert('유효하지 않은 검색 결과 입니다.');
+      }
+    });
+    $.ajax({
+      url: /*[[@{/beast/api/popBstSysSelect/ajax_query.do}]]*/ '/beast/api/popBstSysSelect/ajax_query.do' + '?cmd=' + param['cmd'],
+      type: 'POST',
+      data :param,
+      beforeSend: fn_beforeSend,
+      success: fn_success,
+      error: fn_error,
+    });
+  }
+</script>
+</th:block>
+</div>
