@@ -163,8 +163,7 @@ public class ApiMainController {
 		session.setAttribute("sIsAuthYn", isAuthYn);
 		model.addAttribute("sIsAuthYn", isAuthYn);
 
-		String devMasterId = (String) session.getAttribute("dev.master.id");
-		model.addAttribute("b_is_master", devMasterId != null && devMasterId.equalsIgnoreCase("master"));
+		// b_is_master는 GlobalViewModelAdvice에서 전역으로 주입됨
 
 		mv.setViewName("api/main");
 		

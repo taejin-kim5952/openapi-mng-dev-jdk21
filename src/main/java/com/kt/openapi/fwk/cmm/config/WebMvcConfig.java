@@ -235,7 +235,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/info/list",
             "api/sensitiveInfoReport",
             "api/sensitiveInfoRegister",
-            "api/main"
+            "api/main",
+            "api/deploy/deployList",
+            "api/deploy/deployView",
+            "api/deploy/approvalListNew",
+            "api/deploy/verifyExecute"
         });
         return resolver;
     }

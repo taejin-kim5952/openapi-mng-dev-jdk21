@@ -1,0 +1,38 @@
+<!--/* popVerifiHst.jsp -> Thymeleaf 프래그먼트 변환 (원본 t:layout type="empty"는 wrapper 없이 body만 출력) */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="popVerifiHst">
+<!-- popVerifiHst { -->
+<div class="popVerifiHst" title="검증 이력" >
+  <!--  popup content Start  -->
+  <div class="popup_content distribution_cont ">
+    <div class="scroll_box13">
+      <div class="pkg_board">
+        <!-- writeform -->
+        <table class="table-vw cid_item_list" id="verifiHst">
+          <caption>검증 이력</caption>
+          <colgroup>
+            <col style="width:15%;">
+            <col style="width:35%;">
+            <col style="width:25%;">
+            <col style="width:auto;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>일시</th>
+              <th>검증 여부</th>
+              <th>상세보기</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div><!-- .pkg_board -->
+    </div><!-- .scroll_box13 -->
+    <div class="brd_tp process_btn">
+      <button type="button" title="확인" class="btn btn_black btn_sml" onclick="$('.popVerifiHst').dialog('close')">확인</button>
+    </div>
+  </div>
+</div>
+<!-- popVerifiHst } -->
+</th:block>
+</div>

@@ -1,0 +1,49 @@
+<!--/* popCbApply.jsp -> Thymeleaf 프래그먼트 변환 (원본 t:layout type="empty"는 wrapper 없이 body만 출력) */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="popCbApply">
+<!-- popCbApply { -->
+<div class="popCbApply" title="상용 배포" >
+  <!--  popup content Start  -->
+  <div class="popup_content distribution_cont ">
+    <div class="pkg_board">
+      <!-- writeform -->
+      <table class="table-vw ">
+        <caption>상용 배포 Table</caption>
+        <colgroup>
+          <col style="width:15%;">
+          <col style="width:auto;">
+          <col style="width:15%;">
+          <col style="width:auto;">
+        </colgroup>
+        <tbody>
+          <tr>
+            <th>시스템</th>
+            <td th:text="${deployMap.sysNm}"></td>
+            <th>카테고리</th>
+            <td th:text="${deployMap.ctgryNm}"></td>
+          </tr>
+          <tr>
+            <th>API 명</th>
+            <td th:text="${deployMap.apiNm}"></td>
+            <th></th>
+            <td></td>
+          </tr>
+          <tr>
+            <th>메세지</th>
+            <td class="message_box" colspan="3">
+              <textarea rows="16"  id="applyMsg" onchange="CheckStrLength(3000,'applyMsg')" onkeyup="CheckStrLength(3000,'applyMsg')"></textarea>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="brd_tp process_btn">
+        <button type="button" title="닫기" class="btn btn_sml" onclick="$('.popCbApply').dialog('close')">닫기</button>
+        <button type="button" id="btnDeployApply" title="배포 요청" class="btn btn_black btn_sml">배포 요청</button>
+    </div>
+  </div>
+</div>
+<!-- popCbApply } -->
+</th:block>
+</div>

@@ -1,0 +1,23 @@
+<!--/* head_function.jsp -> Thymeleaf 프래그먼트 변환. dp_devUseJsConsoleLog/dp_configRunmode/
+     dp_requestUri/dp_adptranApiUrl은 세션값 우선 -> 환경설정값 폴백 로직이라 GlobalViewModelAdvice에서
+     전역 모델 속성으로 미리 계산해서 주입함 (원본의 <c:set> 계산 로직을 Java로 이관, 값은 동일) */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="headFunction">
+
+<script th:src="@{/resources/adptran/js/ksmutil.js}"></script>
+<script th:inline="javascript">
+  var console = ((typeof(window.console) == 'object') ? window.console : {log:(new Function()), debug:(new Function()), info:(new Function()), warn:(new Function()), error:(new Function()), assert:(new Function())});
+  if (/*[[${dp_devUseJsConsoleLog != null ? dp_devUseJsConsoleLog : ''}]]*/ '' != 'y') {
+    console.log = new Function();
+  }
+  (function() {
+    var adpt_pageinfo = (JSON.parse(localStorage.getItem('adpt_pageinfo')) || {});
+    adpt_pageinfo.config_runmode = /*[[${dp_configRunmode != null ? dp_configRunmode : ''}]]*/ '';
+    adpt_pageinfo.request_uri = /*[[${dp_requestUri != null ? dp_requestUri : ''}]]*/ '';
+    adpt_pageinfo.adptran_api_url = /*[[${dp_adptranApiUrl != null ? dp_adptranApiUrl : ''}]]*/ '';
+    localStorage.setItem('adpt_pageinfo', JSON.stringify(adpt_pageinfo));
+  })();
+</script>
+
+</th:block>
+</div>

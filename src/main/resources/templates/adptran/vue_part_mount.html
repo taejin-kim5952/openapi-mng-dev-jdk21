@@ -1,0 +1,31 @@
+<!--/* vue_part_mount.jsp -> Thymeleaf 프래그먼트 변환. 원본은 <jsp:include>+<jsp:param>으로
+     param_vue_part/param_vue_part_only/param_vue_custom_properties를 전달받았는데, Thymeleaf는
+     이를 프래그먼트 파라미터로 그대로 대응시킴. dp_custom_properties(문자열로 조립된 임의의 raw HTML
+     속성 블록)는 실제로는 verifyExecute.jsp 한 곳에서만 prop_api_no/prop_proc_seq/prop_gw_profile/
+     prop_fn_emit 4개 고정 속성으로만 쓰이므로, 범용 raw 속성 주입 대신 이 4개를 명시적 파라미터로 받음
+     (호출부에서 안 쓰면 빈 문자열 전달). dp_bundleScriptSrc는 GlobalViewModelAdvice가 전역으로 계산해서
+     주입(AdptranUtil.getBundleScriptSrc(request) 그대로 재사용, request가 필요해 템플릿에서 직접 호출 불가). */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="vuePartMount(vuePart, vuePartOnly, propApiNo, propProcSeq, propGwProfile, propFnEmit)">
+<th:block th:if="${vuePart != null and !vuePart.isEmpty()}"
+          th:with="dpIdVuePart='vid_' + ${vuePart}, bUseJqueryCustomScrollbar=${vuePart.contains('adptranService')}, bHasCustomProps=${propFnEmit != null and !propFnEmit.isEmpty()}">
+
+<th:block th:if="${bUseJqueryCustomScrollbar}">
+  <link th:href="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mCustomScrollbar.min.css}" rel="stylesheet" />
+  <script th:src="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mousewheel.min.js}"></script>
+  <script th:src="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mCustomScrollbar.min.js}"></script>
+</th:block>
+<th:block th:if="${vuePartOnly != 'Y'}">
+<th:block th:replace="~{adptran/head_function :: headFunction}"></th:block>
+<link th:href="@{/resources/adptran/css/adptran-common.css}" rel="stylesheet" />
+</th:block>
+
+<script defer th:src="@{${dp_bundleScriptSrc}}"></script>
+<div th:unless="${bHasCustomProps}" th:id="${dpIdVuePart}" v-cloak></div>
+<div th:if="${bHasCustomProps}" th:id="${dpIdVuePart}"
+     th:attr="prop_api_no=${propApiNo},prop_proc_seq=${propProcSeq},prop_gw_profile=${propGwProfile},prop_fn_emit=${propFnEmit}"
+     v-cloak></div>
+
+</th:block>
+</th:block>
+</div>

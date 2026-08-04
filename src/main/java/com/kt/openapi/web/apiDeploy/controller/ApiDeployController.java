@@ -1181,17 +1181,19 @@ public class ApiDeployController {
 	 * 4. 설명 : API검증
 	 * </pre>
 	 */
-	@RequestMapping(value="/mvVerifyExecute.do") 
-	public ModelAndView mvVerifyExecute(HttpSession session) {
+	@RequestMapping(value="/mvVerifyExecute.do")
+	public ModelAndView mvVerifyExecute(HttpSession session, @RequestParam(value = "gwProfile", required = false) String gwProfile) {
 		LOG.debug("\n\n### {}.{}() ###\n", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName());
 
 		ModelAndView mv = new ModelAndView();
 
 		mv.addObject("apiNo", String.valueOf(CommonFunc.getSession("apiNo", session)));
 		mv.addObject("procSeq", String.valueOf(CommonFunc.getSession("procSeq", session)));
+		// [JSP->Thymeleaf] 원본 JSP의 ${param.gwProfile} 계산(허용값 아니면 'TB' 폴백)을 컨트롤러로 이관
+		mv.addObject("gwProfile", ("TB".equals(gwProfile) || "PROD".equals(gwProfile)) ? gwProfile : "TB");
 
 		mv.setViewName("api/deploy/verifyExecute");
-		
+
 		return mv;
 	}
 
