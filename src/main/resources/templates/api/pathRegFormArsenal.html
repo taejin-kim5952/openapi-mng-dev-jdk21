@@ -8,7 +8,7 @@
      - ${param}/${apiDef} 원시 덤프(디버그 블록)는 Thymeleaf에 #request/param 암묵객체가 없어 완전히
        동일하게 재현 불가 - apiDef 덤프는 유지, param 맵 원시 덤프는 생략(디버그 전용, b_is_master만 접근 가능). */-->
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/default(layoutType='apiInfo', bodyClass=null)}">
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
 <head>
     <title>KT Open API</title>
 </head>
@@ -81,8 +81,10 @@
     $(".default_info").children("p").text(yamlOb.info.title);
     $(".default_info").children("p").attr("title",yamlOb.info.title);
 
-    var param_apiPath = qp_pathRegFormArsenal.get('apiPath') || '';
-    var param_apiMethod = qp_pathRegFormArsenal.get('apiMethod') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegFormArsenal)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiPath/#pApiMethod)를 우선 사용
+    var param_apiPath = qp_pathRegFormArsenal.get('apiPath') || $('#pApiPath').val() || '';
+    var param_apiMethod = qp_pathRegFormArsenal.get('apiMethod') || $('#pApiMethod').val() || '';
     var param_apiCopyYn = qp_pathRegFormArsenal.get('apiCopyYn') || ''; // 'Y':copy, 'A':edit other method, 'V': version upgrade
 
     //--[tag:adpt][add]
@@ -1411,8 +1413,10 @@
 
   // 불러온 api정보 세팅
   function apiPathInfoSet() {
-    var paramApiMethod = qp_pathRegFormArsenal.get('apiMethod') || '';
-    var paramApiPath   = qp_pathRegFormArsenal.get('apiPath') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegFormArsenal)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiMethod/#pApiPath)를 우선 사용
+    var paramApiMethod = qp_pathRegFormArsenal.get('apiMethod') || $('#pApiMethod').val() || '';
+    var paramApiPath   = qp_pathRegFormArsenal.get('apiPath') || $('#pApiPath').val() || '';
 
     //--[tag:adpt][add] {
     //-- check object exist
@@ -2182,13 +2186,13 @@
 <!-- yaml parser 관련 js파일 //-->
 
 <form method="POST" action="" name="apiInfoForm" id="apiInfoForm" class="tempForm">
-  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" />
-  <input type="hidden" id="pApiNo" name="apiNo" />
-  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" />
-  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" />
+  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" th:value="${apiRegVO != null ? apiRegVO.apiSpcNo : ''}" />
+  <input type="hidden" id="pApiNo" name="apiNo" th:value="${apiRegVO != null ? apiRegVO.apiNo : ''}" />
+  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNo : ''}" />
+  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNm : ''}" />
   <input type="hidden" id="pApiDataTypeNm" name="apiDataTypeNm" />
-  <input type="hidden" id="pApiPath" name="apiPath" />
-  <input type="hidden" id="pApiMethod" name="apiMethod" />
+  <input type="hidden" id="pApiPath" name="apiPath" th:value="${apiRegVO != null ? apiRegVO.apiPath : ''}" />
+  <input type="hidden" id="pApiMethod" name="apiMethod" th:value="${apiRegVO != null ? apiRegVO.apiMethod : ''}" />
   <input type="hidden" id="pApiCopyYn" name="apiCopyYn" />
 
   <input type="hidden" id="insertYn" name="insertYn" />
@@ -2203,15 +2207,15 @@
 <script th:inline="javascript">
   $(document).ready(function () {
     var qp = new URLSearchParams(window.location.search);
-    $('#pApiSpcNo').val(qp.get('apiSpcNo') || '');
-    $('#pApiNo').val(qp.get('apiNo') || '');
-    $('#pApiCtgryNo').val(qp.get('apiCtgryNo') || '');
-    $('#pApiCtgryNm').val(qp.get('apiCtgryNm') || '');
+    if (qp.get('apiSpcNo')) { $('#pApiSpcNo').val(qp.get('apiSpcNo')); }
+    if (qp.get('apiNo')) { $('#pApiNo').val(qp.get('apiNo')); }
+    if (qp.get('apiCtgryNo')) { $('#pApiCtgryNo').val(qp.get('apiCtgryNo')); }
+    if (qp.get('apiCtgryNm')) { $('#pApiCtgryNm').val(qp.get('apiCtgryNm')); }
     $('#pApiDataTypeNm').val(qp.get('apiDataTypeNm') || '');
-    $('#pApiPath').val(qp.get('apiPath') || '');
-    $('#pApiMethod').val(qp.get('apiMethod') || '');
+    if (qp.get('apiPath')) { $('#pApiPath').val(qp.get('apiPath')); }
+    if (qp.get('apiMethod')) { $('#pApiMethod').val(qp.get('apiMethod')); }
     $('#pApiCopyYn').val(qp.get('apiCopyYn') || '');
-    $('#insertYn').val((qp.get('apiNo') || '') == '' ? 'Y' : 'N');
+    $('#insertYn').val(($('#pApiNo').val() || '') == '' ? 'Y' : 'N');
   });
 </script>
 

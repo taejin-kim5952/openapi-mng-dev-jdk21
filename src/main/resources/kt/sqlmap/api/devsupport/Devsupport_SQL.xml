@@ -9,24 +9,24 @@
         <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pagePrefix" />
         SELECT 
               ROW_NUMBER() OVER (ORDER BY REG_DT DESC) rownum
-              ,[PSTING_ID]
-              ,[BBS_TYPE_CD]
-              ,[PSTING_NO]
-              ,[TITLE]
-              ,[SBST]
-              ,[RETV_NUM]
-              ,[SHOW_YN]
-              ,[IMPT_YN]
-              ,[DEL_YN]
+              ,PSTING_ID
+              ,BBS_TYPE_CD
+              ,PSTING_NO
+              ,TITLE
+              ,SBST
+              ,RETV_NUM
+              ,SHOW_YN
+              ,IMPT_YN
+              ,DEL_YN
               ,TO_CHAR(REG_DT, 'YYYY.MM.DD')  REG_DT
-              ,[REGR]
-              ,[AMD_DT]
+              ,REGR
+              ,AMD_DT
               ,COALESCE(AMDR,'') AS AMDR
-              ,[DEVSUPPORT_GB]
-              ,[SERVICEINFRA_NM] AS SERVICEINFRAN 
-              ,[STATUS]
-              ,[DEVSUPPORT_GB] supportgb
-          FROM [dbo].[KOA_TB_DEVSUPPORT_BBS] 
+              ,DEVSUPPORT_GB
+              ,SERVICEINFRA_NM AS SERVICEINFRAN 
+              ,STATUS
+              ,DEVSUPPORT_GB supportgb
+          FROM KOA_TB_DEVSUPPORT_BBS 
         <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
     </select>
     
@@ -193,13 +193,13 @@
     <!-- 서비스명 자동 입력을 위한 이전 신청 내역 조회 -->
     <select id="selDevSupportMyServiceList" parameterType="com.kt.openapi.web.devsupport.vo.DevSupportVo" resultType="com.kt.openapi.web.devsupport.vo.DevSupportVo">
         /* com.kt.openapi.web.devsupport.dao.DevSupportDAO.selDevSupportMyServiceList */ 
-        SELECT [SERVICEINFRA_NM] myServiceInfraNm
-        FROM [KOA_TB_DEVSUPPORT_BBS] 
-        WHERE [SERVICEINFRA_NM] IS NOT NULL 
+        SELECT SERVICEINFRA_NM myServiceInfraNm
+        FROM KOA_TB_DEVSUPPORT_BBS 
+        WHERE SERVICEINFRA_NM IS NOT NULL 
         <if test="regr != null and regr != ''">
             AND REGR = #{regr}
         </if>
-        GROUP BY [SERVICEINFRA_NM]
+        GROUP BY SERVICEINFRA_NM
     </select>
     
     <!-- 사업담당자 검색 -->

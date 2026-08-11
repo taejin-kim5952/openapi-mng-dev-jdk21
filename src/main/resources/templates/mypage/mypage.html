@@ -10,10 +10,11 @@
     <script type="text/javascript" th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function(){
-        	if(/*[[${msg != null ? msg : ''}]]*/ '' != null  && /*[[${msg != null ? msg : ''}]]*/ '' != '' ){
+        	var msgVal = /*[[${msg != null ? msg : ''}]]*/ '';
+        	if(msgVal != null  && msgVal != '' ){
         		var btnHtm = "";
         		btnHtm=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" >확인</button> ';
-        		fnOpenLayer(btnHtm, '권한확인', /*[[${msg != null ? msg : ''}]]*/ '');
+        		fnOpenLayer(btnHtm, '권한확인', msgVal);
         		return;
         	}
         });

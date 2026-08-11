@@ -743,7 +743,7 @@ public class LoginController implements HttpSessionBindingListener{
 
 		logger.debug("로그아웃 실행");
 
-		String userId = userVO.getMbrId();
+		String userId = (userVO != null) ? userVO.getMbrId() : null;
 		String transactionId = UUID.randomUUID().toString();
 		ApilinkLogUtil logUtil;
 

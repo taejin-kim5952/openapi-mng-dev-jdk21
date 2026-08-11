@@ -235,7 +235,7 @@
     SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selMainListTotalCnt */
       COUNT(*)
     FROM KOA_TB_REVIEW A 
-      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = CAST(D.API_SPC_NO AS VARCHAR))
     WHERE (A.DEL_YN = 'N')
       AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
     <if test='reviewRqtTypeCd == "APIRQT1010"'>
@@ -297,7 +297,7 @@
         COALESCE(A.AMDR, '') AS AMDR,
         COALESCE(A.REGR, '') AS REGR
       FROM KOA_TB_REVIEW A 
-        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = CAST(D.API_SPC_NO AS VARCHAR))
       WHERE (A.DEL_YN = 'N')
         AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
       <if test='reviewRqtTypeCd == "APIRQT1010"'>
@@ -390,7 +390,7 @@
   <!-- 개발요청/검토의견 등록 -->
   <insert id="savDevReqReg" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="apiReviewRqtNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_review_api_review_rqt_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savDevReqReg */
     INSERT INTO KOA_TB_REVIEW (
@@ -447,7 +447,7 @@
       LEFT OUTER JOIN KOA_TB_MBR M   ON (A.AMDR = M.MBR_ID)
       LEFT OUTER JOIN KOA_TB_MBR M1  ON (A.REGR = M1.MBR_ID)
       LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.REVIEW_SYS_ID)
-      LEFT OUTER JOIN KOA_TB_API_SPC B ON ((A.API_SPC_NO = B.API_SPC_NO) AND (B.DEL_YN='N'))
+      LEFT OUTER JOIN KOA_TB_API_SPC B ON ((A.API_SPC_NO = CAST(B.API_SPC_NO AS VARCHAR)) AND (B.DEL_YN='N'))
       LEFT OUTER JOIN (
         SELECT COUNT(*) AS CNT, B.API_REVIEW_RQT_NO
         FROM KOA_TB_REVIEW_OPIN  B 
@@ -513,7 +513,7 @@
     SELECT  /* com.kt.openapi.web.api.dao.ApiMainDAO.selMainRequestCnt */
       COUNT(*)
     FROM KOA_TB_REVIEW A 
-      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+      LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = CAST(D.API_SPC_NO AS VARCHAR))
     WHERE (A.DEL_YN = 'N')
       AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
       AND (A.API_REVIEW_RQT_NO NOT IN (SELECT B.API_REVIEW_RQT_NO FROM KOA_TB_REVIEW_OPIN B WHERE (B.DEL_YN = 'N')))
@@ -620,7 +620,7 @@
   <!-- API 버전업으로 API명세 등록 -->
   <insert id="savApiVerUpApiSpc" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="apiSpcNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_spc_api_spc_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiSpc */
     INSERT INTO KOA_TB_API_SPC
@@ -655,7 +655,7 @@
     )
     SELECT
       (CASE WHEN #{importType} = '1' THEN API_SPC_ID
-        ELSE (SELECT IDENT_CURRENT('KOA_TB_API_SPC'))
+        ELSE (SELECT last_value FROM koa_tb_api_spc_api_spc_no_seq)
         END ) AS API_SPC_ID
       ,#{ver}
       ,API_NM
@@ -699,7 +699,7 @@
   <!-- API 버전업으로 API카테고리 등록 -->
   <insert id="savApiVerUpApiCtgry" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="apiCtgryNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_ctgry_api_ctgry_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiCtgry */
     INSERT INTO KOA_TB_API_CTGRY (
@@ -730,7 +730,7 @@
   <!-- API 버전업으로 API정의 등록 -->
   <insert id="savApiVerUpApiDef" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="apiNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_def_api_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiDef */
     INSERT INTO KOA_TB_API_DEF (
@@ -787,14 +787,14 @@
       ,RESMAP_ERR_CD_FIELD
       ,RESMAP_ERR_MSG_FIELD
       ,API_VER
-      ,IDENT_CURRENT('KOA_TB_API_DEF') AS API_VER_NO  /*-- 신규API_NO와 같게 --*/
+      ,(SELECT last_value FROM koa_tb_api_def_api_no_seq) AS API_VER_NO  /*-- 신규API_NO와 같게 --*/
     FROM KOA_TB_API_DEF 
     WHERE (API_NO = #{apiNo})
   </insert>
 
   <insert id="savApiVerUpApiParam" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="paramNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_param_param_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiVerUpApiParam */
     INSERT INTO KOA_TB_API_PARAM (
@@ -943,7 +943,7 @@
   <!-- API Private 전환으로 API명세 등록 -->
   <insert id="savApiPrivateApiSpc" parameterType="com.kt.openapi.web.api.vo.ApiMainVo">
     <selectKey keyProperty="apiSpcNo" resultType="string" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_spc_api_spc_no_seq')
     </selectKey>
     /* com.kt.openapi.web.api.dao.ApiMainDAO.savApiPrivateApiSpc */
     INSERT INTO KOA_TB_API_SPC (
@@ -977,7 +977,7 @@
       ,PROJECT_NS
     )
     SELECT
-      IDENT_CURRENT('KOA_TB_API_SPC') AS API_SPC_ID
+      (SELECT last_value FROM koa_tb_api_spc_api_spc_no_seq) AS API_SPC_ID
       ,VER
       ,API_NM
       ,API_DESC

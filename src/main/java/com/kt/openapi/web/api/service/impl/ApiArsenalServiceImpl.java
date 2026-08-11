@@ -154,7 +154,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 					} 
 					// 존재하지 않다면 신규추가
 					else {
-						xApiNo = apiRegDAO.savApiPathInfo(pathRegVO);
+						apiRegDAO.savApiPathInfo(pathRegVO);
+						xApiNo = pathRegVO.getApiNo();
 						LOG.debug("==== New APIInfo : {}" ,xApiNo);
 
 						childPathMap1.put("x-apiNo", xApiNo);
@@ -264,7 +265,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 								--*/
 
 								//-- [#]savApiParamInfo-[request]
-								paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+								apiRegDAO.savApiParamInfo(paramRegVO);
+								paramNo = paramRegVO.getParamNo();
 								paramIndex++; //-- [drm][add]++
 								paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -382,7 +384,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 									//-- [v][-][?]paramRegVO.setApiCtgryNo(vo.getApiCtgryNo());
 
 									//-- [#]savApiParamInfo-[response header]
-									paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+									apiRegDAO.savApiParamInfo(paramRegVO);
+									paramNo = paramRegVO.getParamNo();
 									paramIndex++;
 									paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -491,7 +494,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 
 								if (definName.length() > 0) {
 									//-- [#]savApiParamInfo-[response body userdefine datatype]
-									paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+									apiRegDAO.savApiParamInfo(paramRegVO);
+									paramNo = paramRegVO.getParamNo();
 									paramIndex++;
 									paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -796,7 +800,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 				//-- [v][-][상단으로이동]paramRegVO.setObjOdrg(newSortOrder + "");	// 그룹내 순번
 
 				//-- [#]savApiParamInfo-[array]
-				String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+				apiRegDAO.savApiParamInfo(paramRegVO);
+				String paramNo = paramRegVO.getParamNo();
 				newSortOrder++;
 				paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 				//-- [drm][add] for상위복귀후처리
@@ -875,7 +880,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 						--*/
 		
 						//-- [#]savApiParamInfo-[object - not primitive]
-						String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+						apiRegDAO.savApiParamInfo(paramRegVO);
+						String paramNo = paramRegVO.getParamNo();
 						newSortOrder++;
 						paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 						//-- [drm][add] for상위복귀후처리
@@ -919,7 +925,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 						--*/
 
 						//-- [#]savApiParamInfo-[object - primitive]
-						String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+						apiRegDAO.savApiParamInfo(paramRegVO);
+						String paramNo = paramRegVO.getParamNo();
 						newSortOrder++;
 						paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 						//-- [drm][add] for상위복귀후처리
@@ -1008,7 +1015,8 @@ public class ApiArsenalServiceImpl implements ApiArsenalService {
 				--*/
 
 				//-- [#]savApiParamInfo-[array - primitive]
-				String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+				apiRegDAO.savApiParamInfo(paramRegVO);
+				String paramNo = paramRegVO.getParamNo();
 				newSortOrder++;
 				paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 				//-- [drm][add] for상위복귀후처리

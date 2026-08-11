@@ -268,7 +268,7 @@
     <insert id="insert_API_TESTCASE" parameterType="map">
         /* adpt.insert_API_TESTCASE */
         <selectKey keyProperty="fd_seq" resultType="int" order="AFTER">
-            SELECT SCOPE_IDENTITY()
+            SELECT CURRVAL('koa_tb_api_testcase_testcase_id_seq')
         </selectKey>
         INSERT INTO KOA_TB_API_TESTCASE (
              API_NO

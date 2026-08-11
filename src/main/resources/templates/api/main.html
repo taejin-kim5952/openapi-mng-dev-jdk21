@@ -196,6 +196,8 @@ var g_bIsMaster   = /*[[${b_is_master}]]*/ false;	// master 여부
 
             if ('1' == selTab) {
               html += '<li><a href="javascript:void(0)" onclick="mvApiReg(\'' + mainInfo.apiSpcNo + '\',\'' + mainInfo.sysId + '\');" title="수정"><span>수정</span></a></li>';
+              /* [신규] "간단 상세" 화면 - 기존 편집폼과 별개로 임시로 함께 노출(추후 전환 예정) */
+              html += '<li><a href="javascript:void(0)" onclick="goSimpleView(\'' + mainInfo.apiSpcNo + '\');" title="간단 상세"><span>간단 상세</span></a></li>';
              //html += '<li><a href="javascript:void(0)" onclick="mvReqReg(\'' + mainInfo.apiSpcNo + '\', \'3\')" title="검토요청"><span>검토요청</span></a></li>';
                html += '<li><a href="javascript:void(0)" title="삭제" onclick="delDevApiPopup(\'' + mainInfo.apiSpcNo + '\');"><span>삭제</span></a></li>';
                /* [tag:job-20200420][add] */
@@ -392,6 +394,13 @@ var g_bIsMaster   = /*[[${b_is_master}]]*/ false;	// master 여부
     $('#sysId').val(sysId);
     $('#actionForm').attr("action", /*[[@{/api/reg/mvApiInfoReg.do}]]*/ '/api/reg/mvApiInfoReg.do').submit();
     //alert("SYS_ID=>" + $('#sysId').val() + ", Param=>" + sysId);
+  }
+
+  // [신규] "간단 상세" 화면으로 이동 (기존 mvApiReg 편집폼과 별개, 기존 화면은 그대로 둠)
+  // Thymeleaf JS 인라이닝(/*[[@{...}]]*/)은 뒤에 문자열 이어붙이기(+)가 있으면 정상 치환이 안 되므로
+  // (layout/default.html이 전역으로 내려주는) c_url을 그대로 이어붙이는 방식으로 작성.
+  function goSimpleView(apiSpcNo) {
+    location.href = c_url + 'api/simpleview/mvApiSimpleView.do?apiSpcNo=' + apiSpcNo;
   }
 
   // 마이페이지로 이동

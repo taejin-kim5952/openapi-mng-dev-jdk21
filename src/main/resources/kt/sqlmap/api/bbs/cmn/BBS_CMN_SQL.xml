@@ -279,7 +279,7 @@
 	<!-- 개발자 포럼 답글 등록 -->
 	<insert id="saveForumComment" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsCommentVo">
 		<selectKey keyProperty="replNo" resultType="String" order="AFTER">
-			SELECT SCOPE_IDENTITY()
+			SELECT CURRVAL('koa_tb_bbs_repl_repl_no_seq')
 		</selectKey>
 		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.saveForumComment */ 
 		INSERT INTO KOA_TB_BBS_REPL
@@ -360,7 +360,7 @@
 	<!-- 개발자 포럼 글 등록 -->
 	<insert id="saveForum" parameterType="com.kt.openapi.web.bbs.cmn.vo.BbsSaveVo">
 		<selectKey keyProperty="pstingId" resultType="String" order="AFTER">
-			SELECT SCOPE_IDENTITY()
+			SELECT CURRVAL('koa_tb_bbs_psting_id_seq')
 		</selectKey>
 		/* com.kt.openapi.web.bbs.cmn.dao.BbsCmnDAO.saveForum */ 
 		INSERT INTO KOA_TB_BBS

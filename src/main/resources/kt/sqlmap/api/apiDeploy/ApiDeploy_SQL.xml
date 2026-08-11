@@ -5,11 +5,11 @@
 
     <insert id="insertDeployProc" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo" useGeneratedKeys="true" keyProperty="seq">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertDeployProc */ 
-        INSERT INTO [KOA_TB_DEPLOY_PROC]
-           ([API_NO]
-           ,[DEPLOY_CD]
-           ,[VERIFI_CD]
-           ,[REGR]
+        INSERT INTO KOA_TB_DEPLOY_PROC
+           (API_NO
+           ,DEPLOY_CD
+           ,VERIFI_CD
+           ,REGR
          )
          VALUES (
            #{apiNo}
@@ -23,25 +23,25 @@
     <update id="updateDeployProc" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployProc */  
         UPDATE 
-          [KOA_TB_DEPLOY_PROC] 
+          KOA_TB_DEPLOY_PROC 
         SET DEPLOY_CD = 
           (SELECT COMN_CD 
-            FROM [KOA_TB_COMN_CD]  
+            FROM KOA_TB_COMN_CD  
             WHERE 
-              (SORT_ODRG = (SELECT (AA.SORT_ODRG + 1) FROM [KOA_TB_COMN_CD] AA  INNER JOIN [KOA_TB_DEPLOY_PROC] BB  ON (AA.COMN_CD = BB.DEPLOY_CD) WHERE BB.SEQ = #{seq})) 
+              (SORT_ODRG = (SELECT (AA.SORT_ODRG + 1) FROM KOA_TB_COMN_CD AA  INNER JOIN KOA_TB_DEPLOY_PROC BB  ON (AA.COMN_CD = BB.DEPLOY_CD) WHERE BB.SEQ = #{seq})) 
               AND (GROUP_CD = 'DEPLOY1000')
             )
           ,UPDATE_DT = NOW()
           ,UPDATE_USR = #{regr}
         WHERE
-          ([KOA_TB_DEPLOY_PROC].SEQ = #{seq})
+          (KOA_TB_DEPLOY_PROC.SEQ = #{seq})
     </update>
     
     <!-- 배포 프로스세스 기본 업데이트 -->
     <update id="updateDeployProcDefault" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployProcDefault */  
         UPDATE 
-            [KOA_TB_DEPLOY_PROC]    
+            KOA_TB_DEPLOY_PROC    
         SET
             DEPLOY_CD = #{deployCd}
             <if test="verifiCd != null and verifiCd != ''">
@@ -57,26 +57,26 @@
             ,DEPLOY_ADM      = #{deployAdm}
             ,UPDATE_DT       = NOW()
         WHERE
-            ([KOA_TB_DEPLOY_PROC].SEQ = #{seq})
+            (KOA_TB_DEPLOY_PROC.SEQ = #{seq})
     </update>
 
     <!-- PROC 로그 저장 -->
     <insert id="insertProcHst" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo" useGeneratedKeys="true" keyProperty="seq">
        /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertProcHst */  
-        INSERT INTO [dbo].[KOA_TB_DEPLOY_PROC_HST]
-          ([PROC_SEQ]
-          ,[API_NO]
-          ,[VERIFI_CD]
-          ,[DEPLOY_ST_DT]
-          ,[REGR]
-          ,[DEPLOY_ADM]
-          ,[DEPLOY_CD]
-          ,[USE_YN]
-          ,[REG_DT]
-          ,[UPDATE_DT]
-          ,[BIGO]
-          ,[UPDATE_USR]
-          ,[HST_INSERT_USER])
+        INSERT INTO KOA_TB_DEPLOY_PROC_HST
+          (PROC_SEQ
+          ,API_NO
+          ,VERIFI_CD
+          ,DEPLOY_ST_DT
+          ,REGR
+          ,DEPLOY_ADM
+          ,DEPLOY_CD
+          ,USE_YN
+          ,REG_DT
+          ,UPDATE_DT
+          ,BIGO
+          ,UPDATE_USR
+          ,HST_INSERT_USER)
         SELECT 
           SEQ, 
           API_NO, 
@@ -91,7 +91,7 @@
           BIGO, 
           UPDATE_USR,
           #{regr}
-        FROM [KOA_TB_DEPLOY_PROC] 
+        FROM KOA_TB_DEPLOY_PROC 
         WHERE
           (SEQ = #{seq})
     </insert>
@@ -100,25 +100,25 @@
     <update id="updateDeployApplyDefault" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
          /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployApplyDefault */  
         UPDATE 
-            [KOA_TB_DEPLOY_APPLY]
-        SET [DEPLOY_CD] = #{deployCd}
-           ,[DEPLOY_DESC] = #{deployDesc}
-           ,[DEPLOY_ADM] = #{deployAdm}
-           ,[BIGO] = #{bigo}
-           ,[COMMENT] = #{comment}
+            KOA_TB_DEPLOY_APPLY
+        SET DEPLOY_CD = #{deployCd}
+           ,DEPLOY_DESC = #{deployDesc}
+           ,DEPLOY_ADM = #{deployAdm}
+           ,BIGO = #{bigo}
+           ,COMMENT = #{comment}
         WHERE 
-            [SEQ] = #{seq}
+            SEQ = #{seq}
     </update>
     
     <!-- 배포 신청 반려 사유 업데이트 -->
     <update id="updateDeployApplyReject" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.updateDeployApplyReject */  
-        UPDATE [KOA_TB_DEPLOY_APPLY]
-        SET [DEPLOY_CD] = #{deployCd}
-           ,[DEPLOY_ADM] = #{deployAdm}
-           ,[COMMENT] = #{comment}
+        UPDATE KOA_TB_DEPLOY_APPLY
+        SET DEPLOY_CD = #{deployCd}
+           ,DEPLOY_ADM = #{deployAdm}
+           ,COMMENT = #{comment}
         WHERE
-            [SEQ] = #{seq}
+            SEQ = #{seq}
     </update>
     
     <!-- 배포 리스트 -->
@@ -141,12 +141,12 @@
                 COALESCE(DEPLOY_PROC.BIGO,'') BIGO,
                 COALESCE(DEF.API_VER,'') API_VER
             FROM 
-                [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
-                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
-                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
-                INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+                KOA_TB_COMN_CD AS DEPLOY_COMNCD 
+                INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+                INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN KOA_TB_COMN_CD AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
             WHERE (1=1) 
                 <if test="searchVerifi != null and searchVerifi != ''">
                     AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
@@ -193,12 +193,12 @@
         SELECT
             COUNT(*) AS cnt
         FROM 
-            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
-            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
-            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
-            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+            KOA_TB_COMN_CD AS DEPLOY_COMNCD 
+            INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN KOA_TB_COMN_CD AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
        WHERE (1=1)
         <if test="searchVerifi != null and searchVerifi != ''">
             AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
@@ -261,13 +261,13 @@
             DEF.API_ID ,
             COALESCE(DEF.API_VER,'') API_VER
             FROM 
-                [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
-                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
-                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
-                INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
-                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+                KOA_TB_COMN_CD AS DEPLOY_COMNCD 
+                INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+                INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN KOA_TB_COMN_CD AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+                INNER JOIN KOA_TB_DEPLOY_APPLY AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
              WHERE DEPLOY_PROC.DEPLOY_CD = 'DEPLOY1050' AND DEPLOYAPPLY.DEPLOY_CD = 'DEPLOY1050' 
                 <if test="searchVerifi != null and searchVerifi != ''">
                     AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
@@ -302,13 +302,13 @@
         SELECT
           COUNT(*) AS cnt
         FROM 
-            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
-            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
-            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
-            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
-            INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+            KOA_TB_COMN_CD AS DEPLOY_COMNCD 
+            INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN KOA_TB_COMN_CD AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+            INNER JOIN KOA_TB_DEPLOY_APPLY AS DEPLOYAPPLY  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
         WHERE DEPLOY_PROC.DEPLOY_CD = 'DEPLOY1050' AND DEPLOYAPPLY.DEPLOY_CD = 'DEPLOY1050' 
             <if test="searchVerifi != null and searchVerifi != ''">
                 AND DEPLOY_PROC.VERIFI_CD = #{searchVerifi}
@@ -341,7 +341,7 @@
             GROUP_CD_NM, 
             CD_NM 
         FROM
-            [KOA_TB_COMN_CD] 
+            KOA_TB_COMN_CD 
         WHERE GROUP_CD = #{groupCd} 
         AND PRNTS_CD IS NOT NULL
     </select>
@@ -370,13 +370,13 @@
                 (SELECT COUNT(*) FROM KOA_TB_DEPLOY_HST  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEPLOY_GB = 'T' ) AS TB_SUCCESS_CNT , 
                 (SELECT COUNT(*) FROM KOA_TB_DEPLOY_HST  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEPLOY_GB = 'C' ) AS CB_CNT ,
                 (SELECT COUNT(*) FROM KOA_TB_API_VERI_CONDITION  WHERE DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ AND DEL_YN = 'N' ) AS VERIFI_CNT ,
-                COALESCE((SELECT CD_NM FROM [KOA_TB_COMN_CD]  WHERE COMN_CD = APIDEF.API_HANDLER_CD ),'') AS HANDLER_NM , 
+                COALESCE((SELECT CD_NM FROM KOA_TB_COMN_CD  WHERE COMN_CD = APIDEF.API_HANDLER_CD ),'') AS HANDLER_NM , 
                 COALESCE(APIDEF.ENDPNT_TB_URL,'') AS ENDPNT_TB_URL,
                 APIDEF.API_ID,
                 APIDEF.API_VER, 
                 (SELECT count(*) cnt 
                     FROM  
-                     [KOA_TB_API_PARAM] 
+                     KOA_TB_API_PARAM 
                     WHERE
                         PARAM_NM IN ('bizHeader','orderId','cbSvcName','cbFnName') 
                         AND PARAM_TYPE_CD = 'PRMTYP1010'
@@ -432,12 +432,12 @@
     <!-- 상용 배포 요청 -->
     <insert id="insertDeployPropose" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo" useGeneratedKeys="true" keyProperty="seq">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertDeployPropose */
-        INSERT INTO [dbo].[KOA_TB_DEPLOY_APPLY]
-           ([DEPLOY_PROC_SEQ]
-           ,[APPLY_REGR]
-           ,[REG_DT]
-           ,[DEPLOY_CD]
-           ,[BIGO]
+        INSERT INTO KOA_TB_DEPLOY_APPLY
+           (DEPLOY_PROC_SEQ
+           ,APPLY_REGR
+           ,REG_DT
+           ,DEPLOY_CD
+           ,BIGO
             )
         VALUES
            (#{deployProcSeq}
@@ -459,7 +459,7 @@
             APPLY.BIGO, 
             DPROC.SEQ DEPLOY_PROC_SEQ
         FROM 
-            [dbo].[KOA_TB_DEPLOY_APPLY] AS APPLY  
+            KOA_TB_DEPLOY_APPLY AS APPLY  
             INNER JOIN KOA_TB_DEPLOY_PROC AS DPROC  ON APPLY.DEPLOY_PROC_SEQ = DPROC.SEQ
             INNER JOIN KOA_TB_API_DEF AS APIDEF  ON DPROC.API_NO = APIDEF.API_NO
             INNER JOIN KOA_TB_API_SPC AS SPC  ON APIDEF.API_SPC_NO = SPC.API_SPC_NO
@@ -524,11 +524,11 @@
                     , DEPLOY_APPLY_SEQ
                 FROM KOA_TB_DEPLOY_HST AA 
                 GROUP BY DEPLOY_APPLY_SEQ) AS DEPLOY_HST
-                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
-                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
-                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN KOA_TB_DEPLOY_APPLY AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
+                INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+                INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
             WHERE DEPLOY_PROC.DEPLOY_CD IN ('DEPLOY1063','DEPLOY1065','DEPLOY1070')
                 <if test="searchSystem != null and searchSystem != ''">
                     AND APISYSTEM.SYS_ID = #{searchSystem}
@@ -555,11 +555,11 @@
                     , DEPLOY_APPLY_SEQ
                 FROM KOA_TB_DEPLOY_HST AA 
                 GROUP BY DEPLOY_APPLY_SEQ) AS DEPLOY_HST
-                INNER JOIN [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
-                INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
-                INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-                INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-                INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+                INNER JOIN KOA_TB_DEPLOY_APPLY AS DEPLOY_APPLY  ON DEPLOY_HST.DEPLOY_APPLY_SEQ = DEPLOY_APPLY.SEQ
+                INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_APPLY.DEPLOY_PROC_SEQ = DEPLOY_PROC.SEQ
+                INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+                INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+                INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
             WHERE  DEPLOY_PROC.DEPLOY_CD IN ('DEPLOY1065','DEPLOY1070')
                 <if test="searchSystem != null and searchSystem != ''">
                     AND APISYSTEM.SYS_ID = #{searchSystem}
@@ -700,8 +700,8 @@
             DEPLOY_HST.SUCCESS_YN,
             DEPLOY_HST.RESULT_MSG 
         FROM 
-            [KOA_TB_DEPLOY_APPLY] AS DEPLOY_APPLY 
-            INNER JOIN [KOA_TB_DEPLOY_HST] AS DEPLOY_HST  ON DEPLOY_APPLY.SEQ = DEPLOY_HST.DEPLOY_APPLY_SEQ
+            KOA_TB_DEPLOY_APPLY AS DEPLOY_APPLY 
+            INNER JOIN KOA_TB_DEPLOY_HST AS DEPLOY_HST  ON DEPLOY_APPLY.SEQ = DEPLOY_HST.DEPLOY_APPLY_SEQ
         WHERE DEPLOY_APPLY.SEQ = #{deployApplySeq}
     </select>
     
@@ -743,12 +743,12 @@
     <!-- 테스트 케이스 입력 -->
     <insert id="insertTestList" parameterType="com.kt.openapi.web.apiDeploy.vo.TestCaseListVo" useGeneratedKeys="true" keyProperty="seq">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.insertTestList */    
-        INSERT INTO [KOA_TB_TEST_CASE_LIST]
+        INSERT INTO KOA_TB_TEST_CASE_LIST
            (
-              [API_NO]
-             ,[CASE_CODE]
-             ,[REGR]
-             ,[CASE_NM]
+              API_NO
+             ,CASE_CODE
+             ,REGR
+             ,CASE_NM
            )
         VALUES
           ( 
@@ -883,19 +883,19 @@
     <select id="selDelApiSearch" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.api.vo.ApiDefVO">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDelApiSearch */
         SELECT 
-          APIDEF.[API_NO],
-          APIDEF.[API_NM],
-          APIDEF.[API_PATH],
-          APIDEF.[API_ID],
-          TO_CHAR(APIDEF.REG_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  [REG_DT],
-          APIDEF.[API_VER],
-          APIDEF.[API_VER_NO],
+          APIDEF.API_NO,
+          APIDEF.API_NM,
+          APIDEF.API_PATH,
+          APIDEF.API_ID,
+          TO_CHAR(APIDEF.REG_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  REG_DT,
+          APIDEF.API_VER,
+          APIDEF.API_VER_NO,
           APISPC.API_NM AS SPC_NM
         FROM 
             KOA_TB_API_DEF APIDEF  INNER JOIN KOA_TB_API_SPC APISPC  ON APIDEF.API_SPC_NO = APISPC.API_SPC_NO
         WHERE 
           UPPER(APIDEF.API_NM) LIKE CONCAT('%' , UPPER(#{apiNm}) , '%') 
-        ORDER BY APIDEF.[REG_DT] DESC
+        ORDER BY APIDEF.REG_DT DESC
     </select>
     
     <!-- 한건의 PATH 삭제 -->
@@ -914,9 +914,9 @@
           TO_CHAR(DEPLOYAPPLY.REG_DT, 'YYYY-MM-DD HH24:MI:SS.MS')  REG_DT,
           DEPLOYAPPLY.SEQ
         FROM 
-            [KOA_TB_DEPLOY_APPLY] DEPLOYAPPLY 
-                INNER JOIN [KOA_TB_DEPLOY_PROC] DEPLOYPROC  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ
-                INNER JOIN [KOA_TB_API_DEF] APIDEF  ON DEPLOYPROC.API_NO = APIDEF.API_NO
+            KOA_TB_DEPLOY_APPLY DEPLOYAPPLY 
+                INNER JOIN KOA_TB_DEPLOY_PROC DEPLOYPROC  ON DEPLOYAPPLY.DEPLOY_PROC_SEQ = DEPLOYPROC.SEQ
+                INNER JOIN KOA_TB_API_DEF APIDEF  ON DEPLOYPROC.API_NO = APIDEF.API_NO
         WHERE 
             UPPER(APIDEF.API_NM) LIKE CONCAT('%' , UPPER(#{apiNm}) , '%') 
     </select>
@@ -924,7 +924,7 @@
     <!-- 한건의 배포 신청 삭제 -->
     <delete id="delDeployApply" parameterType="com.kt.openapi.web.apiDeploy.vo.DeployApplyVo">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.delDeployApply */
-        DELETE FROM [KOA_TB_DEPLOY_APPLY] WHERE seq = #{seq} 
+        DELETE FROM KOA_TB_DEPLOY_APPLY WHERE seq = #{seq} 
     </delete>
 
     <select id="selDeployStateTotal" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiDeployStateVO">
@@ -946,12 +946,12 @@
             DEF.API_ID,
             0 REQUIRED_CNT
         FROM 
-            [KOA_TB_COMN_CD] AS DEPLOY_COMNCD 
-            INNER JOIN [KOA_TB_DEPLOY_PROC] AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
-            INNER JOIN [KOA_TB_API_DEF] AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
-            INNER JOIN [KOA_TB_API_SPC] AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
-            INNER JOIN [KOA_TB_API_SYSTEM] AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
-            INNER JOIN [KOA_TB_COMN_CD] AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
+            KOA_TB_COMN_CD AS DEPLOY_COMNCD 
+            INNER JOIN KOA_TB_DEPLOY_PROC AS DEPLOY_PROC  ON DEPLOY_COMNCD.COMN_CD = DEPLOY_PROC.DEPLOY_CD
+            INNER JOIN KOA_TB_API_DEF AS DEF  ON DEPLOY_PROC.API_NO = DEF.API_NO
+            INNER JOIN KOA_TB_API_SPC AS SPC  ON DEF.API_SPC_NO = SPC.API_SPC_NO
+            INNER JOIN KOA_TB_API_SYSTEM AS APISYSTEM  ON SPC.SYS_ID = APISYSTEM.SYS_ID
+            INNER JOIN KOA_TB_COMN_CD AS VERIFI_COMNCD  ON DEPLOY_PROC.VERIFI_CD = VERIFI_COMNCD.COMN_CD
         WHERE APISYSTEM.SYS_NM ='KOS'
         ORDER BY DEF.REG_DT DESC
     </select>
@@ -960,10 +960,10 @@
     <select id="selMailByApiRegrNAmdr" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="com.kt.openapi.web.apiDeploy.vo.ApiEmailVO">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selMailByApiRegrNAmdr */
         SELECT 
-            (SELECT EMAIL FROM [V2OA_TB_USER_INFO] WHERE USER_ID = [KOA_TB_API_DEF].REGR) AS REG_EMAIL,
-            (SELECT EMAIL FROM [V2OA_TB_USER_INFO] WHERE USER_ID = [KOA_TB_API_DEF].AMDR) AS EDIT_EMAIL
+            (SELECT EMAIL FROM V2OA_TB_USER_INFO WHERE USER_ID = KOA_TB_API_DEF.REGR) AS REG_EMAIL,
+            (SELECT EMAIL FROM V2OA_TB_USER_INFO WHERE USER_ID = KOA_TB_API_DEF.AMDR) AS EDIT_EMAIL
         FROM 
-            [KOA_TB_API_DEF] 
+            KOA_TB_API_DEF 
         WHERE 
             API_NO = #{apiNo}
     </select>
@@ -987,10 +987,10 @@
         API_SPC.API_NM AS SPC_NM,
         API_SYSTEM.SYS_NM AS SYS_NM
       FROM 
-        [KOA_TB_DEPLOY_PROC] DEPLOY_PROC  
-                        INNER JOIN [KOA_TB_API_DEF] API_DEF  ON DEPLOY_PROC.API_NO = API_DEF.API_NO
-                    INNER JOIN [KOA_TB_API_SPC] API_SPC  ON API_DEF.API_SPC_NO = API_SPC.API_SPC_NO
-                    INNER JOIN [KOA_TB_API_SYSTEM] API_SYSTEM  ON API_SPC.SYS_ID = API_SYSTEM.SYS_ID
+        KOA_TB_DEPLOY_PROC DEPLOY_PROC  
+                        INNER JOIN KOA_TB_API_DEF API_DEF  ON DEPLOY_PROC.API_NO = API_DEF.API_NO
+                    INNER JOIN KOA_TB_API_SPC API_SPC  ON API_DEF.API_SPC_NO = API_SPC.API_SPC_NO
+                    INNER JOIN KOA_TB_API_SYSTEM API_SYSTEM  ON API_SPC.SYS_ID = API_SYSTEM.SYS_ID
       WHERE
         DEPLOY_PROC.SEQ = #{seq}
     </select>

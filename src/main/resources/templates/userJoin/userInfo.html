@@ -13,7 +13,9 @@
         /*<![CDATA[*/
         $(function(){
 
-        if(/*[[${userInfo.stpltAgreeYn != null ? userInfo.stpltAgreeYn : ''}]]*/ '' != 'Y' || /*[[${userInfo.indvInfoAgreeYn != null ? userInfo.indvInfoAgreeYn : ''}]]*/ '' != 'Y'){
+        var stpltAgreeYnChk = /*[[${userInfo.stpltAgreeYn != null ? userInfo.stpltAgreeYn : ''}]]*/ '';
+        var indvInfoAgreeYnChk = /*[[${userInfo.indvInfoAgreeYn != null ? userInfo.indvInfoAgreeYn : ''}]]*/ '';
+        if(stpltAgreeYnChk != 'Y' || indvInfoAgreeYnChk != 'Y'){
         	location.href = /*[[@{/userJoin/userJoinForm.do}]]*/ '/userJoin/userJoinForm.do';
         }
 
@@ -62,7 +64,8 @@
              return;
              }
 
-             if(/*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '' == ""){
+             var telNoOrig = /*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '';
+             if(telNoOrig == ""){
                //--@@console.log("전번 신규 입력 시");
                let phoneNoRule = /^(01[016789]{1})[0-9]{3,4}[0-9]{4}$/;
                if(!phoneNoRule.test(telNo)){
@@ -71,7 +74,8 @@
             		}
              }
 
-             if(/*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '' == ""){
+             var emailOrig = /*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '';
+             if(emailOrig == ""){
                //--@@console.log("이메일 신규 입력 시");
                let emailRule = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
 
@@ -101,12 +105,14 @@
         		cmpnNm : $("#cmpnNm").val()
         	}
 
-          if(/*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '' == ""){
+          var telNoOrig2 = /*[[${userInfo.telNo != null ? userInfo.telNo : ''}]]*/ '';
+          if(telNoOrig2 == ""){
           	encTelNo = rsa.encrypt($("#telNo").val());
           	param.telNo = encTelNo;
           }
 
-          if(/*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '' == ""){
+          var emailOrig2 = /*[[${userInfo.email != null ? userInfo.email : ''}]]*/ '';
+          if(emailOrig2 == ""){
           	encEmail = rsa.encrypt($("#email").val());
           	param.email = encEmail;
           }

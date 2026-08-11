@@ -187,7 +187,26 @@ public class AdptranUtil {
 
 		return bundleScriptSrc;
 	}
-	
+
+	//-- [JSP->Thymeleaf 마이그레이션] 원본 <jsp:include>+<jsp:param name="param_vue_part">는 request
+	//-- 파라미터로 실제 전달됐지만, Thymeleaf th:fragment 파라미터(vuePart)는 request와 무관한 템플릿
+	//-- 지역변수라 getBundleScriptSrc(request)가 이를 못 읽고 URI 기반 추측(항상 틀림)으로 빠져 번들
+	//-- 파일이 존재하지 않는 경로가 되고, 그 결과 서버가 404 대신 HTML 에러페이지를 200으로 반환하는
+	//-- 이 프로젝트의 GlobalExceptionHandler 특성상 브라우저가 "Unexpected token '<'" JS 파싱 에러를
+	//-- 낸다 - vuePart를 그대로 받아 직접 경로를 구성하도록 오버로드 추가(세션 기반 webpack-dev-server
+	//-- 오버라이드는 템플릿에서 #request 사용 불가(Thymeleaf 3.1+)라 재현 불가 - 정적 필드 기본값만 사용)
+	public static String getBundleScriptSrc(String vuePart) {
+		String s_suffix = "_bundle.js" + ("?dum=" + AdptranUtil.configJsVersion);
+		String bundleScriptSrc = "/resources/adptran/bundle/" + vuePart + s_suffix;
+
+		boolean bIsRunmodeDev = "dev".equalsIgnoreCase(AdptranUtil.configRunmode);
+		if (true == bIsRunmodeDev && true == "y".equalsIgnoreCase(AdptranUtil.devUseWebpackDevServer)) {
+			bundleScriptSrc = AdptranUtil.devWebpackDevServer + bundleScriptSrc;
+		}
+
+		return bundleScriptSrc;
+	}
+
 	//-- ### for adptran biz ###
 	//-- for apigw {
 	//-- HandlerCd명칭으로 apigw HandlerType을 구한다

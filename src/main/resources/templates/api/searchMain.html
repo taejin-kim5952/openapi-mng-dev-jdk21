@@ -214,7 +214,8 @@
            return winref;
         }
 
-        var userId 		= /*[[${ssUserVo != null and ssUserVo.enCmbrId != null ? ssUserVo.enCmbrId : ''}]]*/ '' == '' ? 'nouser' : /*[[${ssUserVo != null and ssUserVo.enCmbrId != null ? ssUserVo.enCmbrId : ''}]]*/ '';
+        var userIdRaw 	= /*[[${ssUserVo != null and ssUserVo.enCmbrId != null ? ssUserVo.enCmbrId : ''}]]*/ '';
+        var userId 		= userIdRaw == '' ? 'nouser' : userIdRaw;
         var sessionKey 	= 'sessionkey';
         var interval;
 

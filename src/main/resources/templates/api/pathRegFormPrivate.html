@@ -12,7 +12,7 @@
        GlobalViewModelAdvice의 전역 b_is_master 사용, 삭제하지 않음.
      - regFormPrivateHandlerParam_inc.jsp/popBstSysSelect.jsp는 이 화면 전용 신규 프래그먼트로 변환. */-->
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/default(layoutType='apiInfo', bodyClass=null)}">
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
 <head>
     <title>KT Open API</title>
 </head>
@@ -167,8 +167,10 @@
     $('.default_info').children('p').text(yamlOb.info.title);
     $('.default_info').children('p').attr('title', yamlOb.info.title);
 
-    var param_apiPath = qp_pathRegFormPrivate.get('apiPath') || '';
-    var param_apiMethod = qp_pathRegFormPrivate.get('apiMethod') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegFormPrivate)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiPath/#pApiMethod)를 우선 사용
+    var param_apiPath = qp_pathRegFormPrivate.get('apiPath') || $('#pApiPath').val() || '';
+    var param_apiMethod = qp_pathRegFormPrivate.get('apiMethod') || $('#pApiMethod').val() || '';
 
     fn_set_input_value('path', param_apiPath); // path 세팅
     fn_set_input_value('method', fn_get_method_comn_cd(param_apiMethod)); // method 세팅
@@ -1686,8 +1688,10 @@
 
   // 불러온 api정보 세팅
   function apiPathInfoSet(direct, direct_data) {
-    var paramApiMethod = qp_pathRegFormPrivate.get('apiMethod') || '';
-    var paramApiPath = qp_pathRegFormPrivate.get('apiPath') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegFormPrivate)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiMethod/#pApiPath)를 우선 사용
+    var paramApiMethod = qp_pathRegFormPrivate.get('apiMethod') || $('#pApiMethod').val() || '';
+    var paramApiPath = qp_pathRegFormPrivate.get('apiPath') || $('#pApiPath').val() || '';
 
     var b_is_KOSLOAD = false;
 
@@ -2532,13 +2536,13 @@
 <!-- yaml parser 관련 js파일 //-->
 
 <form method="POST" action="" name="apiInfoForm" id="apiInfoForm" class="tempForm">
-  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" />
-  <input type="hidden" id="pApiNo" name="apiNo" />
-  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" />
-  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" />
+  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" th:value="${apiRegVO != null ? apiRegVO.apiSpcNo : ''}" />
+  <input type="hidden" id="pApiNo" name="apiNo" th:value="${apiRegVO != null ? apiRegVO.apiNo : ''}" />
+  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNo : ''}" />
+  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNm : ''}" />
   <input type="hidden" id="pApiDataTypeNm" name="apiDataTypeNm" />
-  <input type="hidden" id="pApiPath" name="apiPath" />
-  <input type="hidden" id="pApiMethod" name="apiMethod" />
+  <input type="hidden" id="pApiPath" name="apiPath" th:value="${apiRegVO != null ? apiRegVO.apiPath : ''}" />
+  <input type="hidden" id="pApiMethod" name="apiMethod" th:value="${apiRegVO != null ? apiRegVO.apiMethod : ''}" />
   <input type="hidden" id="pApiCopyYn" name="apiCopyYn" />
 
   <input type="hidden" id="insertYn" name="insertYn" />
@@ -2556,15 +2560,15 @@
 <script th:inline="javascript">
   $(document).ready(function () {
     var qp = new URLSearchParams(window.location.search);
-    $('#pApiSpcNo').val(qp.get('apiSpcNo') || '');
-    $('#pApiNo').val(qp.get('apiNo') || '');
-    $('#pApiCtgryNo').val(qp.get('apiCtgryNo') || '');
-    $('#pApiCtgryNm').val(qp.get('apiCtgryNm') || '');
+    if (qp.get('apiSpcNo')) { $('#pApiSpcNo').val(qp.get('apiSpcNo')); }
+    if (qp.get('apiNo')) { $('#pApiNo').val(qp.get('apiNo')); }
+    if (qp.get('apiCtgryNo')) { $('#pApiCtgryNo').val(qp.get('apiCtgryNo')); }
+    if (qp.get('apiCtgryNm')) { $('#pApiCtgryNm').val(qp.get('apiCtgryNm')); }
     $('#pApiDataTypeNm').val(qp.get('apiDataTypeNm') || '');
-    $('#pApiPath').val(qp.get('apiPath') || '');
-    $('#pApiMethod').val(qp.get('apiMethod') || '');
+    if (qp.get('apiPath')) { $('#pApiPath').val(qp.get('apiPath')); }
+    if (qp.get('apiMethod')) { $('#pApiMethod').val(qp.get('apiMethod')); }
     $('#pApiCopyYn').val(qp.get('apiCopyYn') || '');
-    $('#insertYn').val((qp.get('apiNo') || '') == '' ? 'Y' : 'N');
+    $('#insertYn').val(($('#pApiNo').val() || '') == '' ? 'Y' : 'N');
   });
 </script>
 
@@ -2773,7 +2777,7 @@
                                 <td>
                                   <div th:with="matchedProvider=${apiProviderList != null ? apiProviderList.?[seq == #root.apiDef.providerSeq] : {}}">
                                     <input type="hidden" name="providerSeq" id="id_txt_providerSeq" th:value="${apiDef.providerSeq}" readonly>
-                                    <input class="w40" type="text" title="단위서비스코드" id="id_txt_providerNm" th:value="${(matchedProvider == null or matchedProvider.empty) ? '' : matchedProvider[0].providerNm}" readonly>
+                                    <input class="w40" type="text" title="단위서비스코드" id="id_txt_providerNm" th:value="${(matchedProvider == null or matchedProvider.empty) ? '' : matchedProvider[0]['providerNm']}" readonly>
                                     <button type="button" title="선택" class="btn btn_gray wx80 ml10" onclick="fn_popup_provider_list('show')"><span>선택</span></button>
                                     <p class="red_txt">Provider를 선택하세요.</p>
                                   </div>

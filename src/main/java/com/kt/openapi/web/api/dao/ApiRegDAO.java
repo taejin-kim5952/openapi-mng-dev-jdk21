@@ -18,8 +18,8 @@ import java.util.Map;
 @Mapper
 public interface ApiRegDAO {
 
-    /** API명세 정보 등록 */
-    String savApiRegInfo(ApiRegVO vo);
+    /** API명세 정보 등록 (생성된 API_SPC_NO는 selectKey로 vo.apiSpcNo에 채워짐) */
+    int savApiRegInfo(ApiRegVO vo);
 
     /** Arsenal API 네임스페이스 정보 등록 */
     void savArsenalApiNS(Map<String, Object> params);
@@ -63,8 +63,8 @@ public interface ApiRegDAO {
     /** API 불러오기 / 템플릿 불러오기 목록 조회 의 전체 수 */
     int selImportApiTotalList(ApiRegVO vo);
 
-    /** 카테고리 등록 */
-    String savApiCateInfo(ApiRegVO vo);
+    /** 카테고리 등록 (생성된 API_CTGRY_NO는 selectKey로 vo.apiCtgryNo에 채워짐) */
+    int savApiCateInfo(ApiRegVO vo);
 
     /** 카테고리 수정 */
     void updApiCateInfo(ApiRegVO vo);
@@ -93,14 +93,14 @@ public interface ApiRegDAO {
     /** 패스 목록 조회 ( 카테고리에 연결되지 않은 ) - [마이그레이션] EgovMap -> VO 전환 */
     List<ApiDefVO> selCatePathList(ApiRegVO vo);
 
-    /** API 정의 등록 */
-    String savApiPathInfo(ApiRegVO vo);
+    /** API 정의 등록 (생성된 API_NO는 selectKey로 vo.apiNo에 채워짐) */
+    int savApiPathInfo(ApiRegVO vo);
 
     /** API 정의 수정 */
     int updApiPathInfo(ApiRegVO vo);
 
     /** API 영향도 정보 등록 */
-    String savApiImpactInfo(ApiRegVO vo);
+    int savApiImpactInfo(ApiRegVO vo);
 
     /** API 영향도 정보 수정 */
     int updApiImpactInfo(ApiRegVO vo);
@@ -138,8 +138,8 @@ public interface ApiRegDAO {
     /** 동일 패스의 전체 IMPACT 삭제 */
     int delApiAllImpact(ApiRegVO vo);
 
-    /** 파라미터 등록 */
-    String savApiParamInfo(ApiRegVO vo);
+    /** 파라미터 등록 (생성된 PARAM_NO는 selectKey로 vo.paramNo에 채워짐) */
+    int savApiParamInfo(ApiRegVO vo);
 
     /** 저장할 API_NO 번호 조회 */
     String selApiPathApiNo(ApiRegVO vo);
@@ -213,8 +213,8 @@ public interface ApiRegDAO {
     /** 권한 그룹 중복 체크 */
     String selGrpAuthCheck(Map<String, Object> map);
 
-    /** 권한 그룹 추가 */
-    String saveAutGrp(Map<String, Object> map);
+    /** 권한 그룹 추가 (생성된 AUT_ID는 selectKey로 map의 "authId" 키에 채워짐) */
+    int saveAutGrp(Map<String, Object> map);
 
     /** API Provider 목록 검색 - [마이그레이션] EgovMap -> Map 전환 */
     List<Map<String, Object>> selApiProviderList();

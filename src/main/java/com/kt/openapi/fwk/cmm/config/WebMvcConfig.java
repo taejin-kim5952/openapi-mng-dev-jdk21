@@ -1,11 +1,6 @@
 package com.kt.openapi.fwk.cmm.config;
 
 import com.kt.openapi.fwk.online.filter.SessionCheckInterceptor;
-import org.apache.tomcat.util.descriptor.web.JspConfigDescriptorImpl;
-import org.apache.tomcat.util.descriptor.web.JspPropertyGroup;
-import org.apache.tomcat.util.descriptor.web.JspPropertyGroupDescriptorImpl;
-import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -15,15 +10,12 @@ import org.springframework.web.servlet.handler.SimpleMappingExceptionResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 import org.springframework.web.servlet.view.BeanNameViewResolver;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
-import org.springframework.web.servlet.view.JstlView;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 import nz.net.ultraq.thymeleaf.layoutdialect.LayoutDialect;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.spring6.view.ThymeleafViewResolver;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Properties;
 
 /**
@@ -41,43 +33,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     /**
-     * JSP Prelude 설정 (모든 JSP에 taglib.jsp 자동 포함)
-     * [마이그레이션] web.xml의 jsp-config 설정을 대체
-     */
-    @Bean
-    public WebServerFactoryCustomizer<TomcatServletWebServerFactory> jspConfigCustomizer() {
-        return factory -> factory.addContextCustomizers(context -> {
-            JspPropertyGroup group = new JspPropertyGroup();
-            group.addUrlPattern("*.jsp");
-            group.addIncludePrelude("/WEB-INF/jsp/include/taglib.jsp");
-            group.setPageEncoding("UTF-8");
-
-            JspPropertyGroupDescriptorImpl groupDescriptor = new JspPropertyGroupDescriptorImpl(group);
-            context.setJspConfigDescriptor(new JspConfigDescriptorImpl(
-                Collections.singletonList(groupDescriptor), Collections.emptyList()));
-        });
-    }
-
-    /**
      * 루트 경로(/) 및 웰컴 페이지 설정
+     * [JSP 지원 제거 완료] 이전에는 "index" 뷰 이름이 webapp/index.jsp(<jsp:forward
+     * page="main/index.do"/>)로 해석되었으나, JSP 리졸버가 사라져 더 이상 어떤 리졸버도
+     * "index"를 처리하지 못한다. 인증 안 된 요청은 SessionCheckInterceptor가 먼저
+     * /main/index.do로 리다이렉트하므로 평소엔 드러나지 않았지만, 인증된 사용자가 "/"로
+     * 직접 접근하면 뷰를 찾지 못해 에러가 났을 것 - 원본 index.jsp와 동일한 동작(즉시
+     * /main/index.do로 이동)을 리다이렉트로 명시적으로 재현.
      */
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/").setViewName("index");
-    }
-
-    /**
-     * 정적 리소스 핸들러 설정
-     */
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // [로컬 개발] "/resources/"(스킴 없음)는 ServletContext 루트 기준이라, 실제 WAR로
-        // 배포됐을 때만(webapp이 컨텍스트 루트에 그대로 있음) 유효함. mvn spring-boot:run으로
-        // 내장 Tomcat을 띄우면 webapp이 docBase가 아니라서 정적 리소스가 전부 404가 남 -
-        // file: 로 src/main/webapp/resources를 추가 위치로 넣어 로컬 실행에서도 서빙되게 함
-        // (운영 WAR 배포 환경에는 이 경로가 없어서 그냥 무시됨, 기존 동작에 영향 없음).
-        registry.addResourceHandler("/resources/**")
-                .addResourceLocations("/resources/", "file:src/main/webapp/resources/");
+        registry.addRedirectViewController("/", "/main/index.do");
     }
 
 //    /**
@@ -186,28 +152,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     /**
-     * 표준 JSP ViewResolver 설정
-     * [JSP->Thymeleaf 마이그레이션] Thymeleaf가 먼저(order=1) 템플릿을 찾고,
-     * 없으면 null을 반환해 이 리졸버(order=2)로 폴백 - 전환 중인 페이지와 공존.
-     */
-    @Bean
-    public InternalResourceViewResolver viewResolver() {
-        InternalResourceViewResolver resolver = new InternalResourceViewResolver();
-        resolver.setViewClass(JstlView.class);
-        resolver.setPrefix("/WEB-INF/jsp/");
-        resolver.setSuffix(".jsp");
-        resolver.setOrder(2);
-        return resolver;
-    }
-
-    /**
-     * [JSP->Thymeleaf 마이그레이션] Thymeleaf ViewResolver
-     * Boot가 자동구성한 SpringTemplateEngine을 재사용하고, JSP보다 우선순위를 높게(order=1) 설정.
-     * ThymeleafViewResolver는 뷰 이름 존재 여부와 무관하게 항상 뷰를 만들어내고 실제 렌더링
-     * 시점에야 실패하기 때문에(JSP 리졸버로 자연 폴백이 안 됨), setViewNames로 "이미 Thymeleaf로
-     * 전환된 뷰 이름 패턴"만 명시적으로 처리하도록 제한한다. 전환이 끝나지 않은 나머지 뷰 이름은
-     * 이 리졸버가 애초에 관여하지 않아 JSP 리졸버(order=2)로 넘어간다.
-     * 새 화면을 Thymeleaf로 전환할 때마다 이 목록에 패턴을 추가할 것.
+     * Thymeleaf ViewResolver
+     * [JSP 지원 제거 완료] 이전에는 JSP 리졸버(order=2)와의 공존을 위해 setViewNames로 화면
+     * 이름을 제한했으나, 이제 JSP가 완전히 제거되어 다른 폴백 리졸버가 없다. setViewNames는
+     * "jsonView"/"redirect:*"/"forward:*" 같은 다른 리졸버(BeanNameViewResolver 등)가
+     * 처리해야 하는 특수 뷰 이름을 ThymeleafViewResolver가 가로채지 않도록 여전히 필요하므로
+     * 그대로 유지한다. 새 화면을 추가할 때마다 이 목록에 뷰 이름을 추가할 것.
      */
     @Bean
     public ThymeleafViewResolver thymeleafViewResolver(SpringTemplateEngine templateEngine) {
@@ -219,6 +169,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         resolver.setViewNames(new String[]{
             "adptran/vue_page_mount_apistatus",
             "adptran/vue_page_mount",
+            "adptran/devHome",
             "cmmn/public_error",
             "agree/view",
             "priv/view",
@@ -245,12 +196,26 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/deploy/deployView",
             "api/deploy/approvalListNew",
             "api/deploy/verifyExecute",
+            "api/deploy/tempForm",
+            "api/deploy/tempFormDrm",
+            "beast/deploy/verifyExecute",
+            "beast/deploy/deployList",
+            "beast/deploy/deployView",
+            "beast/apigwmng/bstAdmApiLinkDataList",
+            "beast/apigwmng/bstAdmSysDplyList",
+            "beast/apigwmng/bstAdmApiDplyList",
+            "beast/apigwmng/bstAdmSvcDplyList",
             "api/cateInfoRegForm",
             "api/dataTypeRegForm",
             "api/infoRegForm",
             "api/pathRegForm",
             "api/pathRegFormArsenal",
-            "api/pathRegFormPrivate"
+            "api/pathRegFormPrivate",
+            "api/quickApiReg",
+            "api/spcReg",
+            "api/tmpltMngList",
+            "api/tmpltMngForm",
+            "api/simpleView"
         });
         return resolver;
     }

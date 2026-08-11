@@ -7,7 +7,7 @@
   <insert id="savApiRegInfo" parameterType="com.kt.openapi.web.api.vo.ApiRegVO">
     /* apiReg.savApiRegInfo */
     <selectKey keyProperty="apiSpcNo" resultType="String" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_spc_api_spc_no_seq')
     </selectKey>
     INSERT INTO KOA_TB_API_SPC
     (
@@ -42,7 +42,7 @@
     )
     VALUES
     (
-      ( SELECT IDENT_CURRENT('KOA_TB_API_SPC') )
+      ( SELECT last_value FROM koa_tb_api_spc_api_spc_no_seq )
       ,#{ver}
       ,#{apiNm}
       ,#{apiDesc}
@@ -50,12 +50,12 @@
       ,#{sysId}
       ,#{verDesc}
       ,#{rfrnWsdlUrl}
-      ,#{rfrnTmpltNo}
-      ,#{rfrnApiSpcNo}
+      ,NULLIF(#{rfrnTmpltNo}, '')::integer
+      ,NULLIF(#{rfrnApiSpcNo}, '')::integer
       ,#{host}
       ,#{basPath}
       ,#{yamlFilePath}
-      ,( SELECT IDENT_CURRENT('KOA_TB_API_SPC') )
+      ,( SELECT last_value FROM koa_tb_api_spc_api_spc_no_seq )
       ,#{regSttusCd}
       ,#{tmpltYn}
       ,#{regApvr}
@@ -306,7 +306,7 @@
   <insert id="savApiCateInfo" parameterType="com.kt.openapi.web.api.vo.ApiRegVO">
     /* apiReg.savApiCateInfo */
     <selectKey keyProperty="apiCtgryNo" resultType="String" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_ctgry_api_ctgry_no_seq')
     </selectKey>
     INSERT INTO KOA_TB_API_CTGRY
     (
@@ -457,9 +457,9 @@
   <select id="selCateInfo" parameterType="com.kt.openapi.web.api.vo.ApiRegVO" resultType="com.kt.openapi.web.api.vo.ApiCategoryVO">
     /* apiReg.selCateInfo */
     SELECT *
-    FROM KOA_TB_API_CTGRY 
-    WHERE (API_CTGRY_NO = #{apiCtgryNo})
-      AND (API_SPC_NO = #{apiSpcNo})
+    FROM KOA_TB_API_CTGRY
+    WHERE (API_CTGRY_NO = NULLIF(#{apiCtgryNo}, '')::integer)
+      AND (API_SPC_NO = NULLIF(#{apiSpcNo}, '')::integer)
       AND (DEL_YN = 'N')
     ORDER BY SORT_ODRG ASC
   </select>
@@ -578,7 +578,7 @@
   <insert id="savApiPathInfo" parameterType="com.kt.openapi.web.api.vo.ApiRegVO">
     /* apiReg.savApiPathInfo */
     <selectKey keyProperty="apiNo" resultType="String" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_def_api_no_seq')
     </selectKey>
     INSERT INTO KOA_TB_API_DEF
     (
@@ -873,11 +873,11 @@
   <select id="salApijDupPathCheck" parameterType="com.kt.openapi.web.api.vo.ApiRegVO" resultType="int">
     /* apiReg.salApijDupPathCheck */
     SELECT COALESCE(COUNT(*), 0) AS COUNT
-    FROM KOA_TB_API_DEF A 
+    FROM KOA_TB_API_DEF A
     WHERE (A.API_SPC_NO = #{apiSpcNo})
       AND (A.API_PATH = #{apiPath})
       AND (A.METHOD_CD = #{methodCd})
-      AND (A.API_NO != #{apiNo})
+      AND (NULLIF(#{apiNo}, '')::integer IS NULL OR A.API_NO != NULLIF(#{apiNo}, '')::integer)
   </select>
 
   <!-- 한건의 PATH 삭제 -->
@@ -973,7 +973,7 @@
   <insert id="savApiParamInfo" parameterType="com.kt.openapi.web.api.vo.ApiRegVO">
     /* apiReg.savApiParamInfo */
     <selectKey keyProperty="paramNo" resultType="String" order="AFTER">
-      SELECT SCOPE_IDENTITY()
+      SELECT CURRVAL('koa_tb_api_param_param_no_seq')
     </selectKey>
     INSERT INTO KOA_TB_API_PARAM
     (
@@ -1019,7 +1019,7 @@
       )
       ,#{paramDesc}
       ,#{exam}
-      ,#{prntsParamNo}
+      ,NULLIF(#{prntsParamNo}, '')::integer
       ,NOW()
       ,#{regr}
       ,NOW()
@@ -1027,8 +1027,8 @@
       ,#{resCd}
       ,#{resDesc}
       ,#{paramLoc}
-      ,#{objNo}
-      ,#{objOdrg}
+      ,NULLIF(#{objNo}, '')::integer
+      ,NULLIF(#{objOdrg}, '')::integer
       ,#{required}
       ,#{personalData}
       ,#{doNotSend}
@@ -1210,7 +1210,7 @@
   <!-- API 번호의 다음 값 -->
   <select id="selApiPathApiNo" resultType="String">
     /* apiReg.selApiPathApiNo */
-    SELECT CAST(IDENT_CURRENT('KOA_TB_API_DEF') + 1 AS VARCHAR) 
+    SELECT CAST((SELECT last_value FROM koa_tb_api_def_api_no_seq) + 1 AS VARCHAR) 
   </select>
 
   <!-- 카테고리 번호 조회 -->
@@ -1425,7 +1425,7 @@
   	<insert id="saveAutGrp" parameterType="map">
     	/* autGrp.saveAutGrp */ 
     	<selectKey keyProperty="authId" resultType="String" order="AFTER">
-		 SELECT SCOPE_IDENTITY()
+		 SELECT CURRVAL('koa_tb_aut_aut_id_seq')
 		</selectKey>
 	    INSERT INTO KOA_TB_AUT
          (   

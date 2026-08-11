@@ -9,7 +9,7 @@
         SELECT  /* com.kt.openapi.web.mypage.dao.MypageDAO.getApiRevCnt */
             COUNT (*)
         FROM KOA_TB_REVIEW A 
-        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = D.API_SPC_NO)
+        LEFT JOIN KOA_TB_API_SPC D ON (A.API_SPC_NO = CAST(D.API_SPC_NO AS VARCHAR))
         WHERE (A.DEL_YN = 'N')
           AND (A.REVIEW_RQT_TYPE_CD = #{reviewRqtTypeCd})
           AND (A.API_REVIEW_RQT_NO NOT IN (SELECT B.API_REVIEW_RQT_NO FROM KOA_TB_REVIEW_OPIN B WHERE (B.DEL_YN = 'N')))

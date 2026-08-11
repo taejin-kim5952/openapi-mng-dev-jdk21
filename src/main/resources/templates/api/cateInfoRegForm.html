@@ -25,15 +25,17 @@
 <script type="text/javascript" th:inline="javascript">
   $(document).ready(function () {
     //-- 쿼리 파라미터로 전달된 히든필드 초기값 세팅
+    // [주의] POST로 넘어오는 값(#pApiSpcNo 등)은 th:value로 서버에서 이미 채워져 있으므로,
+    // qp(GET 쿼리스트링)에 값이 없다고 무조건 ''로 덮어쓰면 안 됨 - 있을 때만 덮어씀
     var qp = new URLSearchParams(window.location.search);
-    $('#pApiSpcNo').val(qp.get('apiSpcNo') || '');
-    $('#pApiNo').val(qp.get('apiNo') || '');
-    $('#pApiCtgryNo').val(qp.get('apiCtgryNo') || '');
-    $('#pApiCtgryNm').val(qp.get('apiCtgryNm') || '');
+    if (qp.get('apiSpcNo')) { $('#pApiSpcNo').val(qp.get('apiSpcNo')); }
+    if (qp.get('apiNo')) { $('#pApiNo').val(qp.get('apiNo')); }
+    if (qp.get('apiCtgryNo')) { $('#pApiCtgryNo').val(qp.get('apiCtgryNo')); }
+    if (qp.get('apiCtgryNm')) { $('#pApiCtgryNm').val(qp.get('apiCtgryNm')); }
     $('#pApiDataTypeNm').val(qp.get('apiDataTypeNm') || '');
-    $('#pApiPath').val(qp.get('apiPath') || '');
-    $('#pApiMethod').val(qp.get('apiMethod') || '');
-    $('#ctgryNm').val(qp.get('apiCtgryNm') || '');
+    if (qp.get('apiPath')) { $('#pApiPath').val(qp.get('apiPath')); }
+    if (qp.get('apiMethod')) { $('#pApiMethod').val(qp.get('apiMethod')); }
+    $('#ctgryNm').val(($('#pApiCtgryNm').val()) || '');
 
     // dataType Set
     dataTypeSet();
@@ -207,13 +209,13 @@
 </script>
 
 <form method="POST" action="" name="apiInfoForm" id="apiInfoForm" class="tempForm">
-  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" value="" />
-  <input type="hidden" id="pApiNo" name="apiNo" value="" />
-  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" value="" />
-  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" value="" />
+  <input type="hidden" id="pApiSpcNo" name="apiSpcNo" th:value="${apiRegVO != null ? apiRegVO.apiSpcNo : ''}" />
+  <input type="hidden" id="pApiNo" name="apiNo" th:value="${apiRegVO != null ? apiRegVO.apiNo : ''}" />
+  <input type="hidden" id="pApiCtgryNo" name="apiCtgryNo" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNo : ''}" />
+  <input type="hidden" id="pApiCtgryNm" name="apiCtgryNm" th:value="${apiRegVO != null ? apiRegVO.apiCtgryNm : ''}" />
   <input type="hidden" id="pApiDataTypeNm" name="apiDataTypeNm" value="" />
-  <input type="hidden" id="pApiPath" name="apiPath" value="" />
-  <input type="hidden" id="pApiMethod" name="apiMethod" value="" />
+  <input type="hidden" id="pApiPath" name="apiPath" th:value="${apiRegVO != null ? apiRegVO.apiPath : ''}" />
+  <input type="hidden" id="pApiMethod" name="apiMethod" th:value="${apiRegVO != null ? apiRegVO.apiMethod : ''}" />
   <input type="hidden" id="pApiCopyYn" name="apiCopyYn" value="" />
 </form><!-- #apiInfoForm -->
 

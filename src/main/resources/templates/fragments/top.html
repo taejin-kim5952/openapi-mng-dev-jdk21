@@ -54,6 +54,77 @@
     }
   }
 
+  //SPC 등록 (그룹 생성 - 상단 메뉴 "API 등록"의 실제 진입점, 기존 apiReg()와 동일한 로그인/권한 체크 패턴 재사용)
+  var apiSpcReg = function() {
+    if (!fnIsLoggedin()) {
+      var btnHtm = '';
+      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'apispcreg\')">확인</button> ';
+      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
+      fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.');
+      return;
+    }
+
+    var list = new Array();
+    /*[# th:if="${ssUserVo != null}"]*/
+    /*[# th:each="item : ${ssUserVo.authList}"]*/
+    list.push(/*[[${item.autId}]]*/ '');
+    /*[/]*/
+    /*[/]*/
+
+    if (!list[0]) {
+      var btnHtm = '';
+      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'mypage\')">확인</button> ';
+      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
+      fnOpenLayer(btnHtm, 'API 권한 신청', /*[[#{top.aut.req}]]*/ 'API 권한 신청이 필요합니다.');
+      return;
+    }
+    else {
+      location.href = fn_get_direct_url('apispcreg');
+    }
+  }
+
+  //빠른 API 등록 (기존 apiReg()와 동일한 로그인/권한 체크 패턴 재사용 - 메뉴에서 직접 진입하지 않고
+  //  spcReg 저장 후 리다이렉트나 "기존 그룹에 API 추가" 진입점으로만 도달)
+  var apiQuickReg = function() {
+    if (!fnIsLoggedin()) {
+      var btnHtm = '';
+      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'apiquickreg\')">확인</button> ';
+      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
+      fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.');
+      return;
+    }
+
+    var list = new Array();
+    /*[# th:if="${ssUserVo != null}"]*/
+    /*[# th:each="item : ${ssUserVo.authList}"]*/
+    list.push(/*[[${item.autId}]]*/ '');
+    /*[/]*/
+    /*[/]*/
+
+    if (!list[0]) {
+      var btnHtm = '';
+      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'mypage\')">확인</button> ';
+      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
+      fnOpenLayer(btnHtm, 'API 권한 신청', /*[[#{top.aut.req}]]*/ 'API 권한 신청이 필요합니다.');
+      return;
+    }
+    else {
+      location.href = fn_get_direct_url('apiquickreg');
+    }
+  }
+
+  //템플릿 관리 (빠른 API 등록의 템플릿 CRUD - 로그인만 되어 있으면 접근 가능)
+  var tmpltMng = function() {
+    if (!fnIsLoggedin()) {
+      var btnHtm = '';
+      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'tmpltmng\')">확인</button> ';
+      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
+      fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.');
+      return;
+    }
+    location.href = fn_get_direct_url('tmpltmng');
+  }
+
   //-- { API 검증 /배포 /승인-- by ktj
   var apiDeploy = function() {
     location.href = /*[[@{/api/deploy/mvDeployList.do}]]*/ '/api/deploy/mvDeployList.do';
@@ -79,6 +150,15 @@
     }
     else if ('apireg' == direct) {
       go_url = /*[[@{/api/main/mvMainList.do}]]*/ '/api/main/mvMainList.do';
+    }
+    else if ('apiquickreg' == direct) {
+      go_url = /*[[@{/api/quickreg/mvApiQuickReg.do}]]*/ '/api/quickreg/mvApiQuickReg.do';
+    }
+    else if ('apispcreg' == direct) {
+      go_url = /*[[@{/api/spcreg/mvSpcReg.do}]]*/ '/api/spcreg/mvSpcReg.do';
+    }
+    else if ('tmpltmng' == direct) {
+      go_url = /*[[@{/api/quickreg/tmplt/mvTmpltMng.do}]]*/ '/api/quickreg/tmplt/mvTmpltMng.do';
     }
     return go_url;
   }
@@ -133,9 +213,11 @@
             </ul>
           </li><!-- .menu1 -->
           <li class="menu2">
-            <a href="javascript:void(0);" onclick="apiReg();" title="API 등록">API 등록</a>
+            <a href="javascript:void(0);" onclick="apiSpcReg();" title="API 등록">API 등록</a>
             <ul>
-              <li><a href="javascript:void(0);" onclick="apiReg();" title="API 등록">API 등록</a></li>
+              <li><a href="javascript:void(0);" onclick="apiReg();" title="API 목록">API 목록</a></li>
+              <li><a href="javascript:void(0);" onclick="apiSpcReg();" title="API 등록">API 등록</a></li>
+              <li><a href="javascript:void(0);" onclick="tmpltMng();" title="템플릿 관리">템플릿 관리</a></li>
               <li id="deployMenu"><a href="javascript:void(0);" onclick="apiDeploy();" title="API 배포">API 배포</a></li>
               <li id="deployAuth"><a href="javascript:void(0);" onclick="apiApproval();" title="배포 승인"><div>배포 승인</div></a></li>
               <li th:if="${bIsBstgwMode and (bIsBstgwManager or bIsBstgwViewer)}"><a href="javascript:void(0);" onclick="beastDeployList();" title="BEAST API 배포">BEAST API 배포</a></li>

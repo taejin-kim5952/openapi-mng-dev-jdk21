@@ -59,7 +59,7 @@
     <insert id="insert_tabdata" parameterType="map">
         /* refCommonMapper.insert_tabdata */
         <selectKey keyProperty="fd_seq" resultType="int" order="AFTER">
-            SELECT SCOPE_IDENTITY()
+            SELECT CURRVAL('lab_tabdata_col_seq_seq')
         </selectKey>
         INSERT INTO lab_tabdata (
             col_varchar

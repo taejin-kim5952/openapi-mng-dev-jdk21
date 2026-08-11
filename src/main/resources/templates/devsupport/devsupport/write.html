@@ -23,7 +23,11 @@ $(function(){
 		$('#frm > #pstingId').val(pstingId);
 		$('#frm').attr('action', c_url+'devsupport/devsupport/mvForumView.do' ).submit();
 
-	}else if(/*[[${devSupportSaveVo.pstingId != null ? devSupportSaveVo.pstingId : ''}]]*/ ''   != ''  && /*[[${vmap.pstingId}]]*/ null != null   ) { //수정 일경우
+	}else if((function(){
+			var editPstingId = /*[[${devSupportSaveVo.pstingId != null ? devSupportSaveVo.pstingId : ''}]]*/ '';
+			var vmapPstingId = /*[[${vmap.pstingId}]]*/ null;
+			return editPstingId != '' && vmapPstingId != null;
+		})()) { //수정 일경우
 
 		$('#bbsFrm').find('#pstingId').val(/*[[${devSupportSaveVo.pstingId}]]*/ '');
 		$('#bbsFrm').find('#title').val(/*[[${vmap.title}]]*/ '');

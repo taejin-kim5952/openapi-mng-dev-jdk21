@@ -8,7 +8,7 @@
 <div xmlns:th="http://www.thymeleaf.org">
 <th:block th:fragment="vuePartMount(vuePart, vuePartOnly, propApiNo, propProcSeq, propGwProfile, propFnEmit)">
 <th:block th:if="${vuePart != null and !vuePart.isEmpty()}"
-          th:with="dpIdVuePart='vid_' + ${vuePart}, bUseJqueryCustomScrollbar=${vuePart.contains('adptranService')}, bHasCustomProps=${propFnEmit != null and !propFnEmit.isEmpty()}">
+          th:with="dpIdVuePart='vid_' + ${vuePart}, bUseJqueryCustomScrollbar=${vuePart.contains('adptranService')}, bHasCustomProps=${propFnEmit != null and !propFnEmit.isEmpty()}, dpBundleScriptSrc=${T(com.kt.openapi.web.adptran.util.AdptranUtil).getBundleScriptSrc(vuePart)}">
 
 <th:block th:if="${bUseJqueryCustomScrollbar}">
   <link th:href="@{/resources/adptran/js/cdn/mcustomscrollbar/jquery.mCustomScrollbar.min.css}" rel="stylesheet" />
@@ -20,7 +20,7 @@
 <link th:href="@{/resources/adptran/css/adptran-common.css}" rel="stylesheet" />
 </th:block>
 
-<script defer th:src="@{${dp_bundleScriptSrc}}"></script>
+<script defer th:src="@{${dpBundleScriptSrc}}"></script>
 <div th:unless="${bHasCustomProps}" th:id="${dpIdVuePart}" v-cloak></div>
 <div th:if="${bHasCustomProps}" th:id="${dpIdVuePart}"
      th:attr="prop_api_no=${propApiNo},prop_proc_seq=${propProcSeq},prop_gw_profile=${propGwProfile},prop_fn_emit=${propFnEmit}"

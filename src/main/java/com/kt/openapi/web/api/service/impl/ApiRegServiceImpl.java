@@ -192,7 +192,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 		LOGGER.debug("SysID = {}", vo.getSysId());
 		if ("".equals(apiSpcNo)) {
 			apiRegVO.setYamlFilePath(filePath);
-			apiSpcNo = (String) apiRegDAO.savApiRegInfo(apiRegVO);
+			apiRegDAO.savApiRegInfo(apiRegVO);
+			apiSpcNo = apiRegVO.getApiSpcNo();
 			fileName = apiSpcNo;
 			successStr = "ins";
 			
@@ -216,7 +217,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 				apiRegVO.setApiSpcNo(apiSpcNo);
 				apiRegVO.setCtgryNm(ctgryNm);
 				apiRegVO.setSortOdrg("1");
-				apiCtgryNo = (String) apiRegDAO.savApiCateInfo(apiRegVO);
+				apiRegDAO.savApiCateInfo(apiRegVO);
+				apiCtgryNo = apiRegVO.getApiCtgryNo();
 			}
 		}
 		else {
@@ -390,7 +392,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 		String successStr = "ins";
 
 		if (vo.getApiCtgryNo().equals("")) {
-			apiCtgryNo = apiRegDAO.savApiCateInfo(vo);
+			apiRegDAO.savApiCateInfo(vo);
+			apiCtgryNo = vo.getApiCtgryNo();
 		} else {
 			apiRegDAO.updApiCateInfo(vo);
 			successStr = "upd";
@@ -665,7 +668,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 					//-- [v][-]pathRegVO.setApiCtgryNm(getNullToString((methodDetailObj.get("x-category"))));
 					// // API카테고리 명
 					if ("Y".equals(vo.getInsertYn()) == true) {
-						apiNo = apiRegDAO.savApiPathInfo(pathRegVO);
+						apiRegDAO.savApiPathInfo(pathRegVO);
+						apiNo = pathRegVO.getApiNo();
 						vo.setApiNo(apiNo);
 						
 						pathRegVO.setApiNo(apiNo);
@@ -792,7 +796,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 								//-- [tag:adpt][drm][add] }
 
 								//-- [#]savApiParamInfo-[request]
-								paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+								apiRegDAO.savApiParamInfo(paramRegVO);
+								paramNo = paramRegVO.getParamNo();
 								paramIndex++; //-- [drm][add]++
 								paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -912,7 +917,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 									//-- [v][-][?]paramRegVO.setApiCtgryNo(vo.getApiCtgryNo());
 
 									//-- [#]savApiParamInfo-[response header]
-									paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+									apiRegDAO.savApiParamInfo(paramRegVO);
+									paramNo = paramRegVO.getParamNo();
 									paramIndex++;
 									paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -1025,7 +1031,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 
 								if (definName.length() > 0) {
 									//-- [#]savApiParamInfo-[response body userdefine datatype]
-									paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+									apiRegDAO.savApiParamInfo(paramRegVO);
+									paramNo = paramRegVO.getParamNo();
 									paramIndex++;
 									paramRegVO.setPrntsParamNo(paramNo); // 부모파라미터번호
 
@@ -1308,7 +1315,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 				//-- [v]pathRegVO.setApiCtgryNo(vo.getApiCtgryNo());
 				pathRegVO.setApiId(getNullToString((methodDetailObj.get("operationId"))));
 
-				String apiNo = apiRegDAO.savApiPathInfo(pathRegVO);
+				apiRegDAO.savApiPathInfo(pathRegVO);
+				String apiNo = pathRegVO.getApiNo();
 				vo.setApiNo(apiNo);
 
 				LOGGER.debug("           parameters : " + methodDetailObj.get("parameters")); // parameters
@@ -1355,7 +1363,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 							//-- [v]paramRegVO.setApiCtgryNo(vo.getApiCtgryNo());
 
 							//-- [#]savApiParamInfo-saveApiRegRest()
-							String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+							apiRegDAO.savApiParamInfo(paramRegVO);
+							String paramNo = paramRegVO.getParamNo();
 
 						}
 					}
@@ -1894,7 +1903,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 				//-- [v][-][상단으로이동]paramRegVO.setObjOdrg(sortOrder + "");	// 그룹내 순번
 
 				//-- [#]savApiParamInfo-[array]
-				String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+				apiRegDAO.savApiParamInfo(paramRegVO);
+				String paramNo = paramRegVO.getParamNo();
 				newSortOrder++;
 				paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 				//-- [drm][add] for상위복귀후처리
@@ -1974,7 +1984,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 						--*/
 		
 						//-- [#]savApiParamInfo-[object - not primitive]
-						String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+						apiRegDAO.savApiParamInfo(paramRegVO);
+						String paramNo = paramRegVO.getParamNo();
 						newSortOrder++;
 						paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 						//-- [drm][add] for상위복귀후처리
@@ -2037,7 +2048,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 						//-- [tag:adpt][drm][add] }
 
 						//-- [#]savApiParamInfo-[object - primitive]
-						String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+						apiRegDAO.savApiParamInfo(paramRegVO);
+						String paramNo = paramRegVO.getParamNo();
 						newSortOrder++;
 						paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 						//-- [drm][add] for상위복귀후처리
@@ -2132,7 +2144,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 				--*/
 
 				//-- [#]savApiParamInfo-[array - primitive]
-				String paramNo = apiRegDAO.savApiParamInfo(paramRegVO);
+				apiRegDAO.savApiParamInfo(paramRegVO);
+				String paramNo = paramRegVO.getParamNo();
 				newSortOrder++;
 				paramRegVO.setPrntsParamNo(paramNo);	// 부모파라미터번호
 				//-- [drm][add] for상위복귀후처리
@@ -2271,8 +2284,8 @@ public class ApiRegServiceImpl implements ApiRegService {
 
 	@Override
 	public String saveAutGrp(Map<String, Object> map) throws Exception {
-		// TODO Auto-generated method stub
-		return apiRegDAO.saveAutGrp(map);
+		apiRegDAO.saveAutGrp(map);
+		return (String) map.get("authId");
 	}
 
 

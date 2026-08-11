@@ -104,8 +104,10 @@
     $(".default_info").children("p").text(yamlOb.info.title);
     $(".default_info").children("p").attr("title",yamlOb.info.title);
 
-    var param_apiPath = qp_pathRegForm.get('apiPath') || '';
-    var param_apiMethod = qp_pathRegForm.get('apiMethod') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegForm)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiPath/#pApiMethod)를 우선 사용
+    var param_apiPath = qp_pathRegForm.get('apiPath') || $('#pApiPath').val() || '';
+    var param_apiMethod = qp_pathRegForm.get('apiMethod') || $('#pApiMethod').val() || '';
     var param_apiCopyYn = qp_pathRegForm.get('apiCopyYn') || ''; // 'Y':copy, 'A':edit other method, 'V': version upgrade
 
     //--[tag:adpt][add]
@@ -1409,8 +1411,10 @@
 
   // 불러온 api정보 세팅
   function apiPathInfoSet() {
-    var paramApiMethod = qp_pathRegForm.get('apiMethod') || '';
-    var paramApiPath   = qp_pathRegForm.get('apiPath') || '';
+    // [주의] 이 페이지는 POST로 넘어오므로 GET 쿼리스트링(qp_pathRegForm)에는 값이 없다 -
+    // 서버가 th:value로 채워준 hidden 필드(#pApiMethod/#pApiPath)를 우선 사용
+    var paramApiMethod = qp_pathRegForm.get('apiMethod') || $('#pApiMethod').val() || '';
+    var paramApiPath   = qp_pathRegForm.get('apiPath') || $('#pApiPath').val() || '';
 
     //--[tag:adpt][add] {
     //-- check object exist
@@ -2233,21 +2237,21 @@
      참조로 추정) - SpEL은 존재하지 않는 프로퍼티 접근 시 예외를 던지므로(JSP EL과 달리) 값 바인딩 없이 빈 hidden으로 둠. */-->
 <input type="hidden" id="insertYn" name="insertYn" />
 <input type="hidden" id="insertImpactYn" name="insertImpactYn" />
-<input type="hidden" id="pApiSpcNo" name="pApiSpcNo" />
-<input type="hidden" id="pApiNo" name="pApiNo" />
-<input type="hidden" id="pApiPath" name="pApiPath" />
-<input type="hidden" id="pApiMethod" name="pApiMethod" />
-<input type="hidden" id="pApiCtgryNo" name="pApiCtgryNo" th:value="${cate.apiCtgryNo}" />
-<input type="hidden" id="pApiCtgryNm" name="pApiCtgryNm" th:value="${cate.ctgryNm}" />
+<input type="hidden" id="pApiSpcNo" name="pApiSpcNo" th:value="${apiRegVO != null ? apiRegVO.apiSpcNo : ''}" />
+<input type="hidden" id="pApiNo" name="pApiNo" th:value="${apiRegVO != null ? apiRegVO.apiNo : ''}" />
+<input type="hidden" id="pApiPath" name="pApiPath" th:value="${apiRegVO != null ? apiRegVO.apiPath : ''}" />
+<input type="hidden" id="pApiMethod" name="pApiMethod" th:value="${apiRegVO != null ? apiRegVO.apiMethod : ''}" />
+<input type="hidden" id="pApiCtgryNo" name="pApiCtgryNo" th:value="${cate != null ? cate.apiCtgryNo : ''}" />
+<input type="hidden" id="pApiCtgryNm" name="pApiCtgryNm" th:value="${cate != null ? cate.ctgryNm : ''}" />
 <input type="hidden" id="pApiCopyYn" name="pApiCopyYn" />
 
 <script th:inline="javascript">
   $(document).ready(function () {
     var qp = new URLSearchParams(window.location.search);
-    $('#pApiSpcNo').val(qp.get('apiSpcNo') || '');
-    $('#pApiNo').val(qp.get('apiNo') || '');
-    $('#pApiPath').val(qp.get('apiPath') || '');
-    $('#pApiMethod').val(qp.get('apiMethod') || '');
+    if (qp.get('apiSpcNo')) { $('#pApiSpcNo').val(qp.get('apiSpcNo')); }
+    if (qp.get('apiNo')) { $('#pApiNo').val(qp.get('apiNo')); }
+    if (qp.get('apiPath')) { $('#pApiPath').val(qp.get('apiPath')); }
+    if (qp.get('apiMethod')) { $('#pApiMethod').val(qp.get('apiMethod')); }
     $('#pApiCopyYn').val(qp.get('apiCopyYn') || '');
   });
 </script>
@@ -2311,7 +2315,7 @@
                             <div class="api_left">
                                 <div class="default_info">
                                     <p title=""></p>
-                                    <span th:text="${cate.ctgryNm}"></span>
+                                    <span th:text="${cate != null ? cate.ctgryNm : ''}"></span>
                                 </div>
 
                                 <div class="dragToggle">
