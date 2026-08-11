@@ -1,0 +1,135 @@
+package com.kt.openapi.web.spcreg.service.impl;
+
+import com.kt.openapi.web.spcreg.dao.ApiDefRegDAO;
+import com.kt.openapi.web.spcreg.service.ApiDefRegService;
+import com.kt.openapi.web.spcreg.vo.ApiDefRegVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ * 1. 패키지명 : com.kt.openapi.web.spcreg.service.impl
+ * 2. 타입명   : ApiDefRegServiceImpl.java
+ * 5. 설명     : "API 등록"(기존 SPC에 API 추가) 화면 전용 서비스 구현체. SPC는 만들지 않고,
+ *              화면에서 선택한 기존 apiSpcNo에 CTGRY(재사용 또는 최초 1회 생성)/DEF/PARAM만 INSERT한다.
+ * </pre>
+ */
+@Service("apiDefRegService")
+public class ApiDefRegServiceImpl implements ApiDefRegService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ApiDefRegServiceImpl.class);
+
+    @Autowired
+    private ApiDefRegDAO apiDefRegDAO;
+
+    @Override
+    public List<Map<String, Object>> selSysApiTree(String sysId) {
+        return apiDefRegDAO.selSysApiTree(sysId);
+    }
+
+    @Override
+    public Map<String, Object> selSpcByNo(String apiSpcNo) {
+        if (apiSpcNo == null || apiSpcNo.trim().isEmpty()) {
+            return null;
+        }
+        return apiDefRegDAO.selSpcByNo(apiSpcNo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = { Exception.class })
+    public String savApiDefReg(ApiDefRegVO vo) {
+        LOG.debug("####################### ApiDefRegServiceImpl savApiDefReg START ############################");
+        LOG.debug(" 대상 apiSpcNo(기존 그룹) ========== {} ", vo.getApiSpcNo());
+
+        // 그룹에 카테고리가 이미 있으면 재사용하고(그룹당 카테고리 1개 유지), 없으면(그 그룹의 첫 API라면) 새로 만든다.
+        String existingCtgryNo = apiDefRegDAO.selDefaultCtgryBySpc(vo.getApiSpcNo());
+        if (existingCtgryNo != null && !existingCtgryNo.trim().isEmpty()) {
+            vo.setApiCtgryNo(existingCtgryNo);
+            LOG.debug(" 기존 apiCtgryNo 재사용 ========== {} ", vo.getApiCtgryNo());
+        } else {
+            apiDefRegDAO.savApiCtgry(vo);
+            LOG.debug(" 생성된 apiCtgryNo ========== {} ", vo.getApiCtgryNo());
+        }
+
+        apiDefRegDAO.savApiDef(vo);
+        LOG.debug(" 생성된 apiNo ========== {} ", vo.getApiNo());
+
+        savParamTree(vo.getParamList(), vo.getApiNo(), vo.getRegr());
+
+        return vo.getApiSpcNo();
+    }
+
+    /**
+     * object/array 하위 필드를 포함한 파라미터 트리를 저장한다. 화면(JS)이 각 노드에 부여한
+     * tempId/parentTempId로 부모-자식 관계를 표현해서 보내오면, 부모가 먼저 저장되어 실제
+     * PARAM_NO를 받은 뒤에야 그 값을 자식의 PRNTS_PARAM_NO로 넘길 수 있으므로 위상순서로 저장한다.
+     * paramTypeCd/paramLoc은 화면에서 스코프(입력/Query/출력)에 맞게 이미 채워서 보낸다.
+     */
+    private void savParamTree(List<ApiDefRegVO.ApiDefParamVO> list, String apiNo, String regr) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        Map<String, String> tempIdToRealNo = new HashMap<>();
+        Map<String, Integer> siblingSeq = new HashMap<>();
+        List<ApiDefRegVO.ApiDefParamVO> pending = new ArrayList<>(list);
+        int sortOdrg = 1;
+        int guard = 0;
+        while (!pending.isEmpty()) {
+            if (guard++ > 2000) {
+                throw new IllegalStateException("파라미터 트리 구조가 올바르지 않습니다(순환 참조 의심).");
+            }
+            boolean progressed = false;
+            Iterator<ApiDefRegVO.ApiDefParamVO> it = pending.iterator();
+            while (it.hasNext()) {
+                ApiDefRegVO.ApiDefParamVO p = it.next();
+                String parentTempId = p.getParentTempId();
+                boolean isRoot = parentTempId == null || parentTempId.trim().isEmpty();
+                if (!isRoot && !tempIdToRealNo.containsKey(parentTempId)) {
+                    continue; // 부모가 아직 저장 안 됨 - 다음 라운드로
+                }
+                it.remove();
+                progressed = true;
+                if (p.getParamNm() == null || p.getParamNm().trim().isEmpty()) {
+                    continue;
+                }
+                String prntsParamNo = isRoot ? "" : tempIdToRealNo.get(parentTempId);
+                int siblingKeyBase = isRoot ? 0 : Integer.parseInt(prntsParamNo);
+                String siblingKey = String.valueOf(siblingKeyBase);
+                int odrg = siblingSeq.merge(siblingKey, 1, Integer::sum);
+
+                Map<String, Object> m = new HashMap<>();
+                m.put("apiNo", apiNo);
+                m.put("paramTypeCd", p.getParamTypeCd());
+                m.put("sortOdrg", sortOdrg++);
+                m.put("paramNm", p.getParamNm());
+                m.put("dataTypeCd", p.getDataTypeCd());
+                m.put("paramLoc", p.getParamLoc());
+                m.put("required", p.getRequired());
+                m.put("paramDesc", p.getParamDesc());
+                m.put("exam", p.getExam());
+                m.put("personalData", p.getPersonalData());
+                m.put("prntsParamNo", prntsParamNo);
+                m.put("objNo", isRoot ? "" : prntsParamNo);
+                m.put("objOdrg", String.valueOf(odrg));
+                m.put("regr", regr);
+                apiDefRegDAO.savApiParam(m);
+
+                if (p.getTempId() != null && !p.getTempId().trim().isEmpty()) {
+                    tempIdToRealNo.put(p.getTempId(), String.valueOf(m.get("paramNo")));
+                }
+            }
+            if (!progressed) {
+                throw new IllegalStateException("파라미터 트리 저장 순서를 결정할 수 없습니다(부모 tempId 불일치).");
+            }
+        }
+    }
+}

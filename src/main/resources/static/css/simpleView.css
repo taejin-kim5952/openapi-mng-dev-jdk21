@@ -1,0 +1,104 @@
+/* simpleView.css - "API 간단 상세" 화면 전용 스타일 (디자인 리뉴얼판).
+   quickApiReg.css(공통 토큰 :root, .qr_pill/.qr_modal/.qr_field/.qr_lt_* 등)를 먼저 로드한 뒤
+   이 파일을 로드한다. 여기에는 이 화면 전용 클래스(.sv_*)만 정의한다. */
+
+/* ---------------- 좌측 네비게이션 카드 ---------------- */
+.sv_left_card { background: #fff; border: 1px solid var(--qr-line); border-radius: var(--qr-radius); padding: 22px 18px; }
+.sv_left_card .lTitle { margin: 0 0 8px; font-size: 20px; font-weight: 800; color: #000; }
+.sv_left_card .qr_left_hint { padding: 0 0 16px; }
+.sv_left_card .qr_lt_method { font-family: monospace; font-weight: 700; font-size: 10.5px; border-radius: var(--qr-radius-pill); padding: 2px 9px; border: 1px solid transparent; }
+.sv_left_card .qr_lt_method.sv_mth_get { background: var(--qr-teal-bg); border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.sv_left_card .qr_lt_method.sv_mth_post { background: var(--qr-teal-bg); border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.sv_left_card .qr_lt_method.sv_mth_put { background: #fff; border-color: #333; color: #333; }
+.sv_left_card .qr_lt_method.sv_mth_delete { background: var(--qr-danger-bg); border-color: var(--qr-danger); color: var(--qr-danger); }
+.sv_left_card .qr_lt_method.sv_mth_patch { background: #f2f2f4; border-color: var(--qr-line); color: var(--qr-ink-soft); }
+
+/* ---------------- 상단 히어로 ---------------- */
+.sv_hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding-bottom: 18px; border-bottom: 3px solid #000; flex-wrap: wrap; }
+.sv_hero_txt { min-width: 0; }
+.sv_hero_kicker { display: block; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--qr-mute); margin-bottom: 10px; }
+.sv_hero_nm { position: relative; display: inline-block; padding-top: 20px; margin: 0; font-size: 28px; line-height: 1.25; font-weight: 800; word-break: break-all; }
+.sv_hero_nm:before { content: ''; position: absolute; top: 0; left: 0; width: 40px; height: 6px; background: #000; }
+.sv_hero_meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+.sv_hero_actions { display: flex; align-items: center; gap: 8px; padding-top: 24px; }
+
+/* 상태 배지 */
+.sv_chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; white-space: nowrap; border-radius: var(--qr-radius-pill); font-size: 12.5px; font-weight: 700; border: 1px solid var(--qr-line); background: #fff; color: var(--qr-ink-soft); }
+.sv_chip_on { background: var(--qr-teal-bg); border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.sv_chip_dark { background: #333; border-color: #333; color: #fff; }
+.sv_chip_mono { font-family: monospace; font-weight: 700; }
+.sv_chip_dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* 정의 그리드 (라벨 위 / 값 아래) - 필수정보 아코디언 보기/편집 모드 공용 */
+.sv_defs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 32px; }
+.sv_def { min-width: 0; }
+.sv_def_label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--qr-mute); margin-bottom: 6px; }
+.sv_def_val { margin: 0; font-size: 15px; color: #222; line-height: 1.55; word-break: break-all; }
+.sv_def_val_mono { font-family: monospace; font-size: 14px; }
+.sv_def_span3 { grid-column: 1 / -1; }
+.sv_edit_actions { display: flex; justify-content: flex-end; gap: 8px; grid-column: 1 / -1; margin-top: 4px; }
+
+/* 아코디언 컴포넌트(.sv_acc 등)는 quickApiReg.css로 이동함 - "빠른 API 등록" 화면과 공용으로 쓰기 위함 */
+.sv_acc_body .sv_defs { padding-top: 20px; }
+.sv_acc_foot { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+/* 블록 안 읽기 전용 요약 표 (파라미터 아코디언) */
+.sv_mini_table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 18px; }
+.sv_mini_table th { text-align: left; padding: 9px 10px; background: #fafafa; border-bottom: 1px solid var(--qr-line); font-weight: 700; font-size: 12px; color: var(--qr-ink-soft); }
+.sv_mini_table td { padding: 10px; border-bottom: 1px solid var(--qr-line-soft); vertical-align: top; }
+.sv_mini_table .sv_mt_nm { font-family: monospace; font-weight: 700; }
+.sv_mini_table .sv_mt_type { font-family: monospace; color: var(--qr-ink-soft); }
+.sv_req_y { display: inline-block; padding: 1px 8px; border-radius: var(--qr-radius-pill); background: var(--qr-danger-bg); color: var(--qr-danger); font-size: 11.5px; font-weight: 700; }
+.sv_req_n { display: inline-block; padding: 1px 8px; border-radius: var(--qr-radius-pill); background: #f0f0f0; color: var(--qr-mute); font-size: 11.5px; font-weight: 700; }
+.sv_empty_block { padding: 26px 0 8px; margin: 0; text-align: center; font-size: 13px; color: var(--qr-mute); }
+
+/* 하위 세그먼트 (팝업 파라미터 탭: 입력 / 출력 전환) */
+.sv_seg { display: inline-flex; border: 1px solid var(--qr-line); border-radius: var(--qr-radius-pill); overflow: hidden; }
+.sv_seg button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 18px; border: 0; background: #fff; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--qr-ink-soft); }
+.sv_seg button:hover { background: #f7f7f8; }
+.sv_seg button.sv_on { background: #333; color: #fff; }
+.sv_seg button.sv_on .sv_seg_cnt { background: rgba(255,255,255,.22); color: #fff; }
+.sv_seg_cnt { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: var(--qr-radius-pill); background: #f0f0f0; font-size: 11px; color: var(--qr-ink-soft); }
+
+/* Method 배지 (좌측 트리 + 팝업 헤더에서 공용) */
+.sv_mth { display: inline-flex; align-items: center; justify-content: center; min-width: 60px; height: 24px; padding: 0 9px; border-radius: var(--qr-radius-pill); font-family: monospace; font-size: 11px; font-weight: 700; border: 1px solid transparent; }
+.sv_mth_get { background: var(--qr-teal-bg); border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.sv_mth_post { background: #333; border-color: #333; color: #fff; }
+.sv_mth_put { background: #fff; border-color: #333; color: #333; }
+.sv_mth_delete { background: var(--qr-danger-bg); border-color: var(--qr-danger); color: var(--qr-danger); }
+.sv_mth_patch { background: #f2f2f4; border-color: var(--qr-line); color: var(--qr-ink-soft); }
+
+/* 빈 상태 (스펙에 Path/Method가 없을 때) */
+.sv_empty_state { padding: 60px 20px; text-align: center; color: var(--qr-mute); font-size: 14px; }
+
+/* ---------------- 상세 팝업: 탭 ---------------- */
+.sv_modal_sub_path { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
+.sv_tabs { display: flex; gap: 0; padding: 0 30px; border-bottom: 1px solid var(--qr-line); background: #fff; position: sticky; top: 66px; z-index: 2; }
+.sv_tab { position: relative; height: 46px; padding: 0 18px; border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--qr-mute); }
+.sv_tab:hover { color: var(--qr-ink); }
+.sv_tab.sv_on { color: var(--qr-ink); }
+.sv_tab.sv_on:after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; background: var(--qr-teal); border-radius: 3px 3px 0 0; }
+.sv_tab_cnt { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: var(--qr-radius-pill); background: #f0f0f0; font-size: 11px; color: var(--qr-ink-soft); }
+.sv_tab.sv_on .sv_tab_cnt { background: var(--qr-teal-bg); color: var(--qr-teal-dark); }
+.sv_panel { display: none; }
+.sv_panel.sv_on { display: block; }
+
+/* 배포현황 스트립 */
+.sv_deploy { display: flex; gap: 10px; flex-wrap: wrap; padding: 14px 18px; background: var(--qr-teal-bg-soft); border-radius: var(--qr-radius); margin-bottom: 22px; }
+.sv_deploy_item { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--qr-ink-soft); }
+.sv_deploy_item b { font-size: 13px; color: var(--qr-ink); font-weight: 700; }
+.sv_deploy_sep { width: 1px; align-self: stretch; background: rgba(0,0,0,.08); }
+
+/* 팝업 내 소제목 */
+.sv_sub_head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #333; }
+.sv_sub_head h4 { margin: 0; font-size: 15px; font-weight: 800; }
+.sv_sub_head span { font-size: 12.5px; color: var(--qr-mute); }
+.sv_block { margin-bottom: 28px; }
+.sv_block:last-child { margin-bottom: 0; }
+
+/* 읽기 전용 값 (배포현황 등, 기존 클래스 - quickApiReg.css에도 정의돼 있음) */
+.sv_val { margin: 0; padding: 10px 0 2px; font-size: 15px; color: #222; min-height: 20px; word-break: break-all; }
+
+@media (max-width: 1200px) {
+  .sv_defs { grid-template-columns: repeat(2, 1fr); }
+}

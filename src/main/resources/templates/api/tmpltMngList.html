@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--/* api/tmpltMngList.html - "API 등록 (새 버전)" 템플릿 관리 목록 화면.
+     quickApiReg.html과 동일한 외곽 골격(registration.css)을 재사용한다. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
+<head>
+    <title>KT Open API - 템플릿 관리</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+</head>
+<body>
+<div layout:fragment="content">
+
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+        <div class="regist_wrap">
+
+          <div class="regi_bar">
+            <div class="left_menu">
+              <p>
+                <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+                <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+              </p>
+            </div>
+            <div class="right_menu">
+              <p><a th:href="@{/api/quickreg/mvApiQuickReg.do}" title="API 등록 (새 버전)" class="btn btn_list"><span>API 등록 (새 버전)</span></a></p>
+            </div>
+          </div><!-- .regi_bar -->
+
+          <div class="regist_layout">
+            <div class="api_left">
+              <h5 class="lTitle">템플릿 관리</h5>
+              <p class="qr_left_hint">API 등록 (새 버전) 화면에서 쓰이는 템플릿을 관리합니다.</p>
+            </div><!-- .api_left -->
+
+            <div class="api_right">
+
+  <div class="qr_head">
+    <div class="qr_head_txt">
+      <h2 class="qr_title"><span class="qr_title_bullet"></span>템플릿 관리</h2>
+      <p class="qr_sub">API 등록 (새 버전) 화면의 템플릿을 추가/수정/삭제합니다.</p>
+    </div>
+  </div>
+
+  <section class="qr_start_row">
+    <input type="text" id="tmMngSearch" placeholder="템플릿 이름/설명 검색" class="qr_tmMng_search" oninput="tmFilterList(this.value);">
+    <a th:href="@{/api/quickreg/tmplt/mvTmpltForm.do}" class="qr_pill qr_pill_accent qr_pill_sm">+ 새 템플릿</a>
+  </section>
+
+  <section class="qr_section">
+    <table class="qr_tm_table">
+      <thead>
+        <tr>
+          <th style="width:56px"></th>
+          <th style="width:20%">이름</th>
+          <th>설명</th>
+          <th style="width:12%">API 구분</th>
+          <th style="width:10%">Method</th>
+          <th style="width:8%">사용여부</th>
+          <th style="width:120px"></th>
+        </tr>
+      </thead>
+      <tbody id="tmMngRows">
+        <tr th:each="t : ${tmpltList}" class="qr_tm_row"
+            th:attr="data-nm=${t.tmpltNm},data-desc=${t.tmpltDesc}">
+          <td><span class="qr_tmplt_icon qr_tmplt_icon_sm" th:attr="data-mth-cd=${t.mthTypeCd}"></span></td>
+          <td th:text="${t.tmpltNm}"></td>
+          <td class="qr_tm_desc" th:text="${t.tmpltDesc}"></td>
+          <td th:text="${t.apiClass}"></td>
+          <td th:text="${t.mthTypeCd}"></td>
+          <td>
+            <span th:if="${t.useYn == 'Y'}" class="qr_tm_badge qr_tm_badge_on">사용</span>
+            <span th:unless="${t.useYn == 'Y'}" class="qr_tm_badge qr_tm_badge_off">중지</span>
+          </td>
+          <td class="qr_tm_actions">
+            <a th:href="@{/api/quickreg/tmplt/mvTmpltForm.do(tmpltNo=${t.tmpltNo})}" class="qr_pill qr_pill_ghost qr_pill_sm">수정</a>
+            <button type="button" class="qr_pill qr_pill_ghost qr_pill_sm" th:attr="onclick=|tmDeleteTmplt('${t.tmpltNo}');|">삭제</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p id="tmMngEmptyMsg" class="qr_no_params qr_hide">검색 결과가 없습니다.</p>
+  </section>
+
+            </div><!-- .api_right -->
+          </div><!-- .regist_layout -->
+        </div><!-- .regist_wrap -->
+      </div><!-- .api_content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<script th:inline="javascript">
+  var g_qr_mthTypeList = /*[[${mthTypeList}]]*/ [];
+  var g_sysId = '';
+  var con_SYSTEMID_ARSENAL = '';
+</script>
+<script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/tmpltMng.js}"></script>
+
+</div>
+</body>
+</html>

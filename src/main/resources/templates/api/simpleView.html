@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!--/* api/simpleView.html - API "간단 상세" 신규 화면 (디자인 리뉴얼판).
+     기존 편집폼(mvApiReg)/죽은 상세뷰(api/info)와 독립된 컨트롤러/서비스/SQL로 동작한다.
+     외곽 골격은 quickApiReg/tmpltMng와 동일하게 registration.css를 재사용한다.
+     좌측 트리 = 이 스펙에 속한 Path/Method 전체를 나열하는 실제 네비게이션(클릭 시 우측 파라미터
+     아코디언이 그 1건으로 갱신됨) - "빠른 API 등록" 화면의 참고용(읽기전용) 트리와는 역할이 다르다. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
+<head>
+    <title>KT Open API - 간단 상세</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/codemirror.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/simpleView.css}">
+</head>
+<body>
+<div layout:fragment="content">
+
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+        <div class="regist_wrap">
+
+          <div class="regi_bar">
+            <div class="left_menu">
+              <p>
+                <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+                <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+              </p>
+            </div>
+            <div class="right_menu">
+              <p><a th:href="@{/api/main/mvMainList.do}" title="목록" class="btn btn_list"><span>목록</span></a></p>
+            </div>
+          </div><!-- .regi_bar -->
+
+          <div class="regist_layout">
+            <div class="api_left">
+              <div class="sv_left_card">
+                <h5 class="lTitle">간단 상세</h5>
+                <p class="qr_left_hint">꼭 필요한 정보만 바로 보여주고, 나머지는 아래 목록에서 클릭해 확인·수정합니다.</p>
+                <div id="svLeftTree" class="qr_left_tree"></div>
+              </div>
+            </div><!-- .api_left -->
+
+            <div class="api_right" th:if="${spc != null}">
+
+  <input type="hidden" id="svApiSpcNo" th:value="${spc.apiSpcNo}">
+
+  <!-- ===== 히어로 ===== -->
+  <div class="sv_hero">
+    <div class="sv_hero_txt">
+      <span class="sv_hero_kicker">API 간단 상세</span>
+      <h2 class="sv_hero_nm" th:text="${spc.apiNm}"></h2>
+      <div class="sv_hero_meta">
+        <span class="sv_chip sv_chip_on"><span class="sv_chip_dot"></span><span th:text="${spc.regSttusCd}"></span></span>
+        <span class="sv_chip sv_chip_dark" th:text="${spc.apiClass}"></span>
+        <span class="sv_chip" th:text="${spc.sysNm}"></span>
+        <span class="sv_chip sv_chip_mono" th:text="${spc.ver}"></span>
+        <span class="sv_chip sv_chip_mono" th:text="${spc.host}"></span>
+      </div>
+    </div>
+    <div class="sv_hero_actions">
+      <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_outline">목록</a>
+      <button type="button" class="qr_pill qr_pill_dark" onclick="svToggleSpcEdit(true);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
+        기본 정보 수정
+      </button>
+    </div>
+  </div>
+
+  <div class="sv_blocks" id="svBlocks">
+
+    <!-- 블록 ①: 기본 정보 -->
+    <section class="sv_acc">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">기본 정보</span>
+        <span class="sv_acc_sum">API 스펙 단위로 관리되는 값</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div style="display:flex;justify-content:flex-end;padding-top:16px;">
+          <span id="svSpcHeadBtns">
+            <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" onclick="svToggleSpcEdit(true);">수정</button>
+          </span>
+        </div>
+
+        <!-- 보기 모드: 서비스/API 이름/선택된 Path·Method만 기본 노출, 나머지는 "전체보기" 뒤로 숨김 -->
+        <div id="svSpcView" class="sv_defs">
+          <div class="sv_def"><span class="sv_def_label">API 이름</span><p class="sv_def_val" th:text="${spc.apiNm}"></p></div>
+          <div class="sv_def"><span class="sv_def_label">서비스</span><p class="sv_def_val" th:text="${spc.sysNm}"></p></div>
+          <div class="sv_def" th:if="${selectedDef != null}">
+            <span class="sv_def_label">선택된 Path/Method</span>
+            <p class="sv_def_val">
+              <span class="sv_mth" id="svSelMth"></span> <span class="qr_mono" id="svSelPath" style="font-size:13.5px;"></span>
+              <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" style="margin-left:8px;" onclick="svOpenDefDetail($('#svApiNo').val());">엔드포인트/응답매핑/HDP 설정</button>
+            </p>
+          </div>
+
+          <div id="svSpcExtra" class="sv_defs qr_hide" style="grid-column:1/-1;margin-top:22px;padding-top:22px;border-top:1px solid var(--qr-line-soft);">
+            <div class="sv_def"><span class="sv_def_label">API 구분</span><p class="sv_def_val" th:text="${spc.apiClass}"></p></div>
+            <div class="sv_def"><span class="sv_def_label">호스트</span><p class="sv_def_val sv_def_val_mono" th:text="${spc.host}"></p></div>
+            <div class="sv_def"><span class="sv_def_label">기본경로</span><p class="sv_def_val sv_def_val_mono" th:text="${spc.basPath}"></p></div>
+            <div class="sv_def"><span class="sv_def_label">상태</span><p class="sv_def_val" th:text="${spc.regSttusCd}"></p></div>
+            <div class="sv_def sv_def_span3"><span class="sv_def_label">설명</span><p class="sv_def_val" th:text="${spc.apiDesc}"></p></div>
+          </div>
+
+          <div class="sv_def_span3" style="grid-column:1/-1;margin-top:14px;">
+            <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" id="svSpcExtraToggle" onclick="svToggleSpcExtra();">전체보기</button>
+          </div>
+        </div>
+
+        <!-- 편집 모드 -->
+        <form id="svSpcForm" class="sv_defs qr_hide" onsubmit="return false;">
+          <div class="qr_field">
+            <label for="svApiNm">API 이름 <em>*</em></label>
+            <input type="text" id="svApiNm" name="apiNm" th:value="${spc.apiNm}">
+          </div>
+          <div class="qr_field">
+            <label for="svHost">호스트 <em>*</em></label>
+            <input type="text" id="svHost" name="host" th:value="${spc.host}" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="svBasPath">기본경로 <em>*</em></label>
+            <input type="text" id="svBasPath" name="basPath" th:value="${spc.basPath}" style="font-family:monospace;">
+          </div>
+          <div class="sv_def sv_def_span3">
+            <label for="svApiDesc" style="display:block;font-size:14px;font-weight:700;margin-bottom:8px;">설명</label>
+            <textarea id="svApiDesc" name="apiDesc" rows="2" th:text="${spc.apiDesc}" style="width:100%;border:1px solid var(--qr-line);border-radius:5px;padding:14px 18px;font-size:15px;line-height:23px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+          </div>
+          <div class="sv_edit_actions">
+            <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" onclick="svToggleSpcEdit(false);">취소</button>
+            <button type="button" class="qr_pill qr_pill_dark qr_pill_sm" onclick="svSaveSpc();">저장</button>
+          </div>
+        </form>
+      </div><!-- .sv_acc_body -->
+    </section>
+
+    <!-- 블록 ②: 입력 파라미터 -->
+    <section class="sv_acc" id="svAccParamIn" th:if="${selectedDef != null}">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">입력 파라미터</span>
+        <span class="sv_acc_badge" id="svParamInBadge">0</span>
+        <span class="sv_acc_sum" id="svParamInSum"></span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <table class="sv_mini_table qr_hide" id="svParamInTable">
+          <thead><tr><th style="width:24%">이름</th><th style="width:16%">타입</th><th style="width:12%">필수</th><th>설명</th></tr></thead>
+          <tbody id="svParamInRows"></tbody>
+        </table>
+        <p class="sv_empty_block" id="svParamInEmpty">등록된 입력 파라미터가 없습니다.</p>
+        <div class="sv_acc_foot">
+          <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" onclick="svOpenParamDesigner('in');">파라미터 편집</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 블록 ③: Query 파라미터 -->
+    <section class="sv_acc" id="svAccParamQuery" th:if="${selectedDef != null}">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">Query 파라미터</span>
+        <span class="sv_acc_badge" id="svParamQueryBadge">0</span>
+        <span class="sv_acc_sum" id="svParamQuerySum"></span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <table class="sv_mini_table qr_hide" id="svParamQueryTable">
+          <thead><tr><th style="width:24%">이름</th><th style="width:16%">타입</th><th style="width:12%">필수</th><th>설명</th></tr></thead>
+          <tbody id="svParamQueryRows"></tbody>
+        </table>
+        <p class="sv_empty_block" id="svParamQueryEmpty">등록된 Query 파라미터가 없습니다.</p>
+        <div class="sv_acc_foot">
+          <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" onclick="svOpenParamDesigner('query');">파라미터 편집</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 블록 ④: 출력 파라미터 -->
+    <section class="sv_acc" id="svAccParamOut" th:if="${selectedDef != null}">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">출력 파라미터</span>
+        <span class="sv_acc_badge" id="svParamOutBadge">0</span>
+        <span class="sv_acc_sum" id="svParamOutSum"></span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <table class="sv_mini_table qr_hide" id="svParamOutTable">
+          <thead><tr><th style="width:24%">이름</th><th style="width:16%">타입</th><th style="width:12%">필수</th><th>설명</th></tr></thead>
+          <tbody id="svParamOutRows"></tbody>
+        </table>
+        <p class="sv_empty_block" id="svParamOutEmpty">등록된 출력 파라미터가 없습니다.</p>
+        <div class="sv_acc_foot">
+          <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" onclick="svOpenParamDesigner('out');">파라미터 편집</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 블록 ⑤: 헤더 파라미터 (현재 실데이터 없음 - 읽기전용 빈 상태만) -->
+    <section class="sv_acc" id="svAccParamHeader" th:if="${selectedDef != null}">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">헤더 파라미터</span>
+        <span class="sv_acc_badge sv_acc_badge_off" id="svParamHeaderBadge">0</span>
+        <span class="sv_acc_sum" id="svParamHeaderSum">등록된 항목 없음</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <table class="sv_mini_table qr_hide" id="svParamHeaderTable">
+          <thead><tr><th style="width:24%">이름</th><th style="width:16%">타입</th><th style="width:12%">필수</th><th>설명</th></tr></thead>
+          <tbody id="svParamHeaderRows"></tbody>
+        </table>
+        <p class="sv_empty_block" id="svParamHeaderEmpty">등록된 헤더 파라미터가 없습니다.</p>
+      </div>
+    </section>
+
+    <!-- 스펙에 Path/Method가 하나도 없을 때 -->
+    <section class="sv_acc" th:if="${selectedDef == null}">
+      <div class="sv_acc_body" style="display:block;">
+        <p class="sv_empty_state">이 스펙에 등록된 Path/Method가 없습니다.</p>
+      </div>
+    </section>
+
+  </div><!-- .sv_blocks -->
+
+  <input type="hidden" id="svApiNo" th:value="${selectedDef != null ? selectedDef.apiNo : ''}">
+
+            </div><!-- .api_right -->
+
+            <div class="api_right" th:if="${spc == null}">
+              <p class="sv_empty_state">해당 API 스펙을 찾을 수 없습니다.</p>
+            </div>
+
+          </div><!-- .regist_layout -->
+        </div><!-- .regist_wrap -->
+      </div><!-- .api_content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<!-- 팝업: Path/Method 상세 (탭 구성) -->
+<div id="svDefModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_wide">
+    <div class="qr_modal_head">
+      <div>
+        <div class="qr_modal_title">Path / Method 상세</div>
+        <div class="sv_modal_sub_path">
+          <span class="sv_mth" id="svDefMethod"></span>
+          <span class="qr_mono" id="svDefPath" style="font-size:13.5px;"></span>
+        </div>
+      </div>
+      <button type="button" class="qr_modal_close" id="svDefModalClose" aria-label="닫기">&times;</button>
+    </div>
+
+    <div class="sv_tabs">
+      <button type="button" class="sv_tab sv_on" data-tab="ep">엔드포인트</button>
+      <button type="button" class="sv_tab" data-tab="res">응답 매핑</button>
+      <button type="button" class="sv_tab" data-tab="hdp">HDP 연동</button>
+    </div>
+
+    <div class="qr_modal_body">
+      <input type="hidden" id="svDefApiNo">
+
+      <!-- 배포현황 (읽기 전용) -->
+      <div class="sv_deploy">
+        <span class="sv_deploy_item">TB 배포상태 <b id="svTbDplyStatus">-</b></span>
+        <span class="sv_deploy_sep"></span>
+        <span class="sv_deploy_item">검증상태 <b id="svDplyVeriStatus">-</b></span>
+        <span class="sv_deploy_sep"></span>
+        <span class="sv_deploy_item">운영 배포상태 <b id="svPrdDplyStatus">-</b></span>
+      </div>
+
+      <!-- 탭 ①: 엔드포인트 -->
+      <div class="sv_panel sv_on" data-panel="ep">
+        <div class="sv_block">
+          <div class="sv_sub_head"><h4>엔드포인트 / 게이트웨이</h4><span>게이트웨이가 실제로 호출하는 내부 주소</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field"><label for="svEndpntTbUrl">TB 엔드포인트 URL</label><input type="text" id="svEndpntTbUrl" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svEndpntPrdUrl">운영 엔드포인트 URL</label><input type="text" id="svEndpntPrdUrl" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svEndpntClientIp">클라이언트 IP</label><input type="text" id="svEndpntClientIp" placeholder="비워두면 제한 없음"></div>
+            <div class="qr_field"><label for="svEndpntTimeout">타임아웃(ms)</label><input type="text" id="svEndpntTimeout"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 ②: 응답 매핑 -->
+      <div class="sv_panel" data-panel="res">
+        <div class="sv_block">
+          <div class="sv_sub_head"><h4>응답 매핑</h4><span>내부 응답에서 결과/에러를 읽어올 필드</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field"><label for="svResmapResCdField">결과코드 필드</label><input type="text" id="svResmapResCdField" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svResmapSuccVal">성공 값</label><input type="text" id="svResmapSuccVal" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svResmapErrCdField">에러코드 필드</label><input type="text" id="svResmapErrCdField" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svResmapErrMsgField">에러메시지 필드</label><input type="text" id="svResmapErrMsgField" style="font-family:monospace;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 ③: HDP 연동 -->
+      <div class="sv_panel" data-panel="hdp">
+        <div class="sv_block">
+          <div class="sv_sub_head"><h4>HDP 연동</h4><span>HDP를 경유하는 경우에만 입력</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field"><label for="svHdpApiEndpointId">HDP Endpoint ID</label><input type="text" id="svHdpApiEndpointId" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svHdpReqApiName">HDP 요청 API명</label><input type="text" id="svHdpReqApiName" style="font-family:monospace;"></div>
+            <div class="qr_field"><label for="svHdpApiOutFormat">출력 포맷</label><input type="text" id="svHdpApiOutFormat"></div>
+            <div class="qr_field"><label for="svHdpApiOutCommonParam">공통 파라미터</label><input type="text" id="svHdpApiOutCommonParam" placeholder="선택사항"></div>
+            <div class="qr_field qr_span2"><label for="svHdpReqMappingToBody">요청 매핑(Body)</label><textarea id="svHdpReqMappingToBody" rows="3" style="font-family:monospace;"></textarea></div>
+            <div class="qr_field qr_span2"><label for="svHdpResMappingToBody">응답 매핑(Body)</label><textarea id="svHdpResMappingToBody" rows="3" style="font-family:monospace;"></textarea></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="qr_modal_foot">
+      <button type="button" class="qr_pill qr_pill_ghost" id="svDefCancel">취소</button>
+      <button type="button" class="qr_pill qr_pill_dark" onclick="svSaveDefDetail();">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 팝업: 파라미터 설계 - 스코프 하나만 다룹니다(quickApiReg.html과 동일한 마크업/ID를 공유해서
+     paramTreeEditor.js를 그대로 재사용). 좌측 트리와 우측 YAML 에디터는 같은 데이터를 보고 있어
+     어느 쪽을 고쳐도 반대쪽이 따라옵니다. -->
+<div id="qrParamModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_full" role="dialog" aria-modal="true" aria-labelledby="qrPdTitle">
+    <div class="qr_pd_head">
+      <div class="qr_pd_head_l">
+        <div class="qr_pd_title" id="qrPdTitle">입력 파라미터 설계</div>
+        <div class="qr_pd_sub">
+          <span class="qr_pd_mth" id="qrPdMth"></span>
+          <span class="qr_pd_path" id="qrPdPath"></span>
+          <span class="qr_pd_note">— 좌측 트리와 우측 YAML은 실시간으로 서로 반영됩니다.</span>
+        </div>
+      </div>
+      <div class="qr_pd_acts">
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdCollapse">전체 접기</button>
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdToggleYaml" aria-expanded="true">YAML 숨기기</button>
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdCancel">취소</button>
+        <button type="button" class="qr_pill qr_pill_dark" id="qrPdSave">저장</button>
+      </div>
+    </div>
+
+    <div class="qr_pd_body">
+      <div class="qr_pd_left">
+        <div class="qr_pd_pane_head">
+          <span class="qr_pd_pane_title">트리 편집</span>
+          <span class="qr_pd_pane_sub" id="qrPdTreeScope">입력 파라미터</span>
+        </div>
+        <div class="qr_pd_scroll">
+          <div class="qr_pd_cols"><span>파라미터명</span><span></span><span>타입</span><span></span><span>필수여부</span><span></span></div>
+          <div class="qr_pd_pane" id="qrPdPane"></div>
+        </div>
+        <div class="qr_pd_pane_foot">
+          <button type="button" class="qr_pd_addroot">+ 최상위 파라미터 추가</button>
+        </div>
+      </div>
+
+      <button type="button" class="qr_pd_grip" id="qrPdGrip" aria-label="YAML 에디터 펼치기" title="YAML 에디터 펼치기">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>YAML</span>
+      </button>
+      <div class="qr_pd_right">
+        <div class="qr_pd_pane_head">
+          <span class="qr_pd_pane_title">YAML 에디터</span>
+          <span class="qr_pd_pane_sub qr_mono" id="qrPdScope">requestBody.content.application/json.schema</span>
+        </div>
+        <textarea class="qr_pd_yaml" id="qrPdYaml" spellcheck="false" aria-label="OAS 3.0 YAML"></textarea>
+        <p class="qr_pd_yaml_msg qr_hide" id="qrPdYamlMsg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+  var g_qr_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_qr_mthTypeList = /*[[${mthTypeList}]]*/ [];
+  var g_pt_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_pt_piiList = /*[[${piiList}]]*/ [];
+  var g_sv_defList = /*[[${defList}]]*/ [];
+  var g_sv_selectedDef = /*[[${selectedDef != null ? selectedDef : {}}]]*/ {};
+  var g_sv_selectedApiNo = /*[[${selectedDef != null ? selectedDef.apiNo : ''}]]*/ '';
+  var g_sv_selectedParamList = /*[[${selectedParamList != null ? selectedParamList : {}}]]*/ [];
+  var g_sysId = '';
+  var con_SYSTEMID_ARSENAL = '';
+</script>
+<script th:src="@{/resources/js/cdn/codemirror/codemirror.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/mode/yaml/yaml.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldcode.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/indent-fold.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/paramTreeEditor.js}"></script>
+<script th:src="@{/resources/js/api_reg/simpleView.js}"></script>
+
+</div>
+</body>
+</html>

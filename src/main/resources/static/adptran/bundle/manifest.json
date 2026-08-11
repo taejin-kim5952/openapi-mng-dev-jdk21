@@ -1,0 +1,16 @@
+{
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleadptranService.js": "/resources/adptran/bundle/adptranService_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleadptranService.js.map": "/resources/adptran/bundle/adptranService_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapieditService.js": "/resources/adptran/bundle/apieditService_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapieditService.js.map": "/resources/adptran/bundle/apieditService_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsolekosXlsxService.js": "/resources/adptran/bundle/kosXlsxService_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsolekosXlsxService.js.map": "/resources/adptran/bundle/kosXlsxService_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleverifyExecute.js": "/resources/adptran/bundle/verifyExecute_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleverifyExecute.js.map": "/resources/adptran/bundle/verifyExecute_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapistatus/apistatus_list.js": "/resources/adptran/bundle/apistatus/apistatus_list_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapistatus/apistatus_list.js.map": "/resources/adptran/bundle/apistatus/apistatus_list_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapistatus/apistatus_group.js": "/resources/adptran/bundle/apistatus/apistatus_group_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoleapistatus/apistatus_group.js.map": "/resources/adptran/bundle/apistatus/apistatus_group_bundle.js.map",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoledevQuery.js": "/resources/adptran/bundle/devQuery_bundle.js",
+  "d:/workspace/ksm_svn/openapi-mng-dev/src/main/webapp/WEB-INF/views/bcconsoledevQuery.js.map": "/resources/adptran/bundle/devQuery_bundle.js.map"
+}

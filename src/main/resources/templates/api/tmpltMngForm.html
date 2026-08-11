@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!--/* api/tmpltMngForm.html - "빠른 API 등록" 템플릿 등록/수정 폼.
+     YAML을 붙여넣으면 실제 "YAML 등록"과 동일한 파서(quickRegShared.js)로 미리보기 후 저장한다. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
+<head>
+    <title>KT Open API - 템플릿 등록/수정</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/codemirror.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/lint/lint.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/hint/show-hint.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+</head>
+<body>
+<div layout:fragment="content">
+
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+        <div class="regist_wrap">
+
+          <div class="regi_bar">
+            <div class="left_menu">
+              <p>
+                <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+                <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+              </p>
+            </div>
+            <div class="right_menu">
+              <p><a th:href="@{/api/quickreg/tmplt/mvTmpltMng.do}" title="템플릿 목록" class="btn btn_list"><span>템플릿 목록</span></a></p>
+            </div>
+          </div><!-- .regi_bar -->
+
+          <div class="regist_layout">
+            <div class="api_left">
+              <h5 class="lTitle" th:text="${tmplt != null ? '템플릿 수정' : '템플릿 등록'}"></h5>
+              <p class="qr_left_hint">YAML을 붙여넣고 미리보기로 확인한 뒤 저장하세요.</p>
+            </div><!-- .api_left -->
+
+            <div class="api_right">
+
+  <div class="qr_head">
+    <div class="qr_head_txt">
+      <h2 class="qr_title"><span class="qr_title_bullet"></span><span th:text="${tmplt != null ? '템플릿 수정' : '새 템플릿 등록'}"></span></h2>
+    </div>
+  </div>
+
+  <form id="tmForm" onsubmit="return false;">
+    <input type="hidden" id="tmpltNo" th:value="${tmplt != null ? tmplt.tmpltNo : ''}">
+
+    <section class="qr_section">
+      <div class="qr_section_head"><span>기본 정보</span></div>
+      <div class="qr_grid2">
+        <div class="qr_field">
+          <label for="tmpltNm">템플릿 이름 <em>*</em></label>
+          <input type="text" id="tmpltNm" th:value="${tmplt != null ? tmplt.tmpltNm : ''}" placeholder="예: 메시징 API 기본 템플릿">
+        </div>
+        <div class="qr_field">
+          <label>API 구분</label>
+          <div class="qr_scope_pills">
+            <label th:each="g : ${apiGubList}" class="qr_scope_pill_wrap">
+              <input type="radio" name="tmApiClass" th:value="${g.comnCd}"
+                     th:checked="${tmplt != null ? (tmplt.apiClass == g.comnCd) : (g.comnCd == 'APIGUB1010')}">
+              <span th:text="${g.cdNm}"></span>
+            </label>
+          </div>
+        </div>
+        <div class="qr_field qr_span2">
+          <label for="tmpltDesc">설명</label>
+          <textarea id="tmpltDesc" rows="2" th:text="${tmplt != null ? tmplt.tmpltDesc : ''}" placeholder="이 템플릿이 어떤 상황에 쓰이는지 설명해주세요"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="qr_section">
+      <div class="qr_section_head"><span>YAML (OAS 3.0)</span></div>
+      <textarea id="tmYamlArea" th:text="${tmplt != null ? tmplt.tmpltYaml : ''}"></textarea>
+      <div class="qr_btn_area" style="margin-top:16px;text-align:left;">
+        <button type="button" class="qr_pill qr_pill_dark qr_pill_sm" onclick="tmPreview();">미리보기</button>
+      </div>
+      <p class="qr_yaml_err qr_hide" id="tmYamlErr"></p>
+    </section>
+
+    <section id="tmPreviewBox" class="qr_banner qr_hide">
+      <p>
+        미리보기 — API이름: <strong id="tmPvApiNm">-</strong> ·
+        <span class="qr_mono" id="tmPvSummary"></span> ·
+        파라미터 <span id="tmPvParamCount">0</span>건
+      </p>
+    </section>
+    <table id="tmPvParamTable" class="qr_param_table qr_hide">
+      <thead><tr><th>이름</th><th>타입</th><th>필수</th><th>설명</th></tr></thead>
+      <tbody id="tmPvParamRows"></tbody>
+    </table>
+
+    <div class="qr_btn_area">
+      <a th:href="@{/api/quickreg/tmplt/mvTmpltMng.do}" class="qr_pill qr_pill_ghost">취소</a>
+      <button type="button" class="qr_pill qr_pill_accent" onclick="tmSaveTmplt();">저장</button>
+    </div>
+  </form>
+
+            </div><!-- .api_right -->
+          </div><!-- .regist_layout -->
+        </div><!-- .regist_wrap -->
+      </div><!-- .api_content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<script th:inline="javascript">
+  var g_qr_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_qr_mthTypeList = /*[[${mthTypeList}]]*/ [];
+  var g_tm_existing = /*[[${tmplt}]]*/ null;
+  var g_sysId = '';
+  var con_SYSTEMID_ARSENAL = '';
+</script>
+<!-- layoutType='apiReg'라 swagger-parser.min.js(YAML.parse 제공)는 layout/default.html이 이미 로드함 -->
+<script th:src="@{/resources/js/cdn/codemirror/codemirror.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/mode/yaml/yaml.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldcode.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/indent-fold.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/lint/lint.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/hint/show-hint.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/hint/anyword-hint.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/tmpltMng.js}"></script>
+
+</div>
+</body>
+</html>

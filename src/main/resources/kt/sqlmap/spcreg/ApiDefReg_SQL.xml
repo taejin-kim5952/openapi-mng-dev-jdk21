@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.spcreg.dao.ApiDefRegDAO">
+
+  <!-- 선택한 서비스(sysId)에 이미 등록된 API 목록 (좌측 참고 트리용, 읽기 전용).
+       별칭은 큰따옴표로 감싼다 - PostgreSQL이 따옴표 없는 식별자를 소문자로 접어버려서
+       (AS apiSpcNo -> 실제로는 apispcno) MyBatis map 키가 camelCase가 아니게 되는 걸 방지. -->
+  <select id="selSysApiTree" parameterType="String" resultType="map">
+    /* apiDefReg.selSysApiTree */
+    SELECT
+       s.api_spc_no  AS "apiSpcNo"
+      ,s.api_nm      AS "spcNm"
+      ,s.ver         AS "ver"
+      ,c.ctgry_nm    AS "ctgryNm"
+      ,d.api_nm      AS "apiNm"
+      ,d.api_path    AS "apiPath"
+      ,d.method_cd   AS "methodCd"
+    FROM KOA_TB_API_SPC s
+    JOIN KOA_TB_API_DEF d ON d.API_SPC_NO = s.API_SPC_NO
+    LEFT JOIN KOA_TB_API_CTGRY c ON c.API_CTGRY_NO = d.API_CTGRY_NO
+    WHERE s.SYS_ID = #{sysId}
+      AND s.DEL_YN = 'N'
+    ORDER BY s.API_SPC_NO, c.SORT_ODRG, d.SORT_ODRG
+  </select>
+
+  <!-- 이 화면에 넘어온 apiSpcNo 1건의 그룹 정보. 화면 진입 시 (1) 유효한 그룹인지 검증(없으면
+       spcReg로 리다이렉트), (2) 전체경로 미리보기용 basPath, (3) 권한그룹(autId) 목록을 그 그룹의
+       sysId로 서버에서 필터링하는 데 쓴다. -->
+  <select id="selSpcByNo" parameterType="String" resultType="map">
+    /* apiDefReg.selSpcByNo */
+    SELECT
+       s.api_spc_no  AS "apiSpcNo"
+      ,s.api_nm      AS "spcNm"
+      ,s.sys_id      AS "sysId"
+      ,s.host        AS "host"
+      ,s.bas_path    AS "basPath"
+      ,s.ver         AS "ver"
+    FROM KOA_TB_API_SPC s
+    WHERE s.DEL_YN = 'N'
+      AND s.API_SPC_NO = #{apiSpcNo}::integer
+  </select>
+
+  <!-- 선택한 apiSpcNo에 이미 있는 첫 카테고리 조회 (그룹에 API를 추가할 때 카테고리 재사용 여부 판단용) -->
+  <select id="selDefaultCtgryBySpc" parameterType="String" resultType="String">
+    /* apiDefReg.selDefaultCtgryBySpc */
+    SELECT API_CTGRY_NO
+    FROM KOA_TB_API_CTGRY
+    WHERE API_SPC_NO = #{apiSpcNo}::integer
+      AND DEL_YN = 'N'
+    ORDER BY API_CTGRY_NO
+    LIMIT 1
+  </select>
+
+  <!-- KOA_TB_API_CTGRY 기본 카테고리 등록 -->
+  <insert id="savApiCtgry" parameterType="com.kt.openapi.web.spcreg.vo.ApiDefRegVO">
+    /* apiDefReg.savApiCtgry */
+    <selectKey keyProperty="apiCtgryNo" resultType="String" order="AFTER">
+      SELECT CURRVAL('koa_tb_api_ctgry_api_ctgry_no_seq')
+    </selectKey>
+    INSERT INTO KOA_TB_API_CTGRY
+    (
+       API_SPC_NO
+      ,CTGRY_NM
+      ,SORT_ODRG
+      ,DEL_YN
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+    )
+    VALUES
+    (
+       #{apiSpcNo}::integer
+      ,#{ctgryNm}
+      ,1
+      ,'N'
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{amdr}
+    )
+  </insert>
+
+  <!-- KOA_TB_API_DEF 등록 -->
+  <insert id="savApiDef" parameterType="com.kt.openapi.web.spcreg.vo.ApiDefRegVO">
+    /* apiDefReg.savApiDef */
+    <selectKey keyProperty="apiNo" resultType="String" order="AFTER">
+      SELECT CURRVAL('koa_tb_api_def_api_no_seq')
+    </selectKey>
+    INSERT INTO KOA_TB_API_DEF
+    (
+       API_SPC_NO
+      ,API_NM
+      ,API_CTGRY_NO
+      ,API_PATH
+      ,METHOD_CD
+      ,API_DESC
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+      ,USE_YN
+      ,API_GUBUN
+      ,API_HANDLER_CD
+      ,PROVIDER_SEQ
+    )
+    VALUES
+    (
+       #{apiSpcNo}::integer
+      ,#{apiNm}
+      ,#{apiCtgryNo}::integer
+      ,#{apiPath}
+      ,#{methodCd}
+      ,#{apiDesc}
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{amdr}
+      ,'Y'
+      ,#{apiClass}
+      ,NULLIF(#{apiHandlerCd}, '')
+      ,NULLIF(#{providerSeq}, '')::integer
+    )
+  </insert>
+
+  <!-- KOA_TB_API_PARAM 등록 (파라미터 1건). object/array 하위 필드를 저장하려면 부모 행을 먼저
+       저장해 실제 PARAM_NO를 받아온 뒤(selectKey) 그 값을 자식 행의 PRNTS_PARAM_NO로 넘겨야 한다
+       (재귀 저장은 서비스 레이어에서 처리). -->
+  <insert id="savApiParam" parameterType="map">
+    /* apiDefReg.savApiParam */
+    <selectKey keyProperty="paramNo" resultType="String" order="AFTER">
+      SELECT CURRVAL('koa_tb_api_param_param_no_seq')
+    </selectKey>
+    INSERT INTO KOA_TB_API_PARAM
+    (
+       API_NO
+      ,PARAM_TYPE_CD
+      ,SORT_ODRG
+      ,PARAM_NM
+      ,DATA_TYPE_CD
+      ,PARAM_DESC
+      ,PARAM_LOC
+      ,REQUIRED
+      ,PRNTS_PARAM_NO
+      ,OBJ_NO
+      ,OBJ_ODRG
+      ,EXAM
+      ,PERSONAL_DATA
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+    )
+    VALUES
+    (
+       #{apiNo}::integer
+      ,#{paramTypeCd}
+      ,#{sortOdrg}::integer
+      ,#{paramNm}
+      ,#{dataTypeCd}
+      ,#{paramDesc}
+      ,#{paramLoc}
+      ,#{required}
+      ,NULLIF(#{prntsParamNo}, '')::integer
+      ,NULLIF(#{objNo}, '')::integer
+      ,NULLIF(#{objOdrg}, '')::integer
+      ,#{exam}
+      ,#{personalData}
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{regr}
+    )
+  </insert>
+
+</mapper>

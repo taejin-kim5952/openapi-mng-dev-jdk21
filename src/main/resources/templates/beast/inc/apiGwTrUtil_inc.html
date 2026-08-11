@@ -1,0 +1,620 @@
+<!--/* apiGwTrUtil_inc.jsp -> Thymeleaf 프래그먼트 변환.
+     - bstgw.api.tb.url 등 환경설정값은 ${@environment.getProperty('...')}로 직접 조회(Spring이
+       자동 노출하는 environment 빈, regFormShareHead.html 등에서 이미 확립된 패턴).
+     - bIsProdProfile/bIsLocalProfile은 원본에서 설정만 되고 어디서도 참조되지 않는 죽은 변수라 삭제
+       (commonFunc:getActiveProfile() 커스텀 EL 함수 재현이 불필요해짐).
+     - attr_target은 BeastController의 3개 라우팅 메소드가 항상 채우는 실제 모델 속성. */-->
+<div xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="apiGwTrUtil_inc"
+    th:with="attr_bstgw_api_tb_url=${@environment.getProperty('bstgw.api.tb.url')},
+             attr_bstgw_api_prd_url=${@environment.getProperty('bstgw.api.prd.url')},
+             attr_shub_api_instauth_tb_url=${@environment.getProperty('shub.api.instauth.tb.url')},
+             attr_shub_api_instauth_prd_url=${@environment.getProperty('shub.api.instauth.prd.url')},
+             bIsTargetTb=${attr_target == 'TB'},
+             dp_target_text=${(attr_target == 'TB') ? '(TB)' : '(운영)'},
+             dp_bstgw_api_domain=${(attr_target == 'TB') ? attr_bstgw_api_tb_url : attr_bstgw_api_prd_url},
+             dp_shub_api_instauth_url=${(attr_target == 'TB') ? attr_shub_api_instauth_tb_url : attr_shub_api_instauth_prd_url}">
+<!-- apiGwTrUtil_inc.jsp { -->
+<style>
+  #id_popup_api_gw_tr_util .pkg_board { height: 650px; }
+
+  #id_popup_api_gw_tr_util .wrap_panel_scroll { max-height: 550px; overflow-y:auto; }
+
+  #id_popup_api_gw_tr_util .wrap_panel_scroll .panel_btn_bar { padding: 0 5px 5px 5px; }
+  #id_popup_api_gw_tr_util .wrap_panel_scroll .panel_cont_h400 { height: 400px; }
+
+  #id_popup_api_gw_tr_util .ta_shub_instauth { width: 98%; height:98%; /*border: 1px solid orange;*/}
+
+  #id_popup_api_gw_tr_util .shub_instauth_info { padding: 5px; }
+
+  #id_popup_api_gw_tr_util .flex_row { display:flex; width:100%; }
+  #id_popup_api_gw_tr_util .flex_col { padding: 5px; /*border: 1px solid red;*/}
+  #id_popup_api_gw_tr_util .flex_col.w10 { width:10%; }
+  #id_popup_api_gw_tr_util .flex_col.w45 { width:45%; }
+</style>
+<script th:inline="javascript">
+  var fn_blockUI_transaction = function(fn_on_block, fn_on_unblock) {
+    $.blockUI({
+      'onBlock': fn_on_block
+      , 'onUnblock': fn_on_unblock
+      , 'message': '<p>처리 중입니다.</p><p>잠시만 기다려 주세요...</p>'
+      , 'css': { border: 'none', padding: '10px',
+        backgroundColor: '#000', '-webkit-border-radius': '10px', '-moz-border-radius': '10px',
+        opacity: .5, color: '#fff' }
+      , 'ignoreIfBlocked': true
+    });
+  };
+
+  $(document).ready(function() {
+    agtutil_fn_init_handler();
+    agtutil_fn_init_dialog();
+    agtutil_fn_init_page();
+  });
+  function agtutil_fn_init_handler() {
+    var jq_root = $('#id_popup_api_gw_tr_util');
+
+    //-- [i]panel선택 click
+    jq_root.find('.cid_act_panel').on('click', function(p_evt) {
+      var act_panel_cid = $sf_str($(this).data('act_panel_cid'));
+      if ($is_empty(act_panel_cid)) { return; }
+      var jp_panel = jq_root.find('.cid_panel.' + act_panel_cid);
+      if (jp_panel.length == 0) { return; }
+
+      p_evt.preventDefault();
+      jq_root.find('.cid_panel').not(jp_panel).hide();
+      agtutil_fn_init_panel(act_panel_cid, jp_panel);
+      //-- [i][show()를 먼저할경우 textarea의 정보가 많을시 전환에 delay발생]
+      jp_panel.show();
+    });
+  }
+  function agtutil_fn_init_dialog() {
+    $('#id_popup_api_gw_tr_util').dialog({
+      autoOpen: false, width: 1280, modal: true,
+    });
+    $('#id_popup_api_gw_tr_util').find('.cid_btn_popup_cancel').on('click', function(p_evt) {
+      p_evt.preventDefault();
+      $('#id_popup_api_gw_tr_util').dialog('close');
+    });
+  }
+  function agtutil_fn_init_page() {
+    var jq_root = $('#id_popup_api_gw_tr_util');
+    jq_root.find('.cid_panel').hide();
+  }
+
+  //-- public {
+  function agtutil_fn_popup() {
+    var jq_dialog = $('#id_popup_api_gw_tr_util');
+    var s_title = 'API G/W TR Util' + /*[[${dp_target_text}]]*/ '';
+    jq_dialog.siblings('.ui-dialog-titlebar').find('span.ui-dialog-title').text(s_title);
+
+    jq_dialog.dialog('open');
+  }
+  //-- public }
+
+  //-- data {
+  function agtutil_fn_get(direct) {
+    if ('agtutil_inc' == direct) {
+      var data = (g_data||{});
+      data['agtutil_inc'] = ($has_own(data, 'agtutil_inc') ? data['agtutil_inc'] : {});
+      return data['agtutil_inc'];
+    }
+    else if ('a_instauth' == direct) {
+      return $sf_arr($sf_obj_val(agtutil_fn_get('agtutil_inc'), 'a_instauth'));
+    }
+    else if ('a_instauth_exclude' == direct) {
+      return $sf_arr($sf_obj_val(agtutil_fn_get('agtutil_inc'), 'a_instauth_exclude'));
+    }
+    return null;
+  }
+  //-- data }
+
+  //-- ui {
+  function agtutil_fn_init_panel(act_panel_cid, jp_panel) {
+    if ('cid_panel_eg' == act_panel_cid) {
+      //-- [i][e.g.]
+      jp_panel.append('<p>' + (new Date()) + '</p>');
+    }
+    else if ('cid_panel_instauth' == act_panel_cid) {
+      //-- [i]handler설정
+      jp_panel.find('.cid_act_util').off();
+      jp_panel.find('.cid_act_util').on('click', function(p_evt) {
+        var act_tag = $sf_str($(this).data('act_tag'));
+        if ($is_empty(act_tag)) { return; }
+        p_evt.preventDefault();
+        var jq_root = $(this).closest('.cid_panel');
+        agtutil_fn_act_util_click(act_tag, jq_root);
+      });
+      //-- [i]panel초기화
+      $('.cid_panel.cid_panel_instauth').find('.cid_init_target').each(function() {
+        $(this).filter(':input').val('');
+      });
+      agtutil_fn_load_shub_instauth_data();
+    }
+  }
+  //-- [i]instauth정보 출럭
+  function agtutil_fn_ui_disp_shub_instauth_info() {
+    var a_instauth = $sf_arr(agtutil_fn_get('a_instauth'));
+
+    var s_cont = a_instauth.length + '건';
+    $('.cid_shub_instauth_info').text(s_cont);
+  }
+
+  function agtutil_fn_ui_disp_shub_instauth_exclude_info() {
+    var a_instauth_exclude = $sf_arr(agtutil_fn_get('a_instauth_exclude'));
+
+    var s_cont = a_instauth_exclude.length + '건';
+    $('.cid_shub_instauth_exclude_info').text(s_cont);
+  }
+  //-- ui }
+</script>
+
+<script th:inline="javascript">
+  //-- [i]panel의 act button 처리
+  function agtutil_fn_act_util_click(act_tag, jq_root) {
+    if ('act_util_instauth_save' == act_tag) {
+      //-- [i]{instauth저장}
+      var s_msg = 'SHUB instauth 정보를 검색/저장 합니다.\n계속 하시겠습니까?';
+      if (!confirm(s_msg)) { return; }
+
+      var fn_cb = (function(res_body, result) {
+        var o_res_body = $sf_json_parse(res_body);
+        var a_instauth = $sf_arr($sf_obj_val(o_res_body, 'instAuth'));
+        var s_msg = a_instauth.length + '건의 정보가 검색되었습니다\n저장 하시겠습니까?';
+        if (!confirm(s_msg)) { return; }
+
+        agtutil_fn_save_shub_instauth_data('instauth', a_instauth);
+        agtutil_fn_load_shub_instauth_data();
+      });
+      var svcId = null; //-- 'AII4560063839YMQJOR';
+      agtutil_fn_proc_instauth_query(svcId, fn_cb);
+    }
+    else if ('act_util_fn_instauth_rec_validation' == act_tag) {
+      agtutil_fn_instauth_rec_validation();
+    }
+    else if ('act_util_fn_instauth_rec_beast_exist_query' == act_tag) {
+      agtutil_fn_instauth_rec_beast_exist_query();
+    }
+    else if ('act_util_set_instauth_exclude' == act_tag) {
+      agtutil_fn_set_instauth_exclude();
+    }
+  }
+
+  //-- [i]instauth정보 검색/저장
+  function agtutil_fn_proc_instauth_query(svcId, fn_cb) {
+    var shub_api_instauth_url = /*[[${dp_shub_api_instauth_url != null ? dp_shub_api_instauth_url : ''}]]*/ '' + (!$is_empty(svcId) ? ('/' + svcId) : '');
+
+    var param = new Object();
+    param['cmd'] = 'cmd_api_shub_instauth';
+    param['api_url'] = shub_api_instauth_url;
+    param['api_method'] = 'GET';
+    param['api_body'] = '';
+    param['direct'] = '';
+
+    $.ajax({
+      type: 'POST',
+      url: /*[[@{/beast/api/common/ajax_proc.do}]]*/ '/beast/api/common/ajax_proc.do' + '?cmd=' + param['cmd'],
+      data: JSON.stringify(param),
+      contentType: 'application/json',
+      dataType: 'JSON',
+      async: true,
+      success: function(data) {
+        var s_msg = '';
+
+        var b_is_valid_data = $has_own(data, 'returnCd');
+        b_is_valid_data &= $has_own(data, 'returnMsg');
+        if (!b_is_valid_data) {
+          s_msg = 'invalid';
+        }
+        else {
+          var returnCd = $sf_obj_val(data, 'returnCd');
+          var returnMsg = $sf_obj_val(data, 'returnMsg');
+          var result = $sf_obj_val(data, 'result', '#N/A#');
+          if ('OK' == returnCd) {
+            s_msg = '';
+            var httpEntity = $sf_obj_val(result, 'httpEntity');
+            var responseEntity = $sf_obj_val(result, 'responseEntity');
+
+            var req_headers = $sf_obj($sf_obj_val(httpEntity, 'headers'));
+            var req_body = $sf_obj_val(httpEntity, 'body');
+
+            var res_headers = $sf_obj($sf_obj_val(responseEntity, 'headers'));
+            var res_body = $sf_obj_val(responseEntity, 'body');
+            var o_res_body = $sf_json_parse(res_body);
+
+            if ('function' == typeof(fn_cb)) {
+              fn_cb(res_body, result);
+            }
+          }
+          else {
+            s_msg = '[err][returnCd: ' + returnCd + ']\n[returnMsg: ' + returnMsg + ']';
+          }
+        }
+        if (s_msg.length > 0) {
+          alert_message(s_msg);
+        }
+      },
+      error: function(request, status, error) {
+        alert_message('error');
+      }
+    });
+  }
+
+  //-- [i]instauth정보 save to localStorage
+  function agtutil_fn_save_shub_instauth_data(sub_key, data) {
+    var shub_instauth_data = localStorage.getItem('shub_instauth_data');
+    var o_shub_instauth_data = ($sf_json_parse(shub_instauth_data)||{});
+    o_shub_instauth_data[sub_key] = data;
+    localStorage.setItem('shub_instauth_data', $sf_json_stringify(o_shub_instauth_data));
+  }
+
+    //-- [i]instauth정보 load from localStorage
+  function agtutil_fn_load_shub_instauth_data(direct) {
+    if ('blockui' != direct) { fn_blockUI_transaction(function() { agtutil_fn_load_shub_instauth_data('blockui'); }); return; }
+
+    var shub_instauth_data = localStorage.getItem('shub_instauth_data');
+    var o_shub_instauth_data = $sf_json_parse(shub_instauth_data);
+    var a_instauth = $sf_arr($sf_obj_val(o_shub_instauth_data, 'instauth'));
+    var a_instauth_exclude = $sf_arr($sf_obj_val(o_shub_instauth_data, 'instauth_exclude'));
+    agtutil_fn_get('agtutil_inc')['a_instauth'] = a_instauth;
+    agtutil_fn_get('agtutil_inc')['a_instauth_exclude'] = a_instauth_exclude;
+
+    agtutil_fn_ui_disp_shub_instauth_info();
+    agtutil_fn_ui_disp_shub_instauth_exclude_info();
+
+    if ('blockui' == direct) { if ($.blockUI) { $.unblockUI(); } }
+  }
+
+  //-- [i]instauth-beast query check
+  //-- [i][sync+fn_db방식 => async+deferred방식 전환 구현]
+  function agtutil_fn_instauth_rec_beast_exist_query(direct) {
+    if ('blockui' != direct) { fn_blockUI_transaction(function() { agtutil_fn_instauth_rec_beast_exist_query('blockui'); }); return; }
+
+    $('.cid_shub_instauth_info').text('');
+
+    var deferreds = [];
+
+    //-- [i][data: {svcId:, msg:}
+    var fn_cb = function(res, data) {
+      var svcId = $sf_obj_val(data, 'svcId');
+      if ('ok' == res) {
+        a_ok.push(svcId);
+      }
+      else {
+        a_nk.push(svcId + '\t' + res);
+      }
+    }
+
+    var a_instauth = agtutil_fn_get('a_instauth');
+    var a_instauth_exclude = agtutil_fn_get('a_instauth_exclude');
+    var a_key_exclude = []; //-- [i][exclude key + expired key]
+    var a_ok = [];
+    var a_nk = [];
+    //-- [i]호출count
+    var n_test_count = a_instauth.length;
+    var cur_ymd = $fn_fmt_date('fmt_ymd', (new Date()), '-');
+    for (var n_ii = 0; n_ii < a_instauth.length && n_ii < n_test_count; n_ii++) {
+      var item = a_instauth[n_ii];
+      var userName = $sf_str($sf_obj_val(item, 'userName')).trim();
+      var endDate = $sf_str($sf_obj_val(item, 'endDate')).trim();
+      //-- [i][filter data]
+      if (a_instauth_exclude.indexOf(userName) != -1) {
+        a_key_exclude.push(userName + '\t' + 'excluded');
+      }
+      else if (endDate <= cur_ymd) {
+        a_key_exclude.push(userName + '\t' + endDate);
+      }
+      else {
+        var deferred = $.Deferred();
+        deferreds.push(deferred);
+        agtutil_fn_proc_beast_query(userName, fn_cb, deferred);
+      }
+    }
+    $('.cid_ta_shub_instauth_01').val(a_key_exclude.join('\n'));
+
+    var fn_done = (function() {
+      var a_ok = [];
+      var a_nk = [];
+      for (var n_ii = 0; n_ii < arguments.length; n_ii++) {
+        var o_res = arguments[n_ii];
+        var rescd = $sf_obj_val(o_res, 'rescd');
+        var svcId = $sf_obj_val(o_res, 'svcId');
+        if ('ok' == rescd) {
+          a_ok.push(svcId);
+        }
+        else {
+          a_nk.push(svcId + '\t' + rescd);
+        }
+      }
+      $('.cid_ta_shub_instauth_02').val(a_ok.join('\n'));
+      $('.cid_ta_shub_instauth_03').val(a_nk.join('\n'));
+      if ('blockui' == direct) { if ($.blockUI) { $.unblockUI(); } }
+      $console_log('o-o', 'fn_done: ', arguments);
+    });
+    var fn_fail = (function() {
+      var a_nk = [];
+      for (var n_ii = 0; n_ii < arguments.length; n_ii++) {
+        var o_res = arguments[n_ii];
+        var rescd = $sf_obj_val(o_res, 'rescd');
+        var svcId = $sf_obj_val(o_res, 'svcId');
+        a_nk.push(svcId + '\t' + rescd);
+      }
+      $('.cid_ta_shub_instauth_03').val(a_nk.join('\n'));
+      $console_log('o-o', 'fn_fail: ', arguments);
+    });
+
+    var tot_cnt = deferreds.length;
+    var ok_cnt = 0;
+    var nk_cnt = 0;
+    var fail_cnt = 0;
+    var err_cnt = 0;
+    var etc_cnt = 0;
+    var fn_progress = (function(o_res) {
+      var rescd = $sf_obj_val(o_res, 'rescd');
+      var svcId = $sf_obj_val(o_res, 'svcId');
+      if ('noti-ok' == rescd) { ok_cnt++; }
+      else if ('noti-nk' == rescd) { nk_cnt++; }
+      else if ('noti-fail' == rescd) { fail_cnt++; }
+      else if ('noti-err' == rescd) { err_cnt++; }
+      else { etc_cnt++; }
+
+      var s_cont = (' total: ' + tot_cnt) + (' ok: ' + ok_cnt) + (' nk: ' + nk_cnt) + (' fail: ' + fail_cnt) + (' err: ' + err_cnt) + (' etc: ' + etc_cnt);
+      $('.cid_shub_instauth_info').text(s_cont);
+
+      $console_log('o-o', 'fn_progress: ', arguments);
+    });
+
+    for (var n_ii = 0; n_ii < deferreds.length; n_ii++) {
+      deferreds[n_ii].progress(fn_progress);
+    }
+
+    $.when.apply($, deferreds).then(fn_done, fn_fail);
+  }
+
+  //-- [i]instauth-유효정보점검
+  function agtutil_fn_instauth_rec_validation(direct) {
+    if ('blockui' != direct) { fn_blockUI_transaction(function() { agtutil_fn_instauth_rec_validation('blockui'); }); return; }
+
+    var a_instauth = agtutil_fn_get('a_instauth');
+
+    var s_cont = '';
+    var s_cont_valid = '';
+    var s_cont_invalid = '';
+
+    var n_rec = 0;
+    var n_valid = 0;
+    var n_invalid = 0;
+    for (var n_ii = 0; n_ii < a_instauth.length; n_ii++) {
+      var item = a_instauth[n_ii];
+      var userName = $sf_str($sf_obj_val(item, 'userName')).trim();
+      var apiLists = $sf_str($sf_obj_val(item, 'apiLists')).trim();
+      var ipLists = $sf_str($sf_obj_val(item, 'ipLists')).trim();
+
+      var is_valid = true;
+      is_valid &= (is_valid && (!$is_empty(userName)));
+      is_valid &= (is_valid && (!$is_empty(apiLists)));
+      is_valid &= (is_valid && (!$is_empty(ipLists)));
+      is_valid &= (is_valid && (/[0-9,]/.test(ipLists)));
+
+      var a_apiLists = [];
+      var a_ipLists = [];
+      if (is_valid) {
+        a_apiLists = apiLists.split(',');
+        a_ipLists = ipLists.split(',');
+      }
+      is_valid &= (is_valid && (a_apiLists.length > 0) && (a_ipLists.length > 0));
+
+      if (is_valid) {
+        n_valid++;
+        for (var n_jj = 0; n_jj < a_ipLists.length; n_jj++) {
+          for (var n_kk = 0; n_kk < a_apiLists.length; n_kk++) {
+            s_cont_valid += (userName + '\t' + a_ipLists[n_jj] + '\t' + a_apiLists[n_kk] + '\n');
+            n_rec++;
+          }
+        }
+      }
+      else {
+        n_invalid++;
+        s_cont_invalid += (userName + '\t' + ipLists + '\t' + apiLists + '\n');
+      }
+    }
+    s_cont = '[item: ' + a_instauth.length + ']\n[rec: ' +  n_rec +']\n[valid: ' +  n_valid +']\n[invalid: ' +  n_invalid +']';
+    $('.cid_ta_shub_instauth_01').val(s_cont);
+    $('.cid_ta_shub_instauth_02').val(s_cont_valid);
+    $('.cid_ta_shub_instauth_03').val(s_cont_invalid);
+
+    if ('blockui' == direct) { if ($.blockUI) { $.unblockUI(); } }
+  }
+
+  //-- [i]instauth정보 검색/저장
+  function agtutil_fn_proc_beast_query(svcId, fn_cb, p_deferred) {
+    var is_deferred = ('function' == typeof($sf_obj_val(p_deferred, 'promise')));
+    var s_msg = '';
+
+    var bstgw_api_domain = /*[[${dp_bstgw_api_domain != null ? dp_bstgw_api_domain : ''}]]*/ '';
+    if ($is_empty(bstgw_api_domain)) {
+      s_msg = 'Beast G/W Domain 정보 설정이 없습니다.';
+      if (is_deferred) {
+        p_deferred.notify({'rescd':'noti-fail', 'svcId':svcId});
+        p_deferred.resolve({'rescd':'fail', 'svcId':svcId, 'msg':s_msg});
+      }
+      else {
+        if ('function' == typeof(fn_cb)) { fn_cb('err', {'svcId':svcId, 'msg':s_msg}); }
+      }
+      return;
+    }
+
+    var req_url = '/apilink/v1/svc/getSvcDplyById';
+    var req_qstr = ('?svcId=' + svcId);
+
+    var param = new Object();
+    param['cmd'] = 'cmd_api_send';
+    param['api_target'] = '';
+    param['api_domain'] = bstgw_api_domain;
+    param['api_url'] = (req_url + req_qstr);
+    param['api_method'] = 'GET';
+    param['api_body'] = '';
+    param['direct'] = 'no_write_hist';
+
+    var fn_beforeSend = (new Function()); //-- [i][for keep display blockUI]
+    var fn_complete = (new Function()); //-- [i][for keep display blockUI]
+    $.ajax({
+      type: 'POST',
+      url: /*[[@{/beast/api/common/ajax_proc.do}]]*/ '/beast/api/common/ajax_proc.do' + '?cmd=' + param['cmd'],
+      data: JSON.stringify(param),
+      contentType: 'application/json',
+      dataType: 'JSON',
+      async: is_deferred,
+      beforeSend: fn_beforeSend,
+      complete: fn_complete,
+      success: function(data) {
+        var s_res = '';
+        var b_is_valid_data = $has_own(data, 'returnCd');
+        b_is_valid_data &= $has_own(data, 'returnMsg');
+        if (!b_is_valid_data) {
+          s_res = 'nk';
+          s_msg = '유효하지 않은 처리 결과 입니다. [data: ' + data + ']';
+        }
+        else {
+          var returnCd = $sf_obj_val(data, 'returnCd');
+          var returnMsg = $sf_obj_val(data, 'returnMsg');
+          var result = $sf_obj_val(data, 'result', '#N/A#');
+          if ('OK' == returnCd) {
+            s_msg = '';
+
+            var responseEntity = $sf_obj_val(result, 'responseEntity');
+            var res_body = $sf_obj_val(responseEntity, 'body');
+            var o_res_body = $sf_json_parse(res_body);
+
+            var o_common = $sf_obj_val(o_res_body, 'common');
+            var code = $sf_obj_val(o_common, 'code');
+            s_res = (('200' == code) ? 'ok' : ('nk_' + code));
+          }
+          else {
+            s_res = 'nk';
+            s_msg = '[err][returnCd: ' + returnCd + ']\n[returnMsg: ' + returnMsg + ']';
+          }
+        }
+        if (is_deferred) {
+          if ('ok' == s_res) {
+            p_deferred.notify({'rescd':'noti-ok', 'svcId':svcId});
+            p_deferred.resolve({'rescd':s_res, 'svcId':svcId, 'msg':s_msg});
+          }
+          else {
+            p_deferred.notify({'rescd':'noti-nk', 'svcId':svcId});
+            p_deferred.resolve({'rescd':s_res, 'svcId':svcId, 'msg':s_msg});
+          }
+          s_msg = '';
+        }
+        else {
+          if ('function' == typeof(fn_cb)) {
+            fn_cb(s_res, {'svcId':svcId, 'msg':s_msg});
+            s_msg = '';
+          }
+        }
+        if (s_msg.length > 0) {
+          window.setTimeout(function() { alert_message(s_msg); }, 100);
+        }
+      },
+      error: function(request, status, error) {
+        if (is_deferred) {
+          p_deferred.notify({'rescd':'noti-err', 'svcId':svcId});
+          p_deferred.resolve({'rescd':'err', 'svcId':svcId, 'msg':'ajax error'});
+        }
+        else {
+          if ('function' == typeof(fn_cb)) { fn_cb('err', {'svcId':svcId, 'msg':'ajax error'}); }
+        }
+      }
+    });
+  }
+
+  function agtutil_fn_set_instauth_exclude() {
+    var lfn_save_instauth_exclude = function() {
+      var s_val = $sf_str($('#alertTxt').find('.cid_txta_instauth_exclude').val()).trim();
+      var a_val = s_val.split('\n');
+      var a_instauth_exclude = [];
+      a_val.forEach(function(item) {
+        item = $sf_str(item).trim();
+        if (!$is_empty(item) && (a_instauth_exclude.indexOf(item) == -1)) {
+          a_instauth_exclude.push(item);
+        }
+      });
+      if (!confirm(a_instauth_exclude.length +'건을 저장 하시겠습니까?')) { return; }
+      agtutil_fn_save_shub_instauth_data('instauth_exclude', a_instauth_exclude);
+      agtutil_fn_load_shub_instauth_data();
+    };
+
+    var a_instauth_exclude = $sf_arr(agtutil_fn_get('a_instauth_exclude'));
+    var alert_option = { ok_button_onclick : (function() { lfn_save_instauth_exclude() }) };
+    var s_html = '<div style="text-align:center;"><textarea class="cid_txta_instauth_exclude" style="width:250px; height: 300px;"></textarea></div>';
+    alert_message(s_html, '제외대상 정보설정',  alert_option);
+    var s_instauth_exclude = a_instauth_exclude.join('\n');
+    $('#alertTxt').find('.cid_txta_instauth_exclude').val(s_instauth_exclude);
+  }
+</script>
+
+<!-- api gw tr uril -->
+<div id="id_popup_api_gw_tr_util" class="dp_none">
+  <div class="popup_content mb0">
+    <div class="pkg_board">
+      <table class="table-vw2">
+        <caption>Util Table</caption>
+        <colgroup>
+          <col style="width:15%" />
+          <col style="width:35%" />
+          <col style="width:15%" />
+          <col style="width:35%" />
+        </colgroup>
+        <tbody>
+          <tr>
+            <th scope="row">Beast G/W Domain</th>
+            <td>
+              <span th:text="${dp_bstgw_api_domain}"></span>
+            </td>
+            <th scope="row">SHUB instauth URL</th>
+            <td>
+              <span th:text="${dp_shub_api_instauth_url}"></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="date_setting">
+        <button type="button" class="btn btn_black cid_act_panel" data-act_panel_cid="cid_panel_instauth"><span>instauth정보</span></button>
+        <button type="button" class="btn btn_white cid_act_panel" data-act_panel_cid="cid_panel_eg"><span>e.g.</span></button>
+      </div>
+
+      <div class="wrap_panel_scroll">
+        <div class="dp_none wrap_panel cid_panel cid_panel_instauth">
+          <div class="panel_btn_bar">
+            <button type="button" class="btn btn_sml btn_lightGray cid_act_util" data-act_tag="act_util_instauth_save"><span>instauth저장</span></button>
+            <button type="button" class="btn btn_sml btn_lightGray cid_act_util" data-act_tag="act_util_fn_instauth_rec_validation"><span>유효성점검</span></button>
+            <button type="button" class="btn btn_sml btn_lightGray cid_act_util" data-act_tag="act_util_fn_instauth_rec_beast_exist_query"><span>beast exist query</span></button>
+          </div>
+          <div class="panel_cont_h400 flex_row">
+            <div class="flex_col w30"><textarea class="ta_shub_instauth cid_init_target cid_ta_shub_instauth_01"></textarea></div>
+            <div class="flex_col w35"><textarea class="ta_shub_instauth cid_init_target cid_ta_shub_instauth_02"></textarea></div>
+            <div class="flex_col w35"><textarea class="ta_shub_instauth cid_init_target cid_ta_shub_instauth_03"></textarea></div>
+          </div>
+          <div class="shub_instauth_info">대상 정보수: <span class="cid_shub_instauth_info"></span></div>
+          <div class="shub_instauth_info">
+                    제외대상 정보수: <span class="cid_shub_instauth_exclude_info"></span>
+            <button type="button" class="btn btn_sml btn_lightGray cid_act_util" data-act_tag="act_util_set_instauth_exclude"><span>제외대상 정보설정</span></button>
+          </div>
+        </div>
+
+        <div class="dp_none wrap_panel cid_panel cid_panel_eg">
+          panel e.g.
+        </div>
+       </div><!-- .wrap_panel_scroll -->
+
+    </div><!-- .pkg_board -->
+
+    <div class="lPop_bottom brd_tp mt10">
+      <button type="button" class="btn btn_black cid_btn_popup_cancel">확인</button>
+    </div>
+
+  </div><!-- .popup_content mb0 -->
+</div><!-- #id_popup_api_gw_tr_util -->
+<!-- apiGwTrUtil_inc.jsp } -->
+</th:block>
+</div>

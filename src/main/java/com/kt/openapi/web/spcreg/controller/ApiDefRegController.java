@@ -1,0 +1,156 @@
+package com.kt.openapi.web.spcreg.controller;
+
+import com.kt.openapi.web.spcreg.service.ApiDefRegService;
+import com.kt.openapi.web.spcreg.vo.ApiDefRegVO;
+import com.kt.openapi.web.auth.vo.AuthVO;
+import com.kt.openapi.web.cmm.service.CmnService;
+import com.kt.openapi.web.userJoin.vo.UserJoinVO;
+import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ * 1. 패키지명 : com.kt.openapi.web.spcreg.controller
+ * 2. 타입명   : ApiDefRegController.java
+ * 5. 설명     : "API 등록"(기존 SPC에 API 추가) 전용 컨트롤러. quickApiReg/기존 등록 마법사와는
+ *              완전히 독립된 화면/저장 경로다. 이 화면은 SPC를 만들지 않는다 — spcReg가 만든
+ *              apiSpcNo를 받아 그 아래 KOA_TB_API_DEF(+PARAM)만 추가한다.
+ * </pre>
+ */
+@Controller
+@RequestMapping(value = "/api/spcreg/def")
+public class ApiDefRegController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ApiDefRegController.class);
+
+    @Autowired
+    @Qualifier("apiDefRegService")
+    private ApiDefRegService apiDefRegService;
+
+    @Autowired
+    @Qualifier("CmnService")
+    private CmnService cmnService;
+
+    /**
+     * API 등록 화면 렌더. 이 화면은 앞 단계(spcReg)에서 이미 확정된 apiSpcNo를 받아 그 그룹에
+     * API(DEF)만 추가한다 - apiSpcNo가 없거나 존재하지 않는 그룹이면 그룹부터 만들도록 spcReg로
+     * 돌려보낸다(퍼블 v14.0 확인 사항). 권한그룹(autId)은 그 그룹의 sysId로 서버에서 미리 필터링해
+     * 내려준다(클라이언트에서 다시 필터링하지 않음).
+     */
+    @RequestMapping(value = "/mvApiDefReg.do")
+    public ModelAndView mvApiDefReg(HttpSession session, ModelMap model, String apiSpcNo) throws Exception {
+        LOG.debug("####################### ApiDefRegController mvApiDefReg START ############################");
+
+        if (apiSpcNo == null || apiSpcNo.trim().isEmpty()) {
+            return new ModelAndView("redirect:/api/spcreg/mvSpcReg.do");
+        }
+
+        Map<String, Object> spc = apiDefRegService.selSpcByNo(apiSpcNo);
+        if (spc == null) {
+            return new ModelAndView("redirect:/api/spcreg/mvSpcReg.do");
+        }
+
+        ModelAndView mv = new ModelAndView();
+        mv.setViewName("spcreg/apiDefReg");
+
+        UserJoinVO userJVo = (UserJoinVO) session.getAttribute("ssUserVo");
+        String sysId = String.valueOf(spc.get("sysId"));
+
+        // 이 그룹의 서비스(sysId)에 속한 권한그룹만 - 화면엔 select 없이 그대로 렌더링
+        List<AuthVO> autList = new ArrayList<>();
+        if (userJVo != null && userJVo.getAuthList() != null) {
+            for (AuthVO auth : userJVo.getAuthList()) {
+                if (sysId.equals(auth.getSysId())) {
+                    autList.add(auth);
+                }
+            }
+        }
+        mv.addObject("autList", autList);
+
+        mv.addObject("apiSpcNo", apiSpcNo);
+        mv.addObject("spcNm", spc.get("spcNm"));
+        mv.addObject("spcBasPath", spc.get("basPath"));
+        mv.addObject("sysId", sysId);
+
+        mv.addObject("apiGubList", cmnService.selComnList("APIGUB1000"));
+        mv.addObject("mthTypeList", cmnService.selComnList("MTHTYP1000"));
+        mv.addObject("cntTypeList", cmnService.selComnList("CNTTYP1000"));
+        mv.addObject("dataTypeList", cmnService.selComnList("DATTYP1000"));
+        mv.addObject("apiHandlerList", cmnService.selComnList("APIHDR1000"));
+        mv.addObject("piiList", cmnService.selComnList("PIICLS1000"));
+
+        return mv;
+    }
+
+    /** 선택한 서비스에 이미 등록된 API 목록 (좌측 참고 트리) AJAX 조회 */
+    @ResponseBody
+    @RequestMapping(value = "/selSysApiTreeAjax.do")
+    public ModelAndView selSysApiTreeAjax(String sysId) throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+        if (sysId == null || sysId.trim().isEmpty()) {
+            mv.addObject("list", java.util.Collections.emptyList());
+            return mv;
+        }
+        mv.addObject("list", apiDefRegService.selSysApiTree(sysId));
+        return mv;
+    }
+
+    /** API(DEF) 등록 저장 (카테고리 재사용/최초생성+Path/Method+파라미터를 한 번에 저장) */
+    @ResponseBody
+    @RequestMapping(value = "/savApiDefRegAjax.do")
+    public ModelAndView savApiDefRegAjax(HttpSession session, ApiDefRegVO vo) throws Exception {
+        LOG.debug("####################### ApiDefRegController savApiDefRegAjax START ############################");
+
+        ModelAndView mv = new ModelAndView("jsonView");
+
+        UserJoinVO userJVo = (UserJoinVO) session.getAttribute("ssUserVo");
+        if (userJVo == null) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "로그인 세션이 만료되었습니다.");
+            return mv;
+        }
+
+        if (vo.getApiSpcNo() == null || vo.getApiSpcNo().trim().isEmpty()) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "API 그룹을 선택하세요.");
+            return mv;
+        }
+
+        vo.setRegr(userJVo.getEnCmbrId());
+        vo.setAmdr(userJVo.getEnCmbrId());
+
+        if (vo.getCtgryNm() == null || vo.getCtgryNm().trim().isEmpty()) {
+            vo.setCtgryNm("기본");
+        }
+
+        // Private이 아니면 Handler/Provider는 사용하지 않음
+        if (!"APIGUB1020".equals(vo.getApiClass())) {
+            vo.setApiHandlerCd(null);
+            vo.setProviderSeq(null);
+        }
+
+        try {
+            String apiSpcNo = apiDefRegService.savApiDefReg(vo);
+            mv.addObject("returnCode", "1");
+            mv.addObject("apiSpcNo", apiSpcNo);
+        } catch (Exception e) {
+            LOG.error("savApiDefRegAjax error", e);
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "등록 중 오류가 발생했습니다.");
+        }
+
+        return mv;
+    }
+}

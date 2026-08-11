@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kt.openapi.web.spcreg.dao.SpcRegDAO">
+
+  <!-- 선택한 서비스(sysId)에 이미 등록된 SPC + 그 아래 API 목록 (좌측 참고 트리용, 읽기 전용).
+       별칭은 큰따옴표로 감싼다 - PostgreSQL이 따옴표 없는 식별자를 소문자로 접어버려서
+       (AS apiSpcNo -> 실제로는 apispcno) MyBatis map 키가 camelCase가 아니게 되는 걸 방지. -->
+  <select id="selSysSpcTree" parameterType="String" resultType="map">
+    /* spcReg.selSysSpcTree */
+    SELECT
+       s.api_spc_no  AS "apiSpcNo"
+      ,s.api_nm      AS "spcNm"
+      ,s.ver         AS "ver"
+      ,s.host        AS "host"
+      ,s.bas_path    AS "basPath"
+      ,d.api_path    AS "apiPath"
+      ,d.method_cd   AS "methodCd"
+    FROM KOA_TB_API_SPC s
+    LEFT JOIN KOA_TB_API_DEF d ON d.API_SPC_NO = s.API_SPC_NO
+    WHERE s.SYS_ID = #{sysId}
+      AND s.DEL_YN = 'N'
+    ORDER BY s.API_SPC_NO, d.SORT_ODRG
+  </select>
+
+  <!-- KOA_TB_API_SPC 등록 -->
+  <insert id="savApiSpc" parameterType="com.kt.openapi.web.spcreg.vo.SpcRegVO">
+    /* spcReg.savApiSpc */
+    <selectKey keyProperty="apiSpcNo" resultType="String" order="AFTER">
+      SELECT CURRVAL('koa_tb_api_spc_api_spc_no_seq')
+    </selectKey>
+    INSERT INTO KOA_TB_API_SPC
+    (
+       API_SPC_NO
+      ,API_SPC_ID
+      ,VER
+      ,API_NM
+      ,API_DESC
+      ,AUT_ID
+      ,SYS_ID
+      ,HOST
+      ,BAS_PATH
+      ,YAML_FILE_PATH
+      ,YAML_FILE_NM
+      ,REG_STTUS_CD
+      ,REG_DT
+      ,REGR
+      ,AMD_DT
+      ,AMDR
+      ,DEL_YN
+      ,SHOW_YN
+      ,API_CLASS
+      ,API_SCHEMA
+      ,BSTGW_YN
+      ,API_VERI_BASEURL
+    )
+    SELECT
+       NID.ID
+      ,CONCAT('GRP-', NID.ID)
+      ,#{ver}
+      ,#{apiNm}
+      ,#{apiDesc}
+      ,#{autId}::integer
+      ,#{sysId}
+      ,#{host}
+      ,#{basPath}
+      ,'/spcreg'
+      ,CONCAT(#{apiNm}::text, '.yaml')
+      ,'APIREG1020'
+      ,NOW()
+      ,#{regr}
+      ,NOW()
+      ,#{amdr}
+      ,'N'
+      ,'N'
+      ,#{apiClass}
+      ,#{apiSchema}
+      ,#{bstgwYn}
+      ,#{apiVeriBaseurl}
+    FROM ( SELECT NEXTVAL('koa_tb_api_spc_api_spc_no_seq') AS ID ) NID
+  </insert>
+
+</mapper>

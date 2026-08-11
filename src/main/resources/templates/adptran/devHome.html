@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!--/* adptran/devHome.jsp -> Thymeleaf 변환.
+     원본이 <c:set>/스크립틀릿으로 직접 하던 dev session 키 조작(sskey/ssval/overwrite 쿼리파라미터
+     처리), 세션 전체 덤프, environment 값 조회는 전부 AdptranController.devHome()으로 이관하고
+     이 템플릿은 컨트롤러가 넘긴 model attribute만 그대로 표시한다. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='adptran', bodyClass=null)}">
+<head>
+    <title>KT Open API</title>
+    <style>
+      body { font-size: 12px; }
+      .txt_key { color: blue; }
+      .txt_value { color: red; }
+      .pointer { cursor: pointer; }
+
+      #id_devhome_wrap { position:absolute; top:180px;}
+    </style>
+</head>
+<body>
+<div layout:fragment="content" th:with="bIsKeycheckMode=${attr_keycheckmode == 'y'}">
+
+<script th:inline="javascript">
+  function fn_proc_cmd(p_cmd) {
+    var s_url = /*[[@{/adptran/devHome}]]*/ '/adptran/devHome';
+    var homekey = '';
+    if (p_cmd == 'go_devHome') {
+      homekey = (prompt('input homekey', '')||'');
+    }
+    var jq_form = $('<form />', { id : 'id_form' });
+    if (homekey.length > 0) {
+      jq_form.append($('<input />', { name : 'homekey', type : 'hidden', value : homekey }));
+      $('body').append(jq_form);
+      $('#id_form').attr('method', 'POST').attr('action', s_url).submit();
+    }
+  }
+  function fn_set_session(ss_key, ss_val, def_val) {
+    var overwrite_yn = 'n';
+    if (ss_val == '?') {
+      ss_val = prompt('input ' + ss_key, (def_val||''));
+      if ((ss_val||'').length == 0) { return; }
+      overwrite_yn = 'y';
+    }
+    var jq_form = $('<form />', { id : 'id_form' });
+    jq_form.append($('<input />', { name : 'sskey', type : 'hidden', value : ss_key }));
+    jq_form.append($('<input />', { name : 'ssval', type : 'hidden', value : ss_val }));
+    jq_form.append($('<input />', { name : 'overwrite', type : 'hidden', value : overwrite_yn }));
+    $('body').append(jq_form);
+    $('#id_form').attr('method', 'POST').attr('action', /*[[@{/adptran/devHome}]]*/ '/adptran/devHome').submit();
+  }
+</script>
+
+<th:block th:if="${bIsKeycheckMode}">
+  <script>
+    $(document).ready(function() {
+      fn_proc_cmd('go_devHome');
+    });
+  </script>
+</th:block>
+
+<th:block th:unless="${bIsKeycheckMode}">
+<!--// home.jsp -->
+
+<div id="id_devhome_wrap">
+
+  <ul>
+    <li>[tag:PRJ-20220901]</li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmSysDplyList', {'target': '_blank'});|">beast 시스템 관리</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmApiDplyList', {'target': '_blank'});|">beast api 관리</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmSvcDplyList', {'target': '_blank'});|">beast 서비스 관리</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmApiLinkDataList', {'target': '_blank'});|">beast api link data 관리</span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmSysDplyList/tb', {'target': '_blank'});|">beast 시스템 관리(TB)</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmApiDplyList/tb', {'target': '_blank'});|">beast api 관리(TB)</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmSvcDplyList/tb', {'target': '_blank'});|">beast 서비스 관리(TB)</span></li>
+    <li>## <span class="pointer txt_key" th:attr="onclick=|$fn_go_location('/apidev/beast/apigwmng/bstAdmApiLinkDataList/tb', {'target': '_blank'});|">beast api link data 관리(TB)</span></li>
+    <li>&nbsp;</li>
+  </ul>
+
+  <ul>
+    <li><span class="pointer" th:attr="onclick=|$fn_go_location('/apidev/adptran/devQuery');|">[goto devQuery]</span></li>
+    <li>&nbsp;</li>
+    <li><span class="pointer" th:attr="onclick=|fn_set_session('dev.use.devhome.key', '');|">[remove dev.use.devhome.key]</span></li>
+    <li>&nbsp;</li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.runmode.tag', '?', '${dp_dev_runmode_tag}');|">[set dev.runmode.tag]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.runmode.tag', '');|">[remove dev.runmode.tag]</span>
+      <div>
+        &nbsp;&nbsp;<span class="pointer" th:attr="onclick=|fn_set_session('dev.runmode.tag', 'bstgw_mode');|">[bstgw_mode]</span>
+        &nbsp;&nbsp;<span class="pointer" th:attr="onclick=|fn_set_session('dev.runmode.tag', 'e.g.');|">[e.g.]</span>
+      </div>
+    </li>
+    <li>&nbsp;</li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.master.id', '?');|">[set dev.master.id]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.master.id', '');|">[remove dev.master.id]</span>
+    </li>
+    <li>&nbsp;</li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('kos.apipath.prefix', '?');|">[set kos.apipath.prefix]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('kos.apipath.prefix', '');|">[remove kos.apipath.prefix]</span>
+    </li>
+    <li>&nbsp;</li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.js.console.log', 'y');|">[set dev.use.js.console.log=y]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.js.console.log', '#y');|">[set dev.use.js.console.log=#y]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.js.console.log', '');|">[remove dev.use.js.console.log]</span>
+    </li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.webpack.dev.server', 'y');|">[set dev.use.webpack.dev.server=y]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.webpack.dev.server', '#y');|">[set dev.use.webpack.dev.server=#y]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('dev.use.webpack.dev.server', '');|">[remove dev.use.webpack.dev.server]</span>
+    </li>
+    <li>
+      <span class="pointer" th:attr="onclick=|fn_set_session('config.runmode', 'dev');|">[set config.runmode=dev]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('config.runmode', '#dev');|">[set config.runmode=#dev]</span>
+      <span class="pointer" th:attr="onclick=|fn_set_session('config.runmode', '');|">[remove config.runmode]</span>
+    </li>
+
+    <li>&nbsp;</li>
+    <li>[adptran.properties]</li>
+    <li>## <span class="txt_key">dev.use.js.console.log</span>: <span class="txt_value" th:text="${attr_dev_use_js_console_log}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">dev.use.webpack.dev.server</span>: <span class="txt_value" th:text="${attr_dev_use_webpack_dev_server}"></span></li>
+    <li>## <span class="txt_key">dev.webpack.dev.server</span>: <span class="txt_value" th:text="${attr_dev_webpack_dev_server}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">config.runmode</span>: <span class="txt_value" th:text="${attr_config_runmode}"></span></li>
+    <li>## <span class="txt_key">config.js.version</span>: <span class="txt_value" th:text="${attr_config_js_version}"></span></li>
+
+    <li>&nbsp;</li>
+    <li>[adptran using value]</li>
+    <li>## <span class="txt_key">use console object</span>: <span class="txt_value" th:text="${dp_useConsoleObject}"></span></li>
+    <li>## <span class="txt_key">use webpack-dev-server</span>: <span class="txt_value" th:text="${dp_useWebpackDevServer}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">runmode</span>: <span class="txt_value" th:text="${dp_config_runmode}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">devrunmodetag</span>: <span class="txt_value" th:text="${dp_dev_runmode_tag}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">adptran_api_url</span>: <span class="txt_value" th:text="${dp_adptran_api_url}"></span></li>
+    <li>&nbsp;</li>
+    <li>## <span class="txt_key">devmasterid</span>: <span class="txt_value" th:text="${dp_dev_master_id}"></span></li>
+    <li>## <span class="txt_key">kosapipathprefix</span>: <span class="txt_value" th:text="${dp_kos_apipath_prefix}"></span></li>
+    <li>## <span class="txt_key">userId</span>: <span class="txt_value" th:text="${dp_userId}"></span></li>
+    <li>## <span class="txt_key">userName</span>: <span class="txt_value" th:text="${dp_userName}"></span></li>
+
+    <li>&nbsp;</li>
+    <li>[HttpSession]</li>
+    <li>sessionid: <span th:text="${dp_httpSessionId}"></span></li>
+    <li th:utext="${dp_httpSession}"></li>
+
+    <li>&nbsp;</li>
+  </ul>
+  <ul>
+    <li>&nbsp;</li>
+    <li>[ServerInfo]</li>
+    <li>## <span class="txt_key">서버정보(getServerInfo)</span>: <span class="txt_value" th:text="${server_info}"></span></li>
+    <li>## <span class="txt_key">서블릿정보(getMajorVersion+getMinorVersion)</span>: <span class="txt_value" th:text="${servlet_major_version + '.' + servlet_minor_version}"></span></li>
+    <li>## <span class="txt_key">JSP정보(getSpecificationVersion)</span>: <span class="txt_value" th:text="${jsp_spec_version}"></span></li>
+  </ul>
+  <br>
+  - 종종 -
+</div><!-- #id_devhome_wrap -->
+</th:block>
+<!-- home.jsp //-->
+</div>
+</body>
+</html>

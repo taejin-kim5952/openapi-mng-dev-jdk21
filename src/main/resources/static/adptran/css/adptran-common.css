@@ -1,0 +1,16 @@
+/*-- style for vue { --*/
+[v-cloak] {display: none;}
+
+/*-- [drm][for override /mcustomscrollbar/jquery.mCustomScrollbar.min.css] --*/
+.cid_custom_scrollbar .mCSB_inside > .mCSB_container{margin-right:0;}
+.cid_custom_scrollbar .mCSB_container_wrapper{margin-right:11px;margin-bottom:11px;} /* for 'axis': 'yx' */ 
+.cid_custom_scrollbar .mCSB_scrollTools{width: 6px;}
+/*-- style for vue } --*/
+
+/*-- [tag:adpt][drm][add] { --*/
+.dp_none{display:none;}
+.dp_none_imp{display:none !important;}
+.dp_block{display:block;}
+.dp_inblock{display:inline-block;}
+/*-- [tag:adpt][drm][add] } --*/
+

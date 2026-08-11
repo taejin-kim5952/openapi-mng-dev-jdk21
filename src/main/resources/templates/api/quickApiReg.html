@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<!--/* api/quickApiReg.html - "빠른 API 등록" 전용 신규 화면.
+     디자인/퍼블 리뉴얼(참고자료/간편등록/빠른 API 등록 v2.dc.html) 반영판.
+     기존 4단계 마법사와는 컨트롤러/서비스/SQL/템플릿/CSS 전부 독립. */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
+<head>
+    <title>KT Open API - API 등록 (새 버전)</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/codemirror.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/lint/lint.css}">
+    <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/hint/show-hint.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+</head>
+<body>
+<div layout:fragment="content">
+
+<!--/* 기존 API 등록 마법사(infoRegForm.html 등)와 동일한 외곽 레이아웃 골격(#container/.contents/.conBox/
+     .api_content/.regist_wrap/.regi_bar/.regist_layout/.api_left/.api_right, registration.css)을
+     그대로 재사용해 시각적 일관성을 맞춘다. 다만 regFormShareRegiBar/regFormShareLeft 프래그먼트는
+     '현재 작성 중인 초안(YAML)' 전용 동작에 묶여 있어 재사용하지 않고, 이 화면 전용 컨텐츠로 새로 채운다. */-->
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+        <div class="regist_wrap">
+
+          <div class="regi_bar">
+            <div class="left_menu">
+              <p>
+                <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+                <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+              </p>
+            </div>
+            <div class="right_menu">
+              <p><a th:href="@{/api/main/mvMainList.do}" title="목록" class="btn btn_list"><span>목록</span></a></p>
+            </div>
+          </div><!-- .regi_bar -->
+
+          <div class="regist_layout">
+            <div class="api_left">
+              <h5 class="lTitle">API 목록</h5>
+              <p id="qrLeftHint" class="qr_left_hint">서비스를 선택하면 이미 등록된 API가 표시됩니다.</p>
+              <div id="qrLeftTree" class="qr_left_tree"></div>
+            </div><!-- .api_left -->
+
+            <div class="api_right">
+
+  <div class="qr_head">
+    <div class="qr_head_txt">
+      <h2 class="qr_title"><span class="qr_title_bullet"></span>API 등록 (새 버전)</h2>
+      <p class="qr_sub">자주 쓰는 패턴을 템플릿으로 빠르게 — 세부 설정은 자동으로 채워집니다.</p>
+    </div>
+    <span class="qr_badge_oas">OpenAPI 3.0</span>
+  </div>
+
+  <form id="quickRegForm" onsubmit="return false;">
+
+    <!-- 등록 대상: API 자체 정보가 아니라 "어느 서비스/권한그룹 소속으로 등록할지" 정하는 컨텍스트 선택 -->
+    <section class="sv_acc sv_open" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">등록 대상</span>
+        <span class="sv_acc_sum">이 API가 속할 서비스와 권한그룹을 먼저 선택하세요</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div class="qr_grid2" style="margin-top:20px;">
+          <div class="qr_field">
+            <label for="sysId">서비스 <em>*</em></label>
+            <select id="sysId" name="sysId" onchange="qrOnSysIdChange();">
+              <option value="">서비스를 선택하세요</option>
+              <option th:each="a : ${authList}" th:value="${a.sysId}" th:text="${a.sysNm}"></option>
+            </select>
+          </div>
+          <div class="qr_field">
+            <label for="autId">권한그룹 <em>*</em></label>
+            <select id="autId" name="autId"><option value="">서비스를 먼저 선택하세요</option></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ① 시작 방식 -->
+    <section class="qr_start_row">
+      <button type="button" class="qr_start_card" id="qrBtnOpenTmpltModal">
+        <span class="qr_start_ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        </span>
+        <span class="qr_start_txt">
+          <span class="qr_start_nm">템플릿 선택</span>
+          <span class="qr_start_desc">표준 목록조회·단건조회·등록·수정·삭제 패턴에서 고릅니다</span>
+        </span>
+      </button>
+      <button type="button" class="qr_start_card" id="qrBtnOpenYamlModal">
+        <span class="qr_start_ico qr_start_ico_gray">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 13l2 2-2 2M13 17h3"/></svg>
+        </span>
+        <span class="qr_start_txt">
+          <span class="qr_start_nm">YAML 등록</span>
+          <span class="qr_start_desc">OAS 3.0 명세를 붙여넣어 한 번에 채웁니다</span>
+        </span>
+      </button>
+    </section>
+
+    <!-- 적용 중 요약 -->
+    <div class="qr_applied_bar">
+      <span class="qr_applied_label">적용 중</span>
+      <span class="qr_applied_badge" id="qrAppliedBadge">-</span>
+      <span class="qr_mono" id="qrAppliedMono"></span>
+      <span class="qr_applied_meta">파라미터 <span id="qrAppliedParamCnt">0</span>건 · API 구분 <span id="qrAppliedClass">Public</span></span>
+    </div>
+
+    <!-- ② 기본 정보 -->
+    <section class="sv_acc sv_open" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">기본 정보</span>
+        <span class="sv_acc_sum">반드시 입력해야 하는 항목만 남겼습니다</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div class="qr_grid2" style="margin-top:20px;">
+          <div class="qr_field">
+            <label for="apiNm">API 이름 <em>*</em></label>
+            <input type="text" id="apiNm" name="apiNm" maxlength="200" placeholder="예: 가입자 목록 조회">
+            <span class="qr_err" id="apiNmErr">API 이름을 입력하세요.</span>
+          </div>
+          <div class="qr_field">
+            <label for="host">호스트 <em>*</em></label>
+            <input type="text" id="host" name="host" placeholder="예: api.kt.com" style="font-family:monospace;">
+            <span class="qr_err" id="hostErr">호스트를 입력하세요.</span>
+          </div>
+          <div class="qr_field">
+            <label for="apiPath">Path <em>*</em></label>
+            <input type="text" id="apiPath" name="apiPath" placeholder="예: /v1/subscribers" style="font-family:monospace;">
+            <span class="qr_field_hint">기본경로는 상세 설정에서 관리됩니다.</span>
+            <span class="qr_err" id="apiPathErr">Path를 입력하세요. (/로 시작)</span>
+          </div>
+          <div class="qr_field qr_span2">
+            <label for="apiDesc">설명</label>
+            <textarea id="apiDesc" name="apiDesc" rows="2" placeholder="이 API가 무엇을 하는지 한 줄로 적어주세요 (선택)"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 파라미터 - 입력 / Query / 출력은 서로 다른 스코프입니다.
+         메인 화면은 선택한 스코프의 구조를 읽기 전용 트리로만 보여주고,
+         [스코프 설계] 버튼이 그 스코프 하나만 팝업으로 엽니다. -->
+    <section class="sv_acc sv_open" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">파라미터</span>
+        <span class="sv_acc_badge" id="qrParamBadge">0</span>
+        <span class="sv_acc_sum" id="qrParamSum">OAS 3.0 스키마 — 구조만 확인하고, 수정은 스코프별 [설계]에서</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div class="qr_pv" id="qrParamBox">
+          <div class="qr_pv_head">
+            <div class="qr_pv_tabs" role="tablist">
+              <button type="button" class="qr_pv_tab qr_on" data-scope="in" role="tab">입력 파라미터 <span class="qr_pv_cnt">0</span></button>
+              <button type="button" class="qr_pv_tab" data-scope="query" role="tab">Query 파라미터 <span class="qr_pv_cnt">0</span></button>
+              <button type="button" class="qr_pv_tab" data-scope="out" role="tab">출력 파라미터 <span class="qr_pv_cnt">0</span></button>
+            </div>
+            <button type="button" class="qr_pill qr_pill_teal qr_pill_sm" id="qrBtnOpenParamModal">입력 파라미터 설계</button>
+          </div>
+          <div class="qr_pv_body">
+            <div class="qr_pv_cols"><span>파라미터명</span><span>타입</span><span>필수</span><span>설명</span></div>
+            <div class="qr_pv_pane" id="qrPv_in"></div>
+            <div class="qr_pv_pane qr_hide" id="qrPv_query"></div>
+            <div class="qr_pv_pane qr_hide" id="qrPv_out"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ 자동 적용 안내 -->
+    <section class="qr_banner">
+      <p><strong id="qrBannerTmpltNm">-</strong> 템플릿의 세부값이 자동 적용됩니다 — <span class="qr_mono" id="qrBannerSummary"></span>, 파라미터 <span id="qrBannerParamCount">0</span>건. 팝업을 열지 않고 등록해도 기본값 그대로 저장됩니다.</p>
+      <button type="button" class="qr_pill qr_pill_teal" id="qrBtnOpenDetailModal">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 100-6 3 3 0 000 6M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.9 1.17V21a2 2 0 11-4 0v-.09A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83"/></svg>
+        상세 설정 보기·수정
+      </button>
+    </section>
+
+    <div class="qr_btn_area">
+      <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_ghost">취소</a>
+      <button type="button" class="qr_pill qr_pill_accent" onclick="qrSaveQuickReg();">등록하기</button>
+    </div>
+
+    <div id="qrResultBox" class="qr_result_box qr_hide">
+      <p>&#10003; 등록이 완료되었습니다.</p>
+      <a id="qrAdvancedLink" href="#" class="qr_pill qr_pill_ghost">고급 설정이 필요하신가요? 상세 등록 화면으로 이동</a>
+      <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_ghost">목록으로</a>
+    </div>
+  </form>
+
+            </div><!-- .api_right -->
+          </div><!-- .regist_layout -->
+        </div><!-- .regist_wrap -->
+      </div><!-- .api_content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<!-- 팝업 ①: 템플릿 선택 -->
+<div id="qrTmpltModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_wide">
+    <div class="qr_modal_head">
+      <div><div class="qr_modal_title">템플릿 선택</div><div class="qr_modal_sub">선택하면 Method · Content-Type · 파라미터가 자동 적용됩니다</div></div>
+      <button type="button" class="qr_modal_close" id="qrTmpltModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="qr_tmplt_search_row">
+      <input type="text" id="qrTmpltSearch" placeholder="템플릿 이름/설명 검색" oninput="qrFilterTmpltList(this.value);">
+    </div>
+    <div class="qr_tmplt_list" id="qrTmpltGrid">
+      <button type="button" class="qr_tmplt_row" th:each="t : ${tmpltList}"
+              th:attr="data-tmplt-no=${t.tmpltNo},data-tmplt-nm=${t.tmpltNm},data-api-class=${t.apiClass},data-mth-cd=${t.mthTypeCd},data-cnt-cd=${t.cntTypeCd},data-path=${t.pathPattern},data-params=${t.dfltParamJson}"
+              onclick="qrSelectTemplate(this);">
+        <span class="qr_tmplt_icon"></span>
+        <span class="qr_tmplt_txt">
+          <span class="qr_tmplt_nm" th:text="${t.tmpltNm}"></span>
+          <span class="qr_tmplt_desc" th:text="${t.tmpltDesc}"></span>
+        </span>
+        <span class="qr_tmplt_meta">
+          <span class="qr_tmplt_cnt"></span>
+          <span class="qr_tmplt_method" th:text="${t.mthTypeCd}"></span>
+          <span class="qr_tmplt_check">&#10003; 선택됨</span>
+        </span>
+      </button>
+      <p id="qrTmpltEmptyMsg" class="qr_no_params qr_hide">검색 결과가 없습니다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 팝업 ②: YAML 등록 -->
+<div id="qrYamlModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_mid">
+    <div class="qr_modal_head">
+      <div><div class="qr_modal_title">YAML 등록</div><div class="qr_modal_sub">OAS 3.0 명세(YAML)를 붙여넣거나 파일을 업로드하면 필드가 자동으로 채워집니다</div></div>
+      <button type="button" class="qr_modal_close" id="qrYamlModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="qr_modal_body">
+      <div class="qr_yaml_tabs">
+        <label><input type="radio" name="qrYamlMode" value="paste" checked onchange="qrOnYamlModeChange();"> 붙여넣기</label>
+        <label><input type="radio" name="qrYamlMode" value="upload" onchange="qrOnYamlModeChange();"> 파일 업로드</label>
+      </div>
+      <div id="qrYamlUploadRow" class="qr_hide">
+        <input type="file" id="qrYamlFile" accept=".yaml,.yml,.txt">
+      </div>
+      <textarea id="qrYamlEditorArea"></textarea>
+      <p class="qr_yaml_hint">파일 업로드는 선택한 파일 내용을 그대로 에디터에 불러옵니다. 서버로 전송되지 않고 브라우저에서만 처리됩니다.</p>
+      <p class="qr_yaml_err qr_hide" id="qrYamlErr"></p>
+    </div>
+    <div class="qr_modal_foot">
+      <button type="button" class="qr_pill qr_pill_ghost" id="qrYamlCancel">취소</button>
+      <button type="button" class="qr_pill qr_pill_dark" id="qrYamlApply">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- 팝업 ③: 상세 설정 -->
+<div id="qrDetailModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_mid">
+    <div class="qr_modal_head">
+      <div><div class="qr_modal_title">상세 설정</div><div class="qr_modal_sub">템플릿이 채운 값 — 필요한 항목만 수정하세요</div></div>
+      <button type="button" class="qr_modal_close" id="qrDetailModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="qr_modal_body">
+      <div class="qr_field" style="margin-bottom:22px;">
+        <label>API 구분</label>
+        <div class="qr_scope_pills">
+          <label th:each="g : ${apiGubList}" class="qr_scope_pill_wrap">
+            <input type="radio" name="apiClass" th:value="${g.comnCd}" th:checked="${g.comnCd == 'APIGUB1010'}" onchange="qrOnApiClassChange();">
+            <span th:text="${g.cdNm}"></span>
+          </label>
+        </div>
+      </div>
+      <div id="qrPrivateRow" class="qr_grid2 qr_private_box qr_hide">
+        <div class="qr_field">
+          <label for="apiHandlerCd">Handler</label>
+          <select id="apiHandlerCd" name="apiHandlerCd">
+            <option th:each="h : ${apiHandlerList}" th:value="${h.comnCd}" th:text="${h.cdNm}" th:selected="${h.comnCd == 'APIHDR1010'}"></option>
+          </select>
+        </div>
+        <div class="qr_field">
+          <label for="providerSeq">Provider</label>
+          <input type="text" id="providerSeq" name="providerSeq" placeholder="선택사항">
+        </div>
+      </div>
+      <div class="qr_grid3">
+        <div class="qr_field"><label for="ver">버전</label><input type="text" id="ver" name="ver" value="v1.0"></div>
+        <div class="qr_field"><label for="basPath">기본경로</label><input type="text" id="basPath" name="basPath" value="/"></div>
+      </div>
+      <div class="qr_grid2" style="margin-top:16px;">
+        <div class="qr_field">
+          <label for="methodCd">Method</label>
+          <select id="methodCd" name="methodCd" onchange="qrOnMethodChange();">
+            <option th:each="m : ${mthTypeList}" th:value="${m.comnCd}" th:text="${m.cdNm}" th:selected="${m.comnCd == 'MTHTYP1020'}"></option>
+          </select>
+        </div>
+        <div class="qr_field" id="cntTypeRow">
+          <label for="cntTypeCd">Content-Type</label>
+          <select id="cntTypeCd" name="cntTypeCd">
+            <option th:each="c : ${cntTypeList}" th:value="${c.comnCd}" th:text="${c.cdNm}" th:selected="${c.comnCd == 'CNTTYP1010'}"></option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 파라미터 편집은 메인 화면의 "파라미터" 아코디언 → 스코프별 [설계] 팝업으로 옮겨졌습니다(호스트 이동과 같은 이유). -->
+      <p class="qr_field_hint" style="margin-top:18px;">파라미터는 메인 화면의 <strong>파라미터</strong> 영역에서 스코프별로 편집합니다.</p>
+    </div>
+    <div class="qr_modal_foot">
+      <button type="button" class="qr_pill qr_pill_ghost" id="qrDetailCancel">취소</button>
+      <button type="button" class="qr_pill qr_pill_dark" id="qrDetailApply">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- 팝업 ④: 파라미터 설계 - 스코프 하나만 다룹니다.
+     좌측 트리와 우측 YAML 에디터는 같은 데이터를 보고 있어 어느 쪽을 고쳐도 반대쪽이 따라옵니다. -->
+<div id="qrParamModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_full" role="dialog" aria-modal="true" aria-labelledby="qrPdTitle">
+    <div class="qr_pd_head">
+      <div class="qr_pd_head_l">
+        <div class="qr_pd_title" id="qrPdTitle">입력 파라미터 설계</div>
+        <div class="qr_pd_sub">
+          <span class="qr_pd_mth" id="qrPdMth"></span>
+          <span class="qr_pd_path" id="qrPdPath"></span>
+          <span class="qr_pd_note">— 좌측 트리와 우측 YAML은 실시간으로 서로 반영됩니다.</span>
+        </div>
+      </div>
+      <div class="qr_pd_acts">
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdCollapse">전체 접기</button>
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdToggleYaml" aria-expanded="true">YAML 숨기기</button>
+        <button type="button" class="qr_pill qr_pill_outline" id="qrPdCancel">취소</button>
+        <button type="button" class="qr_pill qr_pill_dark" id="qrPdSave">저장</button>
+      </div>
+    </div>
+
+    <div class="qr_pd_body">
+      <div class="qr_pd_left">
+        <div class="qr_pd_pane_head">
+          <span class="qr_pd_pane_title">트리 편집</span>
+          <span class="qr_pd_pane_sub" id="qrPdTreeScope">입력 파라미터</span>
+        </div>
+        <div class="qr_pd_scroll">
+          <div class="qr_pd_cols"><span>파라미터명</span><span></span><span>타입</span><span></span><span>필수여부</span><span></span></div>
+          <div class="qr_pd_pane" id="qrPdPane"></div>
+        </div>
+        <div class="qr_pd_pane_foot">
+          <button type="button" class="qr_pd_addroot">+ 최상위 파라미터 추가</button>
+        </div>
+      </div>
+
+      <button type="button" class="qr_pd_grip" id="qrPdGrip" aria-label="YAML 에디터 펼치기" title="YAML 에디터 펼치기">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>YAML</span>
+      </button>
+      <div class="qr_pd_right">
+        <div class="qr_pd_pane_head">
+          <span class="qr_pd_pane_title">YAML 에디터</span>
+          <span class="qr_pd_pane_sub qr_mono" id="qrPdScope">requestBody.content.application/json.schema</span>
+        </div>
+        <textarea class="qr_pd_yaml" id="qrPdYaml" spellcheck="false" aria-label="OAS 3.0 YAML"></textarea>
+        <p class="qr_pd_yaml_msg qr_hide" id="qrPdYamlMsg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+  var g_qr_authList = /*[[${ssUserVo != null ? ssUserVo.authList : {}}]]*/ [];
+  var g_qr_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_qr_mthTypeList = /*[[${mthTypeList}]]*/ [];
+  var g_pt_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_pt_piiList = /*[[${piiList}]]*/ [];
+
+  /* apiGlobalScript.js의 $(document).ready 안 fn_ui_set_share_layout()이 기대하는 전역값.
+     원래 regFormShareHead.html(기존 마법사 전용)이 정의해주는데, 이 화면은 그 프래그먼트를
+     쓰지 않으므로 최소한의 안전한 기본값만 직접 선언한다. */
+  var g_sysId = '';
+  var con_SYSTEMID_ARSENAL = '';
+</script>
+<!-- layoutType='apiReg'라 swagger-parser.min.js(YAML.parse 제공)는 layout/default.html이 이미 로드함 -->
+<script th:src="@{/resources/js/cdn/codemirror/codemirror.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/mode/yaml/yaml.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldcode.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/fold/indent-fold.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/lint/lint.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/hint/show-hint.js}"></script>
+<script th:src="@{/resources/js/cdn/codemirror/addon/hint/anyword-hint.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/paramTreeEditor.js}"></script>
+<script th:src="@{/resources/js/api_reg/quickApiReg.js}"></script>
+
+</div>
+</body>
+</html>

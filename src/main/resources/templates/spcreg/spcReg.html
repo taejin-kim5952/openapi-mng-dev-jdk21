@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!--/* spcreg/spcReg.html - "SPC 등록" 전용 신규 화면. KOA_TB_API_SPC 1건을 만드는 화면입니다.
+     그룹은 그룹당 한 번만 만들고, 이후 API(Method+Path, KOA_TB_API_DEF) 추가는 이 화면을 거치지
+     않고 "API 등록"(spcreg/apiDefReg.html)에서 바로 합니다. 컨트롤러/서비스/SQL/템플릿 전부 독립
+     (com.kt.openapi.web.spcreg 패키지, quickApiReg 등 기존 화면은 손대지 않음). */-->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
+<head>
+    <title>KT Open API - API 등록</title>
+    <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/spcreg.css}">
+</head>
+<body>
+<div layout:fragment="content">
+
+<div id="container">
+  <div class="contents">
+    <div class="conBox">
+      <div id="content" class="api_content">
+        <div class="regist_wrap">
+
+          <div class="regi_bar">
+            <div class="left_menu">
+              <p>
+                <button type="button" title="메뉴열기" class="btn btn_lnm_open act"><span>메뉴열기</span></button>
+                <button type="button" title="메뉴닫기" class="btn btn_lnm_close" onclick="toggleLmenu(this, '.api_left');return false;"><span>메뉴닫기</span></button>
+              </p>
+            </div>
+            <div class="right_menu">
+              <p><a th:href="@{/api/main/mvMainList.do}" title="목록" class="btn btn_list"><span>목록</span></a></p>
+            </div>
+          </div><!-- .regi_bar -->
+
+          <div class="regist_layout">
+            <div class="api_left">
+              <h5 class="lTitle">등록된 그룹</h5>
+              <p id="grpLeftHint" class="qr_left_hint">서비스를 선택하면 그 서비스의 기존 API 그룹이 표시됩니다. 같은 호스트·기본경로가 이미 있는지 확인하세요.</p>
+              <div id="grpLeftTree" class="qr_left_tree"></div>
+            </div><!-- .api_left -->
+
+            <div class="api_right">
+
+  <div class="qr_head">
+    <div class="qr_head_txt">
+      <h2 class="qr_title"><span class="qr_title_bullet"></span>API 그룹(스펙) 등록</h2>
+      <p class="qr_sub">API가 속할 그룹을 먼저 만듭니다 — 호스트·기본경로는 그룹 단위로 한 번만 정합니다.</p>
+    </div>
+    <span class="qr_badge_oas">새 그룹 만들기</span>
+  </div>
+
+  <form id="grpRegForm" onsubmit="return false;">
+
+    <!-- ① 그룹 기본값 - 정말 필수인 4개만 노출합니다. 나머지는 아래 "전체보기"로 접어둡니다. -->
+    <section class="sv_acc sv_open" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">그룹 기본값</span>
+        <span class="sv_acc_sum">이 그룹에 속할 모든 API가 공유하는 값입니다</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div class="qr_grid2" style="margin-top:20px;">
+          <div class="qr_field">
+            <label for="sysId">서비스 <em>*</em></label>
+            <select id="sysId" name="sysId" onchange="grpOnSysIdChange();">
+              <option value="">서비스를 선택하세요</option>
+              <option th:each="a : ${authList}" th:value="${a.sysId}" th:attr="data-aut-id=${a.autId}" th:text="${a.sysNm}"></option>
+            </select>
+            <span class="qr_err" id="sysIdErr">서비스를 선택하세요.</span>
+            <!-- 권한그룹(AUT_ID)은 별도 입력 없이 선택한 서비스의 권한그룹으로 자동 채워진다(mockup에도 없는 필드). -->
+            <input type="hidden" id="autId" name="autId">
+          </div>
+          <div class="qr_field">
+            <label for="spcNm">API 그룹 이름 <em>*</em></label>
+            <input type="text" id="spcNm" name="spcNm" maxlength="200" placeholder="예: 메시징 서비스">
+            <span class="qr_field_hint">규격서와 목록에 노출되는 이름입니다.</span>
+            <span class="qr_err" id="spcNmErr">API 그룹 이름을 입력하세요.</span>
+          </div>
+          <div class="qr_field qr_span2">
+            <label for="spcDesc">설명</label>
+            <textarea id="spcDesc" name="spcDesc" rows="2" placeholder="이 그룹이 어떤 API 묶음인지 한 줄로 적어주세요 (선택)"></textarea>
+          </div>
+        </div>
+
+        <!-- 전체보기: simpleView "기본 정보" 아코디언의 전체보기 버튼과 동일한 패턴 -->
+        <div class="qr_more_wrap">
+          <button type="button" class="qr_pill qr_pill_outline qr_pill_sm qr_more_btn" id="grpMoreBtn" aria-expanded="false" aria-controls="grpMoreBox">
+            <span class="qr_more_lbl">전체보기</span>
+            <span class="qr_more_ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          </button>
+          <span class="qr_more_hint">호스트 · 기본경로 · API 구분 · 버전 · 스키마 · 테스트 BASEURL · BEAST G/W</span>
+        </div>
+
+        <div class="qr_more_box qr_collapsed" id="grpMoreBox">
+          <div class="qr_more_inner">
+            <!-- 호스트/기본경로는 openapis.kt.com · / 기본값으로 미리 채워지며, 대부분 그대로 쓰므로
+                 여기(전체보기)로 옮겨뒀다. 다른 호스트/경로가 필요한 그룹만 펼쳐서 수정한다. -->
+            <div class="qr_grid2" style="margin-bottom:22px;">
+              <div class="qr_field">
+                <label for="host">호스트 <em>*</em></label>
+                <input type="text" id="host" name="host" value="openapis.kt.com" placeholder="예: openapis.kt.com" style="font-family:monospace;">
+                <span class="qr_err" id="hostErr">호스트를 입력하세요.</span>
+              </div>
+              <div class="qr_field">
+                <label for="basPath">기본경로 <em>*</em></label>
+                <input type="text" id="basPath" name="basPath" value="/" placeholder="예: /msg" style="font-family:monospace;">
+                <span class="qr_err" id="basPathErr">기본경로를 입력하세요. (/로 시작)</span>
+              </div>
+            </div>
+
+            <div class="qr_field" style="margin-bottom:22px;">
+              <label>API 구분</label>
+              <div class="qr_scope_pills">
+                <label th:each="g : ${apiGubList}" class="qr_scope_pill_wrap">
+                  <input type="radio" name="apiClass" th:value="${g.comnCd}" th:checked="${g.comnCd == 'APIGUB1010'}">
+                  <span th:text="${g.cdNm}"></span>
+                </label>
+              </div>
+              <span class="qr_field_hint">Public은 규격서에 공개됩니다. 기본값은 Public입니다.</span>
+            </div>
+
+            <div class="qr_grid3">
+              <div class="qr_field">
+                <label for="ver">버전</label>
+                <input type="text" id="ver" name="ver" value="V1.0">
+              </div>
+              <div class="qr_field">
+                <label for="schemeCd">스키마</label>
+                <select id="schemeCd" name="schemeCd">
+                  <option value="https" selected>https</option>
+                  <option value="http">http</option>
+                  <option value="http,https">http, https</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="qr_grid2" style="margin-top:22px;">
+              <div class="qr_field">
+                <label for="testBaseUrl">테스트 BASEURL</label>
+                <input type="text" id="testBaseUrl" name="testBaseUrl" placeholder="예: https://test-openapis.kt.com/msg" style="font-family:monospace;">
+                <span class="qr_field_hint">비워두면 운영 호스트로 테스트합니다.</span>
+              </div>
+              <div class="qr_field">
+                <label>BEAST G/W 사용여부</label>
+                <div class="qr_scope_pills">
+                  <label class="qr_scope_pill_wrap" for="beastN"><input type="radio" name="beastGw" id="beastN" value="N" checked><span>사용 안함</span></label>
+                  <label class="qr_scope_pill_wrap" for="beastY"><input type="radio" name="beastGw" id="beastY" value="Y"><span>사용</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 다음 단계 안내 - 저장 후 흐름을 미리 알려줍니다. -->
+    <section class="qr_banner">
+      <p>저장하면 <strong id="grpBannerNm">새 그룹</strong> 그룹이 만들어지고, 이어서 <strong>API 등록</strong> 화면에서 첫 API(Method+Path)를 추가합니다. 그룹은 한 번만 만들면 되고 이후 API 추가는 이 화면 없이 바로 등록합니다 — 호스트·기본경로는 자동으로 채워집니다 — <span class="qr_mono" id="grpBannerUrl">https://host</span></p>
+    </section>
+
+    <div class="qr_actions">
+      <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_ghost">취소</a>
+      <button type="button" class="qr_pill qr_pill_accent" id="grpSave">저장하고 API 추가하러 가기</button>
+    </div>
+
+  </form>
+
+            </div><!-- .api_right -->
+          </div><!-- .regist_layout -->
+        </div><!-- .regist_wrap -->
+      </div><!-- .api_content -->
+    </div><!-- .conBox -->
+  </div><!-- .contents -->
+</div><!-- #container -->
+
+<script th:inline="javascript">
+  var g_grp_mthTypeList = /*[[${mthTypeList}]]*/ [];
+
+  /* apiGlobalScript.js의 $(document).ready 안 fn_ui_set_share_layout()이 기대하는 전역값
+     (quickApiReg.html과 동일한 최소 기본값 선언). */
+  var g_sysId = '';
+  var con_SYSTEMID_ARSENAL = '';
+</script>
+<script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
+<script th:src="@{/resources/js/spcreg/spcReg.js}"></script>
+
+</div>
+</body>
+</html>
