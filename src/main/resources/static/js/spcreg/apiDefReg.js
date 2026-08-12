@@ -65,6 +65,11 @@ $(document).ready(function () {
   $('#qrBtnOpenTmpltModal').on('click', function () { $('#qrTmpltModal').removeClass('qr_hide'); });
   $('#qrTmpltModalClose').on('click', function () { $('#qrTmpltModal').addClass('qr_hide'); });
 
+  /* Provider(단위서비스코드) 선택 - Private API 전용, 기존 등록 마법사의 "Provider 선택" 팝업을
+     이 화면 방식(클릭 한 번으로 즉시 반영)으로 재구현. */
+  $('#defBtnOpenProviderModal').on('click', defOpenProviderModal);
+  $('#qrProviderModalClose').on('click', function () { $('#qrProviderModal').addClass('qr_hide'); });
+
   /* 저장 확인 팝업(퍼블_v15.0) — 검증을 통과해도 바로 저장하지 않고 팝업을 먼저 띄운다.
      [취소]는 팝업만 닫고, [등록]을 눌러야 실제 defDoSave()가 실행된다. */
   $('#defSaveBtn').on('click', defOnSaveClick);
@@ -173,6 +178,7 @@ function defFillFormFromDetail(def) {
   $('input[name="apiClass"][value="' + def.apiClass + '"]').prop('checked', true);
   $('#apiHandlerCd').val(def.apiHandlerCd || '');
   $('#providerSeq').val(def.providerSeq || '');
+  $('#providerNmDisp').val(def.providerSeq ? defProviderNmBySeq(def.providerSeq) : '');
   defOnApiClassChange();
   defSyncFullPath();
 
@@ -205,7 +211,7 @@ function defFillFormFromDetail(def) {
 function defResetToCreate() {
   $('#editApiNo').val('');
   $('#defRegForm')[0].reset();
-  $('#apiHandlerCd, #providerSeq').val('');
+  $('#apiHandlerCd, #providerSeq, #providerNmDisp').val('');
   defOnMethodChange();
   defOnApiClassChange();
   defSyncFullPath();
@@ -351,6 +357,47 @@ function defFilterTmpltList(keyword) {
   $('#qrTmpltEmptyMsg').toggleClass('qr_hide', visibleCount > 0);
 }
 
+/* ---------------- Provider(단위서비스코드) 선택 ---------------- */
+
+/* 팝업을 열 때마다 현재 선택된 값(#providerSeq)에 qr_selected 표시를 해준다 - 템플릿 선택
+   팝업과 달리 선택 후에도 다시 열어 바꿀 수 있어야 하므로 매번 동기화. */
+function defOpenProviderModal() {
+  var curSeq = $('#providerSeq').val();
+  $('#qrProviderGrid .qr_tmplt_row').each(function () {
+    $(this).toggleClass('qr_selected', $(this).attr('data-seq') === curSeq);
+  });
+  $('#qrProviderSearch').val('');
+  defFilterProviderList('');
+  $('#qrProviderModal').removeClass('qr_hide');
+}
+
+function defSelectProvider(el) {
+  var $el = $(el);
+  $('#providerSeq').val($el.attr('data-seq'));
+  $('#providerNmDisp').val($el.attr('data-nm'));
+  $('#qrProviderModal').addClass('qr_hide');
+}
+
+function defFilterProviderList(keyword) {
+  keyword = (keyword || '').trim().toLowerCase();
+  var visibleCount = 0;
+  $('#qrProviderGrid .qr_tmplt_row').each(function () {
+    var nm = ($(this).attr('data-nm') || '').toLowerCase();
+    var code = ($(this).attr('data-code') || '').toLowerCase();
+    var match = !keyword || nm.indexOf(keyword) > -1 || code.indexOf(keyword) > -1;
+    $(this).toggleClass('qr_hide', !match);
+    if (match) { visibleCount++; }
+  });
+  $('#qrProviderEmptyMsg').toggleClass('qr_hide', visibleCount > 0);
+}
+
+function defProviderNmBySeq(seq) {
+  for (var i = 0; i < g_def_providerList.length; i++) {
+    if (String(g_def_providerList[i].seq) === String(seq)) { return g_def_providerList[i].providerNm; }
+  }
+  return '';
+}
+
 function defEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -364,14 +411,19 @@ function defOnSaveClick() {
   var autId = $('#autId').val();
   var apiNm = $('#apiNm').val();
   var apiPath = $('#apiPath').val();
+  var endpntTbUrl = $('#endpntTbUrl').val();
+  var endpntPrdUrl = $('#endpntPrdUrl').val();
 
   var hasErr = false;
-  $('#apiNmErr, #apiPathErr').removeClass('qr_show');
-  $('#apiNm, #apiPath').removeClass('qr_input_err');
+  $('#apiNmErr, #apiPathErr, #endpntTbUrlErr, #endpntPrdUrlErr').removeClass('qr_show');
+  $('#apiNm, #apiPath, #endpntTbUrl, #endpntPrdUrl').removeClass('qr_input_err');
 
   if (!apiNm) { $('#apiNmErr').addClass('qr_show'); $('#apiNm').addClass('qr_input_err'); hasErr = true; }
   if (!apiPath || apiPath.charAt(0) !== '/') { $('#apiPathErr').addClass('qr_show'); $('#apiPath').addClass('qr_input_err'); hasErr = true; }
   if (!autId) { alert_message('권한그룹을 선택해 주세요.'); hasErr = true; }
+  /* 배포 후 게이트웨이가 실제로 호출하는 주소라 필수값이다 - 고급 설정(선택)이 아니라 여기서 검증. */
+  if (!$.trim(endpntTbUrl)) { $('#endpntTbUrlErr').addClass('qr_show'); $('#endpntTbUrl').addClass('qr_input_err'); hasErr = true; }
+  if (!$.trim(endpntPrdUrl)) { $('#endpntPrdUrlErr').addClass('qr_show'); $('#endpntPrdUrl').addClass('qr_input_err'); hasErr = true; }
 
   if (hasErr) { return; }
 

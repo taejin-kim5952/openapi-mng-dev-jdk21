@@ -228,6 +228,20 @@
     ORDER BY SORT_ODRG, TMPLT_NO
   </select>
 
+  <!-- Provider(단위서비스코드) 선택 팝업용 목록. ApiReg_SQL.xml(기존 등록 마법사)의
+       selApiProviderList와 같은 테이블(KOA_TB_API_PROVIDER)을 보지만, 화면 독립 원칙에 따라
+       이 화면 전용으로 별도 조회한다. selTmpltList와 동일한 이유로 nullable 컬럼은 COALESCE. -->
+  <select id="selApiProviderList" resultType="map">
+    /* apiDefReg.selApiProviderList */
+    SELECT
+       pvd.SEQ                       AS "seq"
+      ,pvd.PROVIDER_NM                AS "providerNm"
+      ,COALESCE(pvd.eStdSvcCode, '')  AS "eStdSvcCode"
+    FROM KOA_TB_API_PROVIDER pvd
+    WHERE pvd.USE_YN = 'Y'
+    ORDER BY COALESCE(pvd.SORT_ODRG, 999), pvd.PROVIDER_NM, pvd.SEQ
+  </select>
+
   <!-- API(DEF) 수정 - 좌측 트리에서 불러온 기존 API를 다시 저장할 때. 기본 정보 + 고급 설정 전부
        갱신한다(카테고리/그룹 소속은 이 화면에서 바꾸지 않으므로 API_SPC_NO/API_CTGRY_NO는 그대로 둠). -->
   <update id="updApiDef" parameterType="com.kt.openapi.web.spcreg.vo.ApiDefRegVO">

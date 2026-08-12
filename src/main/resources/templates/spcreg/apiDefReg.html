@@ -81,7 +81,7 @@
         <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
       </button>
       <div class="sv_acc_body">
-        <div class="qr_grid2" style="margin-top:20px;">
+        <div class="qr_grid2" id="defBasicGrid" style="margin-top:20px;">
           <div class="qr_field">
             <label for="apiNm">API 이름 <em>*</em></label>
             <input type="text" id="apiNm" name="apiNm" maxlength="200" placeholder="예: 가입자 목록 조회">
@@ -106,6 +106,19 @@
               <option th:each="m : ${mthTypeList}" th:value="${m.comnCd}" th:text="${m.cdNm}" th:selected="${m.comnCd == 'MTHTYP1020'}"></option>
             </select>
           </div>
+          <!-- TB/운영 엔드포인트 URL - 배포 후 게이트웨이가 실제로 호출해서 사용자에게 결과를 돌려주는
+               주소라 "고급 설정(선택)"이 아니라 필수 기본 정보다. 원래 "고급 설정" 아코디언(엔드포인트/
+               게이트웨이 그룹)에 있었으나 이 화면 필수값으로 재분류해 여기로 옮김. -->
+          <div class="qr_field">
+            <label for="endpntTbUrl">TB 엔드포인트 URL <em>*</em></label>
+            <input type="text" id="endpntTbUrl" name="endpntTbUrl" style="font-family:monospace;">
+            <span class="qr_err" id="endpntTbUrlErr">TB 엔드포인트 URL을 입력하세요.</span>
+          </div>
+          <div class="qr_field">
+            <label for="endpntPrdUrl">운영 엔드포인트 URL <em>*</em></label>
+            <input type="text" id="endpntPrdUrl" name="endpntPrdUrl" style="font-family:monospace;">
+            <span class="qr_err" id="endpntPrdUrlErr">운영 엔드포인트 URL을 입력하세요.</span>
+          </div>
           <div class="qr_field qr_span2">
             <label for="apiDesc">설명</label>
             <textarea id="apiDesc" name="apiDesc" rows="2" placeholder="이 API가 무엇을 하는지 한 줄로 적어주세요 (선택)"></textarea>
@@ -129,97 +142,101 @@
             </select>
           </div>
           <div class="qr_field">
-            <label for="providerSeq">Provider</label>
-            <input type="text" id="providerSeq" name="providerSeq" placeholder="선택사항">
+            <label for="providerNmDisp">Provider</label>
+            <!-- 자유 입력이 아니라 KOA_TB_API_PROVIDER 목록에서 골라 넣는다(기존 등록 마법사
+                 pathRegFormPrivate.html의 "Provider 선택" 팝업과 동일한 방식). 실제 저장값은
+                 hidden #providerSeq, 화면엔 이름만 읽기전용으로 보여준다. -->
+            <div class="qr_inline_select">
+              <input type="hidden" id="providerSeq" name="providerSeq" value="">
+              <input type="text" id="providerNmDisp" readonly placeholder="선택사항" onclick="defOpenProviderModal();">
+              <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" id="defBtnOpenProviderModal">선택</button>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 고급 설정(선택) - 엔드포인트/게이트웨이, 응답매핑, HDP 연동. "간단 상세"(simpleView.html)의
-         Path/Method 상세 팝업에 있던 것과 동일한 필드 세트를 등록 시점에 같이 입력할 수 있게 한다.
-         거의 안 쓰는 고급 값이라 기본 접힘. -->
+    <!-- 고급 설정(선택) - 엔드포인트/게이트웨이, 응답매핑, HDP 연동. 퍼블_v18.0(API등록_고급설정_
+         디자인퍼블_요청서 회신)의 apiReg.html "②-1 고급 설정" 정식 마크업 그대로 반영 - 개발 쪽에서
+         붙였던 임시 버전(인라인 style 라벨)을 교체함. id/name은 퍼블의 qrAdv*가 아니라 이 화면이 이미
+         쓰던 VO 필드명 그대로 유지(값 바인딩/저장 로직이 필드명 기준이라 굳이 맞출 필요 없음 - 요청서
+         3항에도 명시). 거의 안 쓰는 고급 값이라 기본 접힘. -->
     <section class="sv_acc" style="margin-top:28px;">
       <button type="button" class="sv_acc_head">
         <span class="sv_acc_nm">고급 설정</span>
-        <span class="sv_acc_sum">엔드포인트 · 응답매핑 · HDP 연동 (선택, 대부분 비워둬도 됩니다)</span>
+        <span class="sv_acc_sum">엔드포인트 · 응답 매핑 · HDP 연동 — 필요할 때만 펼쳐 입력하세요 (선택)</span>
         <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
       </button>
       <div class="sv_acc_body">
-        <div class="qr_field" style="margin-top:20px;">
-          <span style="font-weight:800;">엔드포인트 / 게이트웨이</span>
-        </div>
-        <div class="qr_grid2" style="margin-top:8px;">
-          <div class="qr_field">
-            <label for="endpntTbUrl">TB 엔드포인트 URL</label>
-            <input type="text" id="endpntTbUrl" name="endpntTbUrl" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="endpntPrdUrl">운영 엔드포인트 URL</label>
-            <input type="text" id="endpntPrdUrl" name="endpntPrdUrl" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="endpntClientIp">클라이언트 IP</label>
-            <input type="text" id="endpntClientIp" name="endpntClientIp" placeholder="비워두면 제한 없음">
-          </div>
-          <div class="qr_field">
-            <label for="endpntTimeout">타임아웃(ms)</label>
-            <input type="text" id="endpntTimeout" name="endpntTimeout">
+
+        <!-- TB/운영 엔드포인트 URL은 "기본 정보"로 옮겨 필수값이 됐으므로 여기서는 제외 -
+             클라이언트 IP/타임아웃처럼 정말 선택적인 값만 남는다. -->
+        <div class="qr_adv_group" style="margin-top:20px;">
+          <div class="sv_sub_head"><h4>엔드포인트 / 게이트웨이</h4><span>필요한 경우에만 추가로 설정하세요</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field">
+              <label for="endpntClientIp">클라이언트 IP</label>
+              <input type="text" id="endpntClientIp" name="endpntClientIp" placeholder="비워두면 제한 없음">
+            </div>
+            <div class="qr_field">
+              <label for="endpntTimeout">타임아웃(ms)</label>
+              <input type="text" id="endpntTimeout" name="endpntTimeout">
+            </div>
           </div>
         </div>
 
-        <div class="qr_field" style="margin-top:22px;">
-          <span style="font-weight:800;">응답 매핑</span>
-        </div>
-        <div class="qr_grid2" style="margin-top:8px;">
-          <div class="qr_field">
-            <label for="resmapResCdField">결과코드 필드</label>
-            <input type="text" id="resmapResCdField" name="resmapResCdField" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="resmapSuccVal">성공 값</label>
-            <input type="text" id="resmapSuccVal" name="resmapSuccVal" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="resmapErrCdField">에러코드 필드</label>
-            <input type="text" id="resmapErrCdField" name="resmapErrCdField" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="resmapErrMsgField">에러메시지 필드</label>
-            <input type="text" id="resmapErrMsgField" name="resmapErrMsgField" style="font-family:monospace;">
+        <div class="qr_adv_group">
+          <div class="sv_sub_head"><h4>응답 매핑</h4><span>내부 응답에서 결과/에러를 읽어올 필드</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field">
+              <label for="resmapResCdField">결과코드 필드</label>
+              <input type="text" id="resmapResCdField" name="resmapResCdField" style="font-family:monospace;">
+            </div>
+            <div class="qr_field">
+              <label for="resmapSuccVal">성공 값</label>
+              <input type="text" id="resmapSuccVal" name="resmapSuccVal" style="font-family:monospace;">
+            </div>
+            <div class="qr_field">
+              <label for="resmapErrCdField">에러코드 필드</label>
+              <input type="text" id="resmapErrCdField" name="resmapErrCdField" style="font-family:monospace;">
+            </div>
+            <div class="qr_field">
+              <label for="resmapErrMsgField">에러메시지 필드</label>
+              <input type="text" id="resmapErrMsgField" name="resmapErrMsgField" style="font-family:monospace;">
+            </div>
           </div>
         </div>
 
-        <div class="qr_field" style="margin-top:22px;">
-          <span style="font-weight:800;">HDP 연동</span>
-          <span class="qr_field_hint">HDP를 경유하는 경우에만 입력하세요.</span>
+        <div class="qr_adv_group">
+          <div class="sv_sub_head"><h4>HDP 연동</h4><span>HDP를 경유하는 경우에만 입력하세요.</span></div>
+          <div class="qr_grid2" style="margin-top:0;">
+            <div class="qr_field">
+              <label for="hdpApiEndpointId">HDP Endpoint ID</label>
+              <input type="text" id="hdpApiEndpointId" name="hdpApiEndpointId" style="font-family:monospace;">
+            </div>
+            <div class="qr_field">
+              <label for="hdpReqApiName">HDP 요청 API명</label>
+              <input type="text" id="hdpReqApiName" name="hdpReqApiName" style="font-family:monospace;">
+            </div>
+            <div class="qr_field">
+              <label for="hdpApiOutFormat">출력 포맷</label>
+              <input type="text" id="hdpApiOutFormat" name="hdpApiOutFormat">
+            </div>
+            <div class="qr_field">
+              <label for="hdpApiOutCommonParam">공통 파라미터</label>
+              <input type="text" id="hdpApiOutCommonParam" name="hdpApiOutCommonParam" placeholder="선택사항">
+            </div>
+            <div class="qr_field qr_span2">
+              <label for="hdpReqMappingToBody">요청 매핑(Body)</label>
+              <textarea id="hdpReqMappingToBody" name="hdpReqMappingToBody" rows="3" style="font-family:monospace;"></textarea>
+            </div>
+            <div class="qr_field qr_span2">
+              <label for="hdpResMappingToBody">응답 매핑(Body)</label>
+              <textarea id="hdpResMappingToBody" name="hdpResMappingToBody" rows="3" style="font-family:monospace;"></textarea>
+            </div>
+          </div>
         </div>
-        <div class="qr_grid2" style="margin-top:8px;">
-          <div class="qr_field">
-            <label for="hdpApiEndpointId">HDP Endpoint ID</label>
-            <input type="text" id="hdpApiEndpointId" name="hdpApiEndpointId" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="hdpReqApiName">HDP 요청 API명</label>
-            <input type="text" id="hdpReqApiName" name="hdpReqApiName" style="font-family:monospace;">
-          </div>
-          <div class="qr_field">
-            <label for="hdpApiOutFormat">출력 포맷</label>
-            <input type="text" id="hdpApiOutFormat" name="hdpApiOutFormat">
-          </div>
-          <div class="qr_field">
-            <label for="hdpApiOutCommonParam">공통 파라미터</label>
-            <input type="text" id="hdpApiOutCommonParam" name="hdpApiOutCommonParam" placeholder="선택사항">
-          </div>
-          <div class="qr_field qr_span2">
-            <label for="hdpReqMappingToBody">요청 매핑(Body)</label>
-            <textarea id="hdpReqMappingToBody" name="hdpReqMappingToBody" rows="3" style="font-family:monospace;"></textarea>
-          </div>
-          <div class="qr_field qr_span2">
-            <label for="hdpResMappingToBody">응답 매핑(Body)</label>
-            <textarea id="hdpResMappingToBody" name="hdpResMappingToBody" rows="3" style="font-family:monospace;"></textarea>
-          </div>
-        </div>
+
       </div>
     </section>
 
@@ -361,6 +378,40 @@
   </div>
 </div>
 
+<!-- 팝업: Provider(단위서비스코드) 선택 - 기존 등록 마법사(pathRegFormPrivate.html)의
+     "Provider 선택" 팝업과 같은 데이터(KOA_TB_API_PROVIDER)를 보여주되, 화면 독립 원칙에 따라
+     이 화면 전용으로 별도 조회한다. 마크업/클래스는 위 템플릿 선택 팝업(.qr_tmplt_*)을 그대로
+     재사용 - 아이콘+이름+부가정보 나열 구조가 이 목록에도 그대로 맞는다. -->
+<div id="qrProviderModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_wide">
+    <div class="qr_modal_head">
+      <div><div class="qr_modal_title">Provider 선택</div><div class="qr_modal_sub">Private API의 단위서비스코드를 선택하세요</div></div>
+      <button type="button" class="qr_modal_close" id="qrProviderModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="qr_tmplt_search_row">
+      <input type="text" id="qrProviderSearch" aria-label="Provider 검색" placeholder="Provider 이름/단위서비스코드 검색" oninput="defFilterProviderList(this.value);">
+    </div>
+    <div class="qr_tmplt_list" id="qrProviderGrid">
+      <!-- th:attr 값은 전부 ?: ''(Elvis)로 null 방어한다 - MyBatis resultType="map"의 NULL 키 누락
+           문제(EL1008E) 재발 방지, selTmpltList와 동일한 이유. -->
+      <button type="button" class="qr_tmplt_row" th:each="p : ${apiProviderList}"
+              th:attr="data-seq=${p.seq},data-nm=${p.providerNm},data-code=${p.eStdSvcCode ?: ''}"
+              onclick="defSelectProvider(this);">
+        <span class="qr_tmplt_icon"></span>
+        <span class="qr_tmplt_txt">
+          <span class="qr_tmplt_nm" th:text="${p.providerNm}"></span>
+          <span class="qr_tmplt_desc" th:text="${p.eStdSvcCode ?: ''}"></span>
+        </span>
+        <span class="qr_tmplt_meta">
+          <span class="qr_tmplt_method" th:text="${p.seq}"></span>
+          <span class="qr_tmplt_check">&#10003; 선택됨</span>
+        </span>
+      </button>
+      <p id="qrProviderEmptyMsg" class="qr_no_params qr_hide">등록된 Provider가 없습니다.</p>
+    </div>
+  </div>
+</div>
+
 <!-- 저장 확인 팝업 (공통 컴포넌트, 퍼블_v15.0) — 등록 버튼은 바로 저장하지 않고 이 팝업을 먼저 띄운다.
      [취소]는 화면을 그대로 유지하고, [등록]을 눌렀을 때만 실제 저장이 진행된다. -->
 <div id="qrConfirmModal" class="qr_modal_backdrop qr_hide">
@@ -376,6 +427,7 @@
 
 <script th:inline="javascript">
   var g_def_dataTypeList = /*[[${dataTypeList}]]*/ [];
+  var g_def_providerList = /*[[${apiProviderList}]]*/ [];
   var g_def_mthTypeList = /*[[${mthTypeList}]]*/ [];
   var g_pt_dataTypeList = /*[[${dataTypeList}]]*/ [];
   var g_pt_piiList = /*[[${piiList}]]*/ [];

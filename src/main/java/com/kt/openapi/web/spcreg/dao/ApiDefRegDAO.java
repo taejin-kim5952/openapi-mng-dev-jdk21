@@ -34,6 +34,10 @@ public interface ApiDefRegDAO {
         같은 테이블이지만, 화면 독립 원칙에 따라 이 화면 전용으로 별도 조회한다. */
     List<Map<String, Object>> selTmpltList();
 
+    /** Provider(단위서비스코드) 선택 팝업용 목록 (KOA_TB_API_PROVIDER, 사용중인 것만). 기존 등록
+        마법사(ApiReg)의 selApiProviderList와 같은 테이블이지만, 화면 독립 원칙에 따라 별도 조회한다. */
+    List<Map<String, Object>> selApiProviderList();
+
     /** 선택한 apiSpcNo에 이미 있는 첫 카테고리 조회 (없으면 null - 그 그룹의 첫 API라는 뜻) */
     String selDefaultCtgryBySpc(String apiSpcNo);
 

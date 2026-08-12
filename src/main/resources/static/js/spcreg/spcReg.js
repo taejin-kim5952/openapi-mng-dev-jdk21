@@ -267,19 +267,28 @@ function grpApplyYaml(yamlText) {
   $('#grpYamlModal').addClass('qr_hide');
 }
 
-/* OAS 3.0 YAML 문서 전체를 파싱해서 그룹(SPC) 기본값 + 여러 Path/Method(API) 목록을 뽑아낸다.
-   quickRegShared.js의 qrParseOasYaml은 Path/Method 1개(빠른등록용) 제약이 있어 재사용하지 않고,
-   이 화면 전용으로 모든 path/method를 순회하는 파서를 새로 작성했다. */
+/* OAS 3.0 / Swagger 2.0 YAML 문서 전체를 파싱해서 그룹(SPC) 기본값 + 여러 Path/Method(API)
+   목록을 뽑아낸다. quickRegShared.js의 qrParseOasYaml은 Path/Method 1개(빠른등록용) 제약이 있어
+   재사용하지 않고, 이 화면 전용으로 모든 path/method를 순회하는 파서를 새로 작성했다.
+   실제 운영 시스템이 내보내는 YAML(참고자료/API샘플YML/gigaGenie.yml)이 OAS3가 아니라
+   Swagger 2.0(`swagger: '2.0'`, host/basePath, parameters[in=body|query], responses.N.headers)라서
+   quickRegShared.js의 qrParseOasYaml(OAS2/OAS3 겸용)과 같은 방식으로 두 포맷을 모두 지원한다. */
 function grpParseYamlSpec(yamlText) {
   var doc = YAML.parse(yamlText);
   if (!doc || typeof doc !== 'object') { throw new Error('빈 문서이거나 형식이 올바르지 않습니다.'); }
 
+  var isOas2 = !!doc.swagger && String(doc.swagger).charAt(0) === '2';
   var spec = { spcNm: '', host: '', basPath: '/', ver: '1.0', apiList: [] };
   if (doc.info) {
     spec.spcNm = doc.info.title || '';
     spec.ver = doc.info.version || '1.0';
   }
-  if (doc.servers && doc.servers.length > 0 && doc.servers[0].url) {
+  if (isOas2) {
+    if (doc.host) {
+      spec.host = doc.host;
+      spec.basPath = doc.basePath || '/';
+    }
+  } else if (doc.servers && doc.servers.length > 0 && doc.servers[0].url) {
     var m = /^https?:\/\/([^/]+)(\/.*)?$/.exec(doc.servers[0].url);
     if (m) { spec.host = m[1]; spec.basPath = m[2] || '/'; }
   }
@@ -294,16 +303,45 @@ function grpParseYamlSpec(yamlText) {
       if (!op) { return; }
 
       var inNodes = [], queryNodes = [], outNodes = [];
-      if (op.requestBody && op.requestBody.content && op.requestBody.content['application/json']) {
-        inNodes = grpSchemaToWrappedNodes(op.requestBody.content['application/json'].schema || {}, 'request');
-      }
-      (op.parameters || []).forEach(function (p) {
-        if (p['in'] && p['in'] !== 'query') { return; }
-        queryNodes.push(ptFromSchema(p.name, p.schema || {}, !!p.required));
-      });
-      var successResp = op.responses && (op.responses['200'] || op.responses['201'] || op.responses['default']);
-      if (successResp && successResp.content && successResp.content['application/json']) {
-        outNodes = grpSchemaToWrappedNodes(successResp.content['application/json'].schema || {}, 'response');
+
+      if (isOas2) {
+        (op.parameters || []).forEach(function (p) {
+          if (p['in'] === 'body') {
+            inNodes = grpSchemaToWrappedNodes(grpResolveSwagger2Ref(doc, p.schema || {}), 'request');
+          } else if (p['in'] === 'query') {
+            // Swagger2 query param은 OAS3처럼 .schema로 감싸지 않고 type/description을 파라미터
+            // 객체에 바로 갖고 있다 - ptFromSchema가 그 필드들을 그대로 읽으므로 p 자체를 넘긴다.
+            queryNodes.push(ptFromSchema(p.name, p, !!p.required));
+          }
+        });
+        var successResp2 = op.responses && (op.responses['200'] || op.responses['201'] || op.responses['default']);
+        if (successResp2) {
+          var bodyProps = {};
+          var respSchema = successResp2.schema ? grpResolveSwagger2Ref(doc, successResp2.schema) : null;
+          if (respSchema && respSchema.properties) {
+            $.extend(bodyProps, respSchema.properties);
+          }
+          // gigaGenie.yml처럼 실제 응답값이 schema가 아니라 responses.N.headers에 담기는 경우가
+          // 많다(SOAP 연동 관행) - 헤더도 응답 필드로 취급한다.
+          if (successResp2.headers) {
+            $.extend(bodyProps, successResp2.headers);
+          }
+          if (Object.keys(bodyProps).length > 0) {
+            outNodes = grpSchemaToWrappedNodes({ properties: bodyProps }, 'response');
+          }
+        }
+      } else {
+        if (op.requestBody && op.requestBody.content && op.requestBody.content['application/json']) {
+          inNodes = grpSchemaToWrappedNodes(op.requestBody.content['application/json'].schema || {}, 'request');
+        }
+        (op.parameters || []).forEach(function (p) {
+          if (p['in'] && p['in'] !== 'query') { return; }
+          queryNodes.push(ptFromSchema(p.name, p.schema || {}, !!p.required));
+        });
+        var successResp = op.responses && (op.responses['200'] || op.responses['201'] || op.responses['default']);
+        if (successResp && successResp.content && successResp.content['application/json']) {
+          outNodes = grpSchemaToWrappedNodes(successResp.content['application/json'].schema || {}, 'response');
+        }
       }
 
       var paramList = ptFlattenTree(inNodes, 'in')
@@ -321,6 +359,18 @@ function grpParseYamlSpec(yamlText) {
   });
 
   return spec;
+}
+
+/* Swagger2 문서 내 최상위 $ref(예: '#/definitions/Foo')만 따라간다(중첩/외부 참조 미지원) -
+   quickRegShared.js의 qrResolveSwagger2Ref와 동일한 범위 제약. */
+function grpResolveSwagger2Ref(doc, schema) {
+  if (schema && schema.$ref) {
+    var parts = String(schema.$ref).replace(/^#\//, '').split('/');
+    var node = doc;
+    for (var i = 0; i < parts.length && node; i++) { node = node[parts[i]]; }
+    return node || {};
+  }
+  return schema || {};
 }
 
 /* requestBody/response의 스키마를 트리로 바꾸면서 request/response 오브젝트로 감싼다(apiDefReg.js의

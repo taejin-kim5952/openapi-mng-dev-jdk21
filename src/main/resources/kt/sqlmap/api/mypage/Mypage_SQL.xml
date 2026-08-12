@@ -39,7 +39,7 @@
             A.API_SPC_ID AS "apiSpcId",
             A.VER AS ver,
             A.API_NM AS "apiNm",
-            A.API_DESC AS "apiDesc",
+            COALESCE(A.API_DESC,'') AS "apiDesc",
             COALESCE(A.AMDR,'') AS amdr,
             A.AMD_DT AS "amdDt",
             COALESCE((SELECT MBR_NM FROM KOA_TB_MBR B WHERE  A.AMDR = B.MBR_ID ),'') AS "amdrNm",

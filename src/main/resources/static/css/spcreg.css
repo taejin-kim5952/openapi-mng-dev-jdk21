@@ -6,6 +6,11 @@
 
 .qr_lt_host { font-weight: 400; color: var(--qr-mute); font-size: 11px; margin-left: 6px; }
 
+/* Provider 선택 필드(apiDefReg) - 읽기전용 표시칸 + "선택" 버튼을 한 줄에. */
+.qr_inline_select { display: flex; align-items: center; gap: 8px; }
+.qr_inline_select input[type="text"] { flex: 1 1 auto; min-width: 0; cursor: pointer; background: #fafafa; }
+.qr_inline_select .qr_pill_sm { flex: none; }
+
 /* "등록된 그룹" 좌측 트리(#grpLeftTree)를 mvMainList.do처럼 "그룹명 목록 → 클릭 시 그 그룹만 펼침"
    방식으로 만든다. 기본 .qr_lt_spc_nm(quickApiReg.css)은 읽기전용 div라 여기서만 버튼으로 오버라이드. */
 #grpLeftTree .qr_lt_spc_nm {
@@ -43,6 +48,27 @@
 .qr_confirm_title { margin: 0 0 12px; font-size: 20px; font-weight: 800; color: var(--qr-ink); }
 .qr_confirm_msg { margin: 0; font-size: 14px; line-height: 1.65; color: var(--qr-ink-soft); }
 .qr_confirm_acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 26px; }
+
+/* 고급 설정(apiDefReg) 소그룹 간 간격/소제목 - 퍼블_v18.0(API등록_고급설정_디자인퍼블_요청서 회신)의
+   apiReg.html용 규칙을 그대로 가져온다. quickApiReg.css 자체는 손대지 않는 원칙이라 이 화면 전용
+   파일에 옮겨 담음(simpleView.css에도 .sv_sub_head가 있지만 이 화면은 그 CSS를 로드하지 않는다). */
+.qr_adv_group + .qr_adv_group { margin-top: 30px; padding-top: 26px; border-top: 1px dashed var(--qr-line); }
+/* 공용 .qr_grid2는 auto-fit이라 넓은 화면에서 4열까지 늘어난다(spcReg의 #grpRegForm .qr_grid2
+   오버라이드와 동일한 이유) - 고급 설정 필드는 항상 2열 고정으로 보여준다. */
+.qr_adv_group .qr_grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .qr_adv_group .qr_grid2 { grid-template-columns: 1fr; }
+}
+
+/* "기본 정보" 그리드도 같은 이유로 2열 고정 (API 이름/권한그룹/Path/Method + TB/운영 엔드포인트 URL). */
+#defBasicGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  #defBasicGrid { grid-template-columns: 1fr; }
+}
+.sv_sub_head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 16px; padding: 0 0 10px 12px; border-bottom: 1px solid var(--qr-line-soft, #eee); position: relative; }
+.sv_sub_head::before { content: ''; position: absolute; left: 0; top: 1px; bottom: 12px; width: 3px; background: var(--qr-teal); }
+.sv_sub_head h4 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--qr-ink); }
+.sv_sub_head span { font-size: 12.5px; color: var(--qr-mute); }
 
 /* "API 등록"(apiDefReg) 좌측 트리 - 이 그룹에 이미 등록된 API를 클릭하면 폼에 불러와 수정할 수 있다.
    기본 .qr_lt_api(quickApiReg.css)은 읽기전용 행이라 여기서만 클릭 가능한 상태로 오버라이드. */

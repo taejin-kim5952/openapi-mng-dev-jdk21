@@ -281,7 +281,10 @@ function ptWorkYaml() {
 function ptFromSchema(name, s, req) {
   s = s || {};
   var dataTypeCd = PT_JS_TYPE[s.type] || 'DATTYP1010';
-  var n = ptNode(name, dataTypeCd, req, s.description || '', s.example == null ? '' : String(s.example), null, null, s['x-personalData'] || '');
+  // Swagger2 파라미터/응답 헤더는 표준 OAS3의 `example` 대신 커스텀 `x-example`을 쓴다
+  // (예: 참고자료/API샘플YML/gigaGenie.yml) - 둘 다 지원.
+  var exampleVal = s.example != null ? s.example : s['x-example'];
+  var n = ptNode(name, dataTypeCd, req, s.description || '', exampleVal == null ? '' : String(exampleVal), null, null, s['x-personalData'] || '');
   if (dataTypeCd === 'DATTYP1050') { n.kids = ptFromObject(s); }
   if (dataTypeCd === 'DATTYP1060') {
     var it = s.items || { type: 'string' };

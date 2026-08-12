@@ -64,6 +64,11 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
     }
 
     @Override
+    public List<Map<String, Object>> selApiProviderList() {
+        return apiDefRegDAO.selApiProviderList();
+    }
+
+    @Override
     @Transactional(rollbackFor = { Exception.class })
     public String savApiDefReg(ApiDefRegVO vo) {
         LOG.debug("####################### ApiDefRegServiceImpl savApiDefReg START ############################");

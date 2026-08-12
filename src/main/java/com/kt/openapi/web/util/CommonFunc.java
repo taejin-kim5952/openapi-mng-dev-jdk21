@@ -283,6 +283,10 @@ public class CommonFunc {
 		}
     isSpecificUser = ((userList.length() > 0) && (strGub + userList + strGub).contains(strGub + ssMbrId + strGub));
 
+		// 임시 진단 로그 - BEAST 메뉴 접근 권한이 왜 안 먹히는지 실제 비교값을 눈으로 확인하기 위함
+		// (설정이 반영 안 됐는지 / mbrId 값 자체가 기대와 다른지 구분용). 원인 확정되면 제거.
+		logger.debug("[isSpecificUser][tag: {}][ssMbrId: {}][userList: {}][result: {}]", tag, ssMbrId, userList, isSpecificUser);
+
 		return isSpecificUser;
 	}
 	

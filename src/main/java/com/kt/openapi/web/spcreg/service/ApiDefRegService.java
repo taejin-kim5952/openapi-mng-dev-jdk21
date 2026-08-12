@@ -24,6 +24,9 @@ public interface ApiDefRegService {
     /** 템플릿 선택 팝업용 목록 */
     List<Map<String, Object>> selTmpltList();
 
+    /** Provider(단위서비스코드) 선택 팝업용 목록 */
+    List<Map<String, Object>> selApiProviderList();
+
     /** 카테고리(재사용 또는 최초 1회 생성)+DEF+파라미터까지 한 트랜잭션으로 등록하고, apiSpcNo를 반환 */
     String savApiDefReg(ApiDefRegVO vo);
 

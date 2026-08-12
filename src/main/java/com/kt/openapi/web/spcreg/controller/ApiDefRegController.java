@@ -91,6 +91,7 @@ public class ApiDefRegController {
         mv.addObject("apiHandlerList", cmnService.selComnList("APIHDR1000"));
         mv.addObject("piiList", cmnService.selComnList("PIICLS1000"));
         mv.addObject("tmpltList", apiDefRegService.selTmpltList());
+        mv.addObject("apiProviderList", apiDefRegService.selApiProviderList());
 
         return mv;
     }
