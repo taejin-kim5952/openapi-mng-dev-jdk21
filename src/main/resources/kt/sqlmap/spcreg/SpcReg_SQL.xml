@@ -80,4 +80,48 @@
     FROM ( SELECT NEXTVAL('koa_tb_api_spc_api_spc_no_seq') AS ID ) NID
   </insert>
 
+  <!-- 그룹 정보 수정 화면용 상세 조회. resultType="map"은 컬럼 값이 NULL이면 그 키 자체가 맵에서
+       빠지므로(MyBatis 특유의 동작), nullable 컬럼은 COALESCE로 항상 키가 존재하도록 만든다
+       (ApiDefReg_SQL.xml의 selTmpltList에서 겪은 EL1008E 재발 방지와 동일한 이유). -->
+  <select id="selSpcDetail" parameterType="String" resultType="map">
+    /* spcReg.selSpcDetail */
+    SELECT
+       api_spc_no                       AS "apiSpcNo"
+      ,sys_id                           AS "sysId"
+      ,aut_id                           AS "autId"
+      ,api_nm                           AS "spcNm"
+      ,COALESCE(api_desc, '')           AS "spcDesc"
+      ,host                             AS "host"
+      ,bas_path                         AS "basPath"
+      ,ver                              AS "ver"
+      ,COALESCE(api_schema, 'https')    AS "schemeCd"
+      ,api_class                        AS "apiClass"
+      ,COALESCE(api_veri_baseurl, '')   AS "testBaseUrl"
+      ,COALESCE(bstgw_yn, 'N')          AS "bstgwYn"
+    FROM KOA_TB_API_SPC
+    WHERE API_SPC_NO = #{apiSpcNo}::integer
+      AND DEL_YN = 'N'
+  </select>
+
+  <!-- KOA_TB_API_SPC 수정 - 그룹 생성 시점에만 정해지는 값(YAML_FILE_PATH/REG_STTUS_CD 등)은 건드리지 않는다. -->
+  <update id="updApiSpc" parameterType="com.kt.openapi.web.spcreg.vo.SpcRegVO">
+    /* spcReg.updApiSpc */
+    UPDATE KOA_TB_API_SPC
+    SET VER = #{ver}
+      ,API_NM = #{apiNm}
+      ,API_DESC = #{apiDesc}
+      ,AUT_ID = #{autId}::integer
+      ,SYS_ID = #{sysId}
+      ,HOST = #{host}
+      ,BAS_PATH = #{basPath}
+      ,API_CLASS = #{apiClass}
+      ,API_SCHEMA = #{apiSchema}
+      ,BSTGW_YN = #{bstgwYn}
+      ,API_VERI_BASEURL = #{apiVeriBaseurl}
+      ,AMD_DT = NOW()
+      ,AMDR = #{amdr}
+    WHERE API_SPC_NO = #{apiSpcNo}::integer
+      AND DEL_YN = 'N'
+  </update>
+
 </mapper>

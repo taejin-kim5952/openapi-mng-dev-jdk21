@@ -41,9 +41,10 @@ public class SpcRegController {
     @Qualifier("CmnService")
     private CmnService cmnService;
 
-    /** SPC 등록 화면 렌더 */
+    /** SPC 등록/수정 화면 렌더. apiSpcNo가 있으면 기존 그룹 정보를 불러와 수정 모드로 연다
+        (apiDefReg.html "그룹 정보 수정" 버튼에서 진입). */
     @RequestMapping(value = "/mvSpcReg.do")
-    public ModelAndView mvSpcReg(HttpSession session, ModelMap model) throws Exception {
+    public ModelAndView mvSpcReg(HttpSession session, ModelMap model, String apiSpcNo) throws Exception {
         LOG.debug("####################### SpcRegController mvSpcReg START ############################");
 
         ModelAndView mv = new ModelAndView();
@@ -62,6 +63,10 @@ public class SpcRegController {
 
         mv.addObject("apiGubList", cmnService.selComnList("APIGUB1000"));
         mv.addObject("mthTypeList", cmnService.selComnList("MTHTYP1000"));
+
+        if (apiSpcNo != null && !apiSpcNo.trim().isEmpty()) {
+            mv.addObject("spc", spcRegService.selSpcDetail(apiSpcNo));
+        }
 
         return mv;
     }
@@ -97,14 +102,16 @@ public class SpcRegController {
         vo.setRegr(userJVo.getEnCmbrId());
         vo.setAmdr(userJVo.getEnCmbrId());
 
+        boolean isEdit = vo.getApiSpcNo() != null && !vo.getApiSpcNo().trim().isEmpty();
+
         try {
-            String apiSpcNo = spcRegService.savSpcReg(vo);
+            String apiSpcNo = isEdit ? spcRegService.updSpcReg(vo) : spcRegService.savSpcReg(vo);
             mv.addObject("returnCode", "1");
             mv.addObject("apiSpcNo", apiSpcNo);
         } catch (Exception e) {
             LOG.error("savSpcRegAjax error", e);
             mv.addObject("returnCode", "0");
-            mv.addObject("message", "등록 중 오류가 발생했습니다.");
+            mv.addObject("message", (isEdit ? "수정" : "등록") + " 중 오류가 발생했습니다.");
         }
 
         return mv;

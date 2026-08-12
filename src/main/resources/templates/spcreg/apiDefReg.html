@@ -48,10 +48,19 @@
 
   <div class="qr_head">
     <div class="qr_head_txt">
-      <h2 class="qr_title"><span class="qr_title_bullet"></span>API 등록</h2>
-      <p class="qr_sub"><span th:text="${spcNm}">그룹</span> 그룹에 API(Method+Path)를 추가합니다.</p>
+      <h2 class="qr_title"><span class="qr_title_bullet"></span><span id="defHeadTitle">API 등록</span></h2>
+      <p class="qr_sub" id="defHeadSub"><span th:text="${spcNm}">그룹</span> 그룹에 API(Method+Path)를 추가합니다.</p>
     </div>
-    <span class="qr_badge_oas">OpenAPI 3.0</span>
+    <div class="qr_head_acts">
+      <button type="button" class="qr_pill qr_pill_outline qr_pill_sm qr_hide" id="defNewBtn">+ 새 API 추가</button>
+      <!-- 그룹(SPC) 자체의 정보(호스트/기본경로/이름 등)를 고치려면 이 화면이 아니라 spcReg.html로
+           가야 한다 - apiSpcNo를 넘기면 그 화면이 자동으로 수정 모드로 열린다. -->
+      <a th:href="@{/api/spcreg/mvSpcReg.do(apiSpcNo=${apiSpcNo})}" class="qr_pill qr_pill_outline qr_pill_sm">그룹 정보 수정</a>
+      <!-- 템플릿 선택(퍼블_v16.0) - API(DEF) 단위 기능이라 이 화면 헤더에 작은 버튼으로 둔다.
+           YAML 등록은 SPC 단위 기능이라 spcReg.html 쪽에 있다(이 화면엔 없음). -->
+      <button type="button" class="qr_pill qr_pill_teal qr_pill_sm" id="qrBtnOpenTmpltModal">템플릿으로 시작</button>
+      <span class="qr_badge_oas">OpenAPI 3.0</span>
+    </div>
   </div>
 
   <form id="defRegForm" onsubmit="return false;">
@@ -60,6 +69,9 @@
          apiSpcNo/spcBasPath만 hidden으로 넘겨받습니다(퍼블 v14.0 확인 사항). -->
     <input type="hidden" id="apiSpcNo" name="apiSpcNo" th:value="${apiSpcNo}">
     <input type="hidden" id="spcBasPath" th:value="${spcBasPath}">
+    <!-- 좌측 트리에서 기존 API를 클릭해 불러오면 이 값이 채워지고, 저장 시 신규 등록이 아니라
+         그 API의 수정으로 처리된다. "새 API 추가"를 누르면 다시 비워진다. -->
+    <input type="hidden" id="editApiNo" name="apiNo" value="">
 
     <!-- 기본 정보 -->
     <section class="sv_acc sv_open" style="margin-top:28px;">
@@ -124,6 +136,93 @@
       </div>
     </section>
 
+    <!-- 고급 설정(선택) - 엔드포인트/게이트웨이, 응답매핑, HDP 연동. "간단 상세"(simpleView.html)의
+         Path/Method 상세 팝업에 있던 것과 동일한 필드 세트를 등록 시점에 같이 입력할 수 있게 한다.
+         거의 안 쓰는 고급 값이라 기본 접힘. -->
+    <section class="sv_acc" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">고급 설정</span>
+        <span class="sv_acc_sum">엔드포인트 · 응답매핑 · HDP 연동 (선택, 대부분 비워둬도 됩니다)</span>
+        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="sv_acc_body">
+        <div class="qr_field" style="margin-top:20px;">
+          <span style="font-weight:800;">엔드포인트 / 게이트웨이</span>
+        </div>
+        <div class="qr_grid2" style="margin-top:8px;">
+          <div class="qr_field">
+            <label for="endpntTbUrl">TB 엔드포인트 URL</label>
+            <input type="text" id="endpntTbUrl" name="endpntTbUrl" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="endpntPrdUrl">운영 엔드포인트 URL</label>
+            <input type="text" id="endpntPrdUrl" name="endpntPrdUrl" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="endpntClientIp">클라이언트 IP</label>
+            <input type="text" id="endpntClientIp" name="endpntClientIp" placeholder="비워두면 제한 없음">
+          </div>
+          <div class="qr_field">
+            <label for="endpntTimeout">타임아웃(ms)</label>
+            <input type="text" id="endpntTimeout" name="endpntTimeout">
+          </div>
+        </div>
+
+        <div class="qr_field" style="margin-top:22px;">
+          <span style="font-weight:800;">응답 매핑</span>
+        </div>
+        <div class="qr_grid2" style="margin-top:8px;">
+          <div class="qr_field">
+            <label for="resmapResCdField">결과코드 필드</label>
+            <input type="text" id="resmapResCdField" name="resmapResCdField" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="resmapSuccVal">성공 값</label>
+            <input type="text" id="resmapSuccVal" name="resmapSuccVal" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="resmapErrCdField">에러코드 필드</label>
+            <input type="text" id="resmapErrCdField" name="resmapErrCdField" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="resmapErrMsgField">에러메시지 필드</label>
+            <input type="text" id="resmapErrMsgField" name="resmapErrMsgField" style="font-family:monospace;">
+          </div>
+        </div>
+
+        <div class="qr_field" style="margin-top:22px;">
+          <span style="font-weight:800;">HDP 연동</span>
+          <span class="qr_field_hint">HDP를 경유하는 경우에만 입력하세요.</span>
+        </div>
+        <div class="qr_grid2" style="margin-top:8px;">
+          <div class="qr_field">
+            <label for="hdpApiEndpointId">HDP Endpoint ID</label>
+            <input type="text" id="hdpApiEndpointId" name="hdpApiEndpointId" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="hdpReqApiName">HDP 요청 API명</label>
+            <input type="text" id="hdpReqApiName" name="hdpReqApiName" style="font-family:monospace;">
+          </div>
+          <div class="qr_field">
+            <label for="hdpApiOutFormat">출력 포맷</label>
+            <input type="text" id="hdpApiOutFormat" name="hdpApiOutFormat">
+          </div>
+          <div class="qr_field">
+            <label for="hdpApiOutCommonParam">공통 파라미터</label>
+            <input type="text" id="hdpApiOutCommonParam" name="hdpApiOutCommonParam" placeholder="선택사항">
+          </div>
+          <div class="qr_field qr_span2">
+            <label for="hdpReqMappingToBody">요청 매핑(Body)</label>
+            <textarea id="hdpReqMappingToBody" name="hdpReqMappingToBody" rows="3" style="font-family:monospace;"></textarea>
+          </div>
+          <div class="qr_field qr_span2">
+            <label for="hdpResMappingToBody">응답 매핑(Body)</label>
+            <textarea id="hdpResMappingToBody" name="hdpResMappingToBody" rows="3" style="font-family:monospace;"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 파라미터 - 입력 / Query / 출력은 서로 다른 스코프입니다.
          메인 화면은 선택한 스코프의 구조를 읽기 전용 트리로만 보여주고,
          [스코프 설계] 버튼이 그 스코프 하나만 팝업으로 엽니다. -->
@@ -156,11 +255,11 @@
 
     <div class="qr_actions">
       <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_ghost">취소</a>
-      <button type="button" class="qr_pill qr_pill_accent" onclick="defSaveApiDefReg();">등록하기</button>
+      <button type="button" class="qr_pill qr_pill_accent" id="defSaveBtn">등록하기</button>
     </div>
 
     <div id="defResultBox" class="qr_result_box qr_hide">
-      <p>&#10003; 등록이 완료되었습니다.</p>
+      <p id="defResultMsg">&#10003; 등록이 완료되었습니다.</p>
       <a th:href="@{/api/main/mvMainList.do}" class="qr_pill qr_pill_ghost">목록으로</a>
     </div>
   </form>
@@ -224,6 +323,53 @@
         <textarea class="qr_pd_yaml" id="qrPdYaml" spellcheck="false" aria-label="OAS 3.0 YAML"></textarea>
         <p class="qr_pd_yaml_msg qr_hide" id="qrPdYamlMsg"></p>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 팝업: 템플릿 선택 (퍼블_v16.0) - quickApiReg.html의 #qrTmpltModal과 동일한 마크업/클래스를
+     그대로 재사용(디자인 요청서에서 확인된 재사용 대상). 선택하면 Method/Path/API구분/입력 파라미터가
+     "기본 정보"/"파라미터"에 자동 반영된다(defSelectTemplate). -->
+<div id="qrTmpltModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_wide">
+    <div class="qr_modal_head">
+      <div><div class="qr_modal_title">템플릿 선택</div><div class="qr_modal_sub">선택하면 Method · 파라미터가 자동 적용됩니다</div></div>
+      <button type="button" class="qr_modal_close" id="qrTmpltModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="qr_tmplt_search_row">
+      <input type="text" id="qrTmpltSearch" aria-label="템플릿 검색" placeholder="템플릿 이름/설명 검색" oninput="defFilterTmpltList(this.value);">
+    </div>
+    <div class="qr_tmplt_list" id="qrTmpltGrid">
+      <!-- th:attr/th:text에 넘기는 값은 전부 ?: ''(Elvis)로 null 방어한다 - MyBatis는 resultType="map"일 때
+           컬럼 값이 NULL이면 그 키 자체를 맵에서 빼버려서, 방어 없이 t.xxx로 접근하면 Thymeleaf가
+           "Property or field 'xxx' cannot be found on ... HashMap" 예외를 던지고 페이지가 중간에 끊긴다. -->
+      <button type="button" class="qr_tmplt_row" th:each="t : ${tmpltList}"
+              th:attr="data-tmplt-no=${t.tmpltNo},data-tmplt-nm=${t.tmpltNm},data-api-class=${t.apiClass ?: ''},data-mth-cd=${t.mthTypeCd ?: ''},data-path=${t.pathPattern ?: ''},data-params=${t.dfltParamJson ?: ''}"
+              onclick="defSelectTemplate(this);">
+        <span class="qr_tmplt_icon"></span>
+        <span class="qr_tmplt_txt">
+          <span class="qr_tmplt_nm" th:text="${t.tmpltNm}"></span>
+          <span class="qr_tmplt_desc" th:text="${t.tmpltDesc ?: ''}"></span>
+        </span>
+        <span class="qr_tmplt_meta">
+          <span class="qr_tmplt_method" th:text="${t.mthTypeCd ?: ''}"></span>
+          <span class="qr_tmplt_check">&#10003; 선택됨</span>
+        </span>
+      </button>
+      <p id="qrTmpltEmptyMsg" class="qr_no_params qr_hide">등록된 템플릿이 없습니다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 저장 확인 팝업 (공통 컴포넌트, 퍼블_v15.0) — 등록 버튼은 바로 저장하지 않고 이 팝업을 먼저 띄운다.
+     [취소]는 화면을 그대로 유지하고, [등록]을 눌렀을 때만 실제 저장이 진행된다. -->
+<div id="qrConfirmModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal qr_modal_confirm" role="dialog" aria-modal="true" aria-labelledby="qrConfirmTitle">
+    <h3 class="qr_confirm_title" id="qrConfirmTitle">API를 등록할까요?</h3>
+    <p class="qr_confirm_msg">입력한 내용으로 API가 등록됩니다. 등록 후에도 상세 화면에서 수정할 수 있습니다.</p>
+    <div class="qr_confirm_acts">
+      <button type="button" class="qr_pill qr_pill_ghost" id="qrConfirmCancel">취소</button>
+      <button type="button" class="qr_pill qr_pill_accent" id="qrConfirmOk">등록</button>
     </div>
   </div>
 </div>

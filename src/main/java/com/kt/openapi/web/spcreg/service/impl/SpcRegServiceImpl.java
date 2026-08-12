@@ -41,4 +41,17 @@ public class SpcRegServiceImpl implements SpcRegService {
         LOG.debug(" 생성된 apiSpcNo ========== {} ", vo.getApiSpcNo());
         return vo.getApiSpcNo();
     }
+
+    @Override
+    public Map<String, Object> selSpcDetail(String apiSpcNo) {
+        return spcRegDAO.selSpcDetail(apiSpcNo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = { Exception.class })
+    public String updSpcReg(SpcRegVO vo) {
+        LOG.debug("####################### SpcRegServiceImpl updSpcReg START ############################");
+        spcRegDAO.updApiSpc(vo);
+        return vo.getApiSpcNo();
+    }
 }

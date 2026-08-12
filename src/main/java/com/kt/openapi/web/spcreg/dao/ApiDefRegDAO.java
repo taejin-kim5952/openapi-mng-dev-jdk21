@@ -18,11 +18,21 @@ import java.util.Map;
 @Mapper
 public interface ApiDefRegDAO {
 
-    /** 선택한 서비스(sysId)에 이미 등록된 API 목록 (좌측 참고 트리, 읽기 전용) */
-    List<Map<String, Object>> selSysApiTree(String sysId);
+    /** 이 그룹(apiSpcNo)에 이미 등록된 API 목록 (좌측 트리 - 클릭하면 수정 로드) */
+    List<Map<String, Object>> selDefListByApiSpcNo(String apiSpcNo);
 
     /** apiSpcNo 1건의 그룹 정보(sysId/host/basPath 등) - 화면 진입 시 유효성 검증 + 컨텍스트 조회용 */
     Map<String, Object> selSpcByNo(String apiSpcNo);
+
+    /** API(DEF) 1건의 전체 상세(기본 정보+고급 설정) - 기존 API를 폼에 불러올 때 */
+    Map<String, Object> selApiDefDetail(String apiNo);
+
+    /** API(DEF) 1건의 파라미터 목록(입력/Query/출력) - 기존 API를 폼에 불러올 때 */
+    List<Map<String, Object>> selParamListByApiNo(String apiNo);
+
+    /** 템플릿 선택 팝업용 목록 (KOA_TB_API_QUICK_TMPLT, 사용중인 것만). quickApiReg가 쓰는 것과
+        같은 테이블이지만, 화면 독립 원칙에 따라 이 화면 전용으로 별도 조회한다. */
+    List<Map<String, Object>> selTmpltList();
 
     /** 선택한 apiSpcNo에 이미 있는 첫 카테고리 조회 (없으면 null - 그 그룹의 첫 API라는 뜻) */
     String selDefaultCtgryBySpc(String apiSpcNo);
@@ -32,6 +42,12 @@ public interface ApiDefRegDAO {
 
     /** KOA_TB_API_DEF 등록 (생성된 PK는 selectKey로 vo.apiNo에 채워짐) */
     int savApiDef(ApiDefRegVO vo);
+
+    /** KOA_TB_API_DEF 수정 (기존 API를 폼에서 불러와 다시 저장할 때) */
+    int updApiDef(ApiDefRegVO vo);
+
+    /** 이 API의 입력/출력 파라미터 삭제 (수정 시 재구성 전 기존 값 정리) */
+    int delParamsByApiNo(String apiNo);
 
     /** KOA_TB_API_PARAM 등록 (파라미터 1건, Map: apiNo/paramNm/dataTypeCd/required/paramDesc/sortOdrg/regr) */
     int savApiParam(Map<String, Object> params);

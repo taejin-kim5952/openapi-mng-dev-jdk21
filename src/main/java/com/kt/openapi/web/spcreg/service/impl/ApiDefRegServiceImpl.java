@@ -32,8 +32,8 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
     private ApiDefRegDAO apiDefRegDAO;
 
     @Override
-    public List<Map<String, Object>> selSysApiTree(String sysId) {
-        return apiDefRegDAO.selSysApiTree(sysId);
+    public List<Map<String, Object>> selDefListByApiSpcNo(String apiSpcNo) {
+        return apiDefRegDAO.selDefListByApiSpcNo(apiSpcNo);
     }
 
     @Override
@@ -42,6 +42,25 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
             return null;
         }
         return apiDefRegDAO.selSpcByNo(apiSpcNo);
+    }
+
+    @Override
+    public Map<String, Object> selApiDefDetail(String apiNo) {
+        if (apiNo == null || apiNo.trim().isEmpty()) {
+            return null;
+        }
+        Map<String, Object> def = apiDefRegDAO.selApiDefDetail(apiNo);
+        if (def == null) {
+            return null;
+        }
+        Map<String, Object> result = new HashMap<>(def);
+        result.put("paramList", apiDefRegDAO.selParamListByApiNo(apiNo));
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> selTmpltList() {
+        return apiDefRegDAO.selTmpltList();
     }
 
     @Override
@@ -64,6 +83,19 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
         LOG.debug(" 생성된 apiNo ========== {} ", vo.getApiNo());
 
         savParamTree(vo.getParamList(), vo.getApiNo(), vo.getRegr());
+
+        return vo.getApiSpcNo();
+    }
+
+    @Override
+    @Transactional(rollbackFor = { Exception.class })
+    public String updApiDefReg(ApiDefRegVO vo) {
+        LOG.debug("####################### ApiDefRegServiceImpl updApiDefReg START ############################");
+        LOG.debug(" 대상 apiNo(기존 API) ========== {} ", vo.getApiNo());
+
+        apiDefRegDAO.updApiDef(vo);
+        apiDefRegDAO.delParamsByApiNo(vo.getApiNo());
+        savParamTree(vo.getParamList(), vo.getApiNo(), vo.getAmdr());
 
         return vo.getApiSpcNo();
     }

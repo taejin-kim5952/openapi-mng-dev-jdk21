@@ -21,4 +21,10 @@ public interface SpcRegDAO {
 
     /** KOA_TB_API_SPC 등록 (생성된 PK는 selectKey로 vo.apiSpcNo에 채워짐) */
     int savApiSpc(SpcRegVO vo);
+
+    /** 그룹 정보 수정 화면에 불러올 SPC 1건의 전체 상세 */
+    Map<String, Object> selSpcDetail(String apiSpcNo);
+
+    /** KOA_TB_API_SPC 수정 */
+    int updApiSpc(SpcRegVO vo);
 }

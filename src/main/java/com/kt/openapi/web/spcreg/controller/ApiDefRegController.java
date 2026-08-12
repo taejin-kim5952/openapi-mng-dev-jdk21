@@ -90,24 +90,41 @@ public class ApiDefRegController {
         mv.addObject("dataTypeList", cmnService.selComnList("DATTYP1000"));
         mv.addObject("apiHandlerList", cmnService.selComnList("APIHDR1000"));
         mv.addObject("piiList", cmnService.selComnList("PIICLS1000"));
+        mv.addObject("tmpltList", apiDefRegService.selTmpltList());
 
         return mv;
     }
 
-    /** 선택한 서비스에 이미 등록된 API 목록 (좌측 참고 트리) AJAX 조회 */
+    /** 이 그룹(apiSpcNo)에 이미 등록된 API 목록 (좌측 트리) AJAX 조회 - 클릭하면 selApiDefDetailAjax로 불러온다 */
     @ResponseBody
-    @RequestMapping(value = "/selSysApiTreeAjax.do")
-    public ModelAndView selSysApiTreeAjax(String sysId) throws Exception {
+    @RequestMapping(value = "/selDefListByApiSpcNoAjax.do")
+    public ModelAndView selDefListByApiSpcNoAjax(String apiSpcNo) throws Exception {
         ModelAndView mv = new ModelAndView("jsonView");
-        if (sysId == null || sysId.trim().isEmpty()) {
+        if (apiSpcNo == null || apiSpcNo.trim().isEmpty()) {
             mv.addObject("list", java.util.Collections.emptyList());
             return mv;
         }
-        mv.addObject("list", apiDefRegService.selSysApiTree(sysId));
+        mv.addObject("list", apiDefRegService.selDefListByApiSpcNo(apiSpcNo));
         return mv;
     }
 
-    /** API(DEF) 등록 저장 (카테고리 재사용/최초생성+Path/Method+파라미터를 한 번에 저장) */
+    /** API(DEF) 1건의 상세+파라미터 조회 - 좌측 트리에서 기존 API 클릭 시 폼에 그대로 불러오기 위함 */
+    @ResponseBody
+    @RequestMapping(value = "/selApiDefDetailAjax.do")
+    public ModelAndView selApiDefDetailAjax(String apiNo) throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+        Map<String, Object> detail = apiDefRegService.selApiDefDetail(apiNo);
+        if (detail == null) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "해당 API를 찾을 수 없습니다.");
+            return mv;
+        }
+        mv.addObject("returnCode", "1");
+        mv.addObject("def", detail);
+        return mv;
+    }
+
+    /** API(DEF) 등록/수정 저장 - apiNo가 넘어오면 수정, 없으면 신규 등록(카테고리 재사용/최초생성 포함) */
     @ResponseBody
     @RequestMapping(value = "/savApiDefRegAjax.do")
     public ModelAndView savApiDefRegAjax(HttpSession session, ApiDefRegVO vo) throws Exception {
@@ -141,10 +158,13 @@ public class ApiDefRegController {
             vo.setProviderSeq(null);
         }
 
+        boolean isEdit = vo.getApiNo() != null && !vo.getApiNo().trim().isEmpty();
+
         try {
-            String apiSpcNo = apiDefRegService.savApiDefReg(vo);
+            String apiSpcNo = isEdit ? apiDefRegService.updApiDefReg(vo) : apiDefRegService.savApiDefReg(vo);
             mv.addObject("returnCode", "1");
             mv.addObject("apiSpcNo", apiSpcNo);
+            mv.addObject("apiNo", vo.getApiNo());
         } catch (Exception e) {
             LOG.error("savApiDefRegAjax error", e);
             mv.addObject("returnCode", "0");

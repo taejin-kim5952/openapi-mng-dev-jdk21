@@ -38,6 +38,23 @@ public class ApiDefRegVO {
     private String apiHandlerCd;  // Private 전용, APIHDR1000 comn_cd
     private String providerSeq;
 
+    // 고급 설정(선택) - 엔드포인트/게이트웨이, 응답매핑, HDP 연동. simpleView(간단 상세)의
+    // updDefDetail이 쓰는 것과 동일한 KOA_TB_API_DEF 컬럼을 등록 시점에 같이 채운다.
+    private String endpntTbUrl;
+    private String endpntPrdUrl;
+    private String endpntClientIp;
+    private String endpntTimeout;
+    private String resmapResCdField;
+    private String resmapSuccVal;
+    private String resmapErrCdField;
+    private String resmapErrMsgField;
+    private String hdpApiEndpointId;
+    private String hdpReqApiName;
+    private String hdpApiOutFormat;
+    private String hdpApiOutCommonParam;
+    private String hdpReqMappingToBody;
+    private String hdpResMappingToBody;
+
     // 파라미터 목록 (KOA_TB_API_PARAM)
     private List<ApiDefParamVO> paramList;
 
