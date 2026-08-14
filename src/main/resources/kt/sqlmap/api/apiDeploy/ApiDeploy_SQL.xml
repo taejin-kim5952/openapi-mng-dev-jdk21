@@ -160,14 +160,17 @@
                 <if test="searchSpc != null and searchSpc != ''">
                     AND SPC.API_SPC_NO = #{searchSpc}
                 </if>
-                <if test="stDate != null and stDate != ''">
+                <!-- stDate/endDate는 ApiDeploySearchVo에서 java.util.Date라 ''(빈 문자열)와 비교하면
+                     OGNL이 "invalid comparison: java.util.Date and java.lang.String"으로 죽는다 -
+                     null 체크만으로 충분하다(빈 문자열이 들어올 여지가 없는 타입). -->
+                <if test="stDate != null">
                     AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
                 </if>
-                <if test="endDate != null and endDate != ''">
+                <if test="endDate != null">
                     AND DEPLOY_PROC.REG_DT &lt; #{endDate}
                 </if>
                 <if test="searchKeyword != null and searchKeyword != ''">
-                     AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+                     AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%')
                 </if>
                 <if test="seq != null and seq != 0">
                     AND SEQ = #{seq}
@@ -175,7 +178,7 @@
                 <!-- OGNL에서 'Y'(char)와 String 비교 시 NumberFormatException 발생, "Y"(String)로 변경 -->
                 <if test='observerYn != "Y"'>
                     <if test="authSysIdList != null and authSysIdList.size() > 0">
-                        AND APISYSTEM.SYS_ID IN 
+                        AND APISYSTEM.SYS_ID IN
                         <foreach item="item" index="index" collection="authSysIdList" open="(" separator="," close=")">
                             #{item}
                         </foreach>
@@ -186,7 +189,7 @@
                 </if>
         <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
     </select>
-    
+
     <!-- 목록 개수 -->
     <select id="selApiDeployListCnt" parameterType="com.kt.openapi.web.apiDeploy.vo.ApiDeploySearchVo" resultType="int">
         /* com.kt.openapi.web.apiDeploy.dao.ApiDeployDAO.selDeployListCnt */ 
@@ -212,14 +215,14 @@
         <if test="searchSpc != null and searchSpc != ''">
             AND SPC.API_SPC_NO = #{searchSpc}
         </if>
-        <if test="stDate != null and stDate != ''">
+        <if test="stDate != null">
             AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
         </if>
-        <if test="endDate != null and endDate != ''">
+        <if test="endDate != null">
             AND DEPLOY_PROC.REG_DT &lt; #{endDate}
         </if>
         <if test="searchKeyword != null and searchKeyword != ''">
-             AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%') 
+             AND UPPER(DEF.API_NM) LIKE CONCAT('%' , UPPER(#{searchKeyword}) , '%')
         </if>
         <if test="seq != null and seq != 0">
             AND SEQ = #{seq}
@@ -227,7 +230,7 @@
         <!-- OGNL에서 'Y'(char)와 String 비교 시 NumberFormatException 발생, "Y"(String)로 변경 -->
         <if test='observerYn != "Y"'>
             <if test="authSysIdList != null and authSysIdList.size() > 0">
-                AND APISYSTEM.SYS_ID IN 
+                AND APISYSTEM.SYS_ID IN
                 <foreach item="item" index="index" collection="authSysIdList" open="(" separator="," close=")">
                     #{item}
                 </foreach>
@@ -281,10 +284,10 @@
                 <if test="searchSystem != null and searchSystem != ''">
                     AND APISYSTEM.SYS_ID = #{searchSystem}
                 </if>
-                <if test="stDate != null and stDate != ''">
+                <if test="stDate != null">
                     AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
                 </if>
-                <if test="endDate != null and endDate != ''">
+                <if test="endDate != null">
                     AND DEPLOY_PROC.REG_DT &lt; #{endDate}
                 </if>
                 <if test="searchKeyword != null and searchKeyword != ''">
@@ -319,10 +322,10 @@
             <if test="searchSystem != null and searchSystem != ''">
                 AND APISYSTEM.SYS_ID = #{searchSystem}
             </if>
-            <if test="stDate != null and stDate != ''">
+            <if test="stDate != null">
                 AND DEPLOY_PROC.REG_DT &gt;= #{stDate}
             </if>
-            <if test="endDate != null and endDate != ''">
+            <if test="endDate != null">
                 AND DEPLOY_PROC.REG_DT &lt; #{endDate}
             </if>
             <if test="searchKeyword != null and searchKeyword != ''">
@@ -533,10 +536,10 @@
                 <if test="searchSystem != null and searchSystem != ''">
                     AND APISYSTEM.SYS_ID = #{searchSystem}
                 </if>
-                <if test="stDate != null and stDate != ''">
+                <if test="stDate != null">
                     AND DEPLOY_HST.DEPLOY_DATE &gt;= #{stDate}
                 </if>
-                <if test="endDate != null and endDate != ''">
+                <if test="endDate != null">
                     AND DEPLOY_HST.DEPLOY_DATE &lt; #{endDate}
                 </if>
         <include refid="com.kt.openapi.web.cmm.dao.CmnDAO.pageSuffix" />
@@ -564,10 +567,10 @@
                 <if test="searchSystem != null and searchSystem != ''">
                     AND APISYSTEM.SYS_ID = #{searchSystem}
                 </if>
-                <if test="stDate != null and stDate != ''">
+                <if test="stDate != null">
                     AND DEPLOY_HST.DEPLOY_DATE &gt;= #{stDate}
                 </if>
-                <if test="endDate != null and endDate != ''">
+                <if test="endDate != null">
                     AND DEPLOY_HST.DEPLOY_DATE &lt; #{endDate}
                 </if>
     </select>

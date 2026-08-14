@@ -137,6 +137,10 @@ function qrParseOasYaml(yamlText) {
   result.methodNm = firstMethod.toUpperCase();
   if (!result.apiNm) { result.apiNm = op.summary; }
   if (!result.apiDesc) { result.apiDesc = op.description; }
+  // x-def-fields: API 등록 화면(apiDefReg.js)의 "기본 정보"/"고급 설정" 폼 필드(autId, endpntTbUrl,
+  // resmapResCdField 등)에 템플릿 적용 시 자동으로 채워질 기본값. id:value 맵을 그대로 담는
+  // OAS vendor extension이라 형식 검증 없이 객체로만 받아둔다(적용 쪽에서 존재하는 필드만 채움).
+  result.fieldDefaults = (op['x-def-fields'] && typeof op['x-def-fields'] === 'object') ? op['x-def-fields'] : {};
 
   result.multiplePaths = (pathKeys.length > 1) || (methodKeys.length > 1);
 
@@ -147,6 +151,32 @@ function qrParseOasYaml(yamlText) {
   }
 
   return result;
+}
+
+// OAS object 스키마(properties/required)를 params 배열([{name,type,required,desc,exam}])로 평탄화한다.
+// qrParamsToSchema(quickRegShared.js)의 역방향 - 1단계 속성만 다룬다(중첩 객체 미지원, 클래스 상단 주석 참고).
+function qrSchemaToParams(schema) {
+  schema = schema || {};
+  var props = schema.properties || {};
+  var required = schema.required || [];
+  return Object.keys(props).map(function (key) {
+    var prop = props[key] || {};
+    var item = {
+      name: key,
+      type: QR_TYPE_TO_DATTYP[prop.type] || 'DATTYP1010',
+      required: required.indexOf(key) > -1 ? 'Y' : 'N',
+      desc: prop.description || ''
+    };
+    if (prop.example) { item.exam = prop.example; }
+    return item;
+  });
+}
+
+// responses의 200(없으면 default) 응답의 application/json 스키마를 outParams로 뽑아낸다.
+function qrExtractOutParams(responses) {
+  var okResp = (responses || {})['200'] || (responses || {}).default;
+  var jsonContent = okResp && okResp.content && okResp.content['application/json'];
+  return jsonContent ? qrSchemaToParams(jsonContent.schema) : [];
 }
 
 function qrExtractOas3Params(op, result) {
@@ -164,38 +194,18 @@ function qrExtractOas3Params(op, result) {
     var jsonContent = op.requestBody.content['application/json'];
     if (jsonContent) {
       result.cntTypeCd = 'CNTTYP1010';
-      var schema = jsonContent.schema || {};
-      var props = schema.properties || {};
-      var required = schema.required || [];
-      Object.keys(props).forEach(function (key) {
-        var prop = props[key] || {};
-        result.params.push({
-          name: key,
-          type: QR_TYPE_TO_DATTYP[prop.type] || 'DATTYP1010',
-          required: required.indexOf(key) > -1 ? 'Y' : 'N',
-          desc: prop.description || ''
-        });
-      });
+      result.params = result.params.concat(qrSchemaToParams(jsonContent.schema));
     }
   }
+
+  result.outParams = qrExtractOutParams(op.responses);
 }
 
 function qrExtractSwagger2Params(doc, op, result) {
   (op.parameters || []).forEach(function (p) {
     if (p.in === 'body') {
       result.cntTypeCd = 'CNTTYP1010';
-      var schema = qrResolveSwagger2Ref(doc, p.schema || {});
-      var props = schema.properties || {};
-      var required = schema.required || [];
-      Object.keys(props).forEach(function (key) {
-        var prop = props[key] || {};
-        result.params.push({
-          name: key,
-          type: QR_TYPE_TO_DATTYP[prop.type] || 'DATTYP1010',
-          required: required.indexOf(key) > -1 ? 'Y' : 'N',
-          desc: prop.description || ''
-        });
-      });
+      result.params = result.params.concat(qrSchemaToParams(qrResolveSwagger2Ref(doc, p.schema || {})));
       return;
     }
     if (p.in === 'formData' && !result.cntTypeCd) {
@@ -212,6 +222,9 @@ function qrExtractSwagger2Params(doc, op, result) {
   if (!result.cntTypeCd && op.consumes && op.consumes.indexOf('application/json') > -1) {
     result.cntTypeCd = 'CNTTYP1010';
   }
+
+  var okResp = (op.responses || {})['200'];
+  result.outParams = okResp ? qrSchemaToParams(qrResolveSwagger2Ref(doc, okResp.schema || {})) : [];
 }
 
 // OAS2 문서 내 최상위 $ref(예: '#/definitions/Foo')만 따라간다(중첩/외부 참조 미지원).
@@ -226,29 +239,54 @@ function qrResolveSwagger2Ref(doc, schema) {
 }
 
 /**
- * qrParseOasYaml의 역방향: 이미 저장된 필드(이름/설명/Path/Method/Content-Type/파라미터)로부터
+ * 파라미터 배열을 OAS object 스키마(properties/required)로 변환한다.
+ * params: [{name, type(DATTYP comnCd), required('Y'/'N'), desc, exam}]
+ */
+function qrParamsToSchema(params) {
+  var props = {};
+  var required = [];
+  (params || []).forEach(function (p) {
+    var prop = { type: QR_DATTYP_TO_TYPE[p.type] || 'string', description: p.desc || '' };
+    if (p.exam) { prop.example = p.exam; }
+    props[p.name] = prop;
+    if (p.required === 'Y') { required.push(p.name); }
+  });
+  return { type: 'object', properties: props, required: required };
+}
+
+/**
+ * qrParseOasYaml의 역방향: 이미 저장된 필드(이름/설명/Path/Method/Content-Type/요청·응답 파라미터)로부터
  * OAS 3.0 YAML 문서를 재구성한다. tmpltYaml 없이 만들어진 옛날 템플릿(dflt_param_json 기반)을
  * YAML 에디터로 열었을 때 빈 화면 대신 값을 보여주기 위한 용도.
- * params: [{name, type(DATTYP comnCd), required('Y'/'N'), desc}]
+ * opt: {
+ *   params/outParams: [{name, type(DATTYP comnCd), required('Y'/'N'), desc, exam}],
+ *   fieldDefaults: API 등록 폼 id:value 맵(x-def-fields) - 있으면 그대로 다시 내보낸다.
+ * }
  */
-function qrBuildOasYaml(apiNm, apiDesc, apiPath, methodNm, cntTypeCd, params) {
+function qrBuildOasYaml(apiNm, apiDesc, apiPath, methodNm, cntTypeCd, opt) {
+  opt = opt || {};
   var methodLower = (methodNm || 'get').toLowerCase();
   var hasBody = ['post', 'put', 'patch'].indexOf(methodLower) > -1;
 
   var op = { summary: apiNm || '', description: apiDesc || '' };
 
   if (hasBody) {
-    var props = {};
-    var required = [];
-    (params || []).forEach(function (p) {
-      props[p.name] = { type: QR_DATTYP_TO_TYPE[p.type] || 'string', description: p.desc || '' };
-      if (p.required === 'Y') { required.push(p.name); }
-    });
-    op.requestBody = { content: { 'application/json': { schema: { type: 'object', properties: props, required: required } } } };
+    op.requestBody = { content: { 'application/json': { schema: qrParamsToSchema(opt.params) } } };
   } else {
-    op.parameters = (params || []).map(function (p) {
+    op.parameters = (opt.params || []).map(function (p) {
       return { name: p.name, in: 'query', required: p.required === 'Y', description: p.desc || '', schema: { type: QR_DATTYP_TO_TYPE[p.type] || 'string' } };
     });
+  }
+
+  op.responses = {
+    '200': {
+      description: '성공',
+      content: { 'application/json': { schema: qrParamsToSchema(opt.outParams) } }
+    }
+  };
+
+  if (opt.fieldDefaults && Object.keys(opt.fieldDefaults).length > 0) {
+    op['x-def-fields'] = opt.fieldDefaults;
   }
 
   var doc = { openapi: '3.0.3', info: { title: apiNm || '', description: apiDesc || '', version: '1.0' }, paths: {} };

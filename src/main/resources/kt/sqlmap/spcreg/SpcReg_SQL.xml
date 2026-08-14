@@ -23,7 +23,11 @@
     ORDER BY s.API_SPC_NO, d.SORT_ODRG
   </select>
 
-  <!-- KOA_TB_API_SPC 등록 -->
+  <!-- KOA_TB_API_SPC 등록. YAML_FILE_PATH/YAML_FILE_NM은 DB에 NOT NULL이라 계속 더미 값을 넣지만
+       (물리 파일은 실제로 만들지 않음 - 이 프로젝트는 파일 기반 YAML 저장을 쓰지 않기로 확정),
+       YAML 원문은 YAML_SBST 컬럼에 그대로 저장한다("YAML 등록"으로 만든 그룹만 값이 있고, 직접입력
+       으로 만든 그룹은 NULL - 이 컬럼은 nullable). 규격서 조회/외부 api.json/Swagger 에디터가 전부
+       이 컬럼만 보므로, 여기 채워 넣는 것만으로 기존 소비자들과 바로 호환된다. -->
   <insert id="savApiSpc" parameterType="com.kt.openapi.web.spcreg.vo.SpcRegVO">
     /* spcReg.savApiSpc */
     <selectKey keyProperty="apiSpcNo" resultType="String" order="AFTER">
@@ -42,6 +46,7 @@
       ,BAS_PATH
       ,YAML_FILE_PATH
       ,YAML_FILE_NM
+      ,YAML_SBST
       ,REG_STTUS_CD
       ,REG_DT
       ,REGR
@@ -66,6 +71,7 @@
       ,#{basPath}
       ,'/spcreg'
       ,CONCAT(#{apiNm}::text, '.yaml')
+      ,NULLIF(#{yamlSbst}, '')
       ,'APIREG1020'
       ,NOW()
       ,#{regr}

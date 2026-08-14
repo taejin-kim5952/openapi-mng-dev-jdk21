@@ -6,6 +6,9 @@
 
 var g_def_paramScope = 'in'; // 파라미터 미리보기에서 현재 활성 탭(설계 버튼이 어느 스코프를 열지 결정)
 var g_def_origHeadSub = ''; // "OOO 그룹에 API를 추가합니다" 원래 문구 - 수정 모드에서 나갈 때 복원용
+var g_def_loadedApiVer = ''; // defFillFormFromDetail로 불러온 API의 현재 버전(예: v1.0, 없으면 '')
+var g_def_loadedApiVerNo = ''; // 그 API의 버전 패밀리 키 - 버전업 시 새 API가 이 값을 그대로 물려받는다
+var g_def_bstTarget = 'tb'; // BEAST 시스템 선택 팝업이 지금 채우려는 필드('tb' 또는 'prd')
 
 $(document).ready(function () {
   g_def_origHeadSub = $('#defHeadSub').html();
@@ -69,6 +72,29 @@ $(document).ready(function () {
      이 화면 방식(클릭 한 번으로 즉시 반영)으로 재구현. */
   $('#defBtnOpenProviderModal').on('click', defOpenProviderModal);
   $('#qrProviderModalClose').on('click', function () { $('#qrProviderModal').addClass('qr_hide'); });
+
+  /* API ID - 중복검사/신규 발급. 입력값이 바뀌면 이전에 보여준 중복 안내 문구는 지운다(다시
+     확인해야 하므로). 최종 저장 시점에도 한 번 더 검사한다(defOnSaveClick, 버튼을 안 눌렀을 수 있어서). */
+  $('#apiId').on('input', function () {
+    $(this).removeClass('qr_input_err');
+    $('#apiIdErr').removeClass('qr_show');
+    $('#defApiIdHint').css('color', '').text('예시: OIF_00001 (한글/공백 불가, 시스템 전체에서 유일해야 함)');
+  });
+  $('#defBtnApiIdChk').on('click', function () { defCheckApiId(true); });
+  $('#defBtnNextApiId').on('click', defFillNextApiId);
+
+  /* API 버전업 - Path에 v1.0 같은 세그먼트가 있는 기존 API를 불러왔을 때만 버튼이 보인다
+     (defFillFormFromDetail). 팝업에서 새 버전 문자열만 받아 defApplyVerUp()이 처리한다. */
+  $('#defBtnVerUp').on('click', defOpenVerUpModal);
+  $('#defVerUpCancel').on('click', function () { $('#defVerUpModal').addClass('qr_hide'); });
+  $('#defVerUpOk').on('click', defApplyVerUp);
+
+  /* BEAST G/W 시스템 선택 (그룹이 BEAST를 쓸 때만 이 필드/버튼 자체가 렌더링됨 - th:if) */
+  $('#defBstSysModalClose').on('click', function () { $('#defBstSysModal').addClass('qr_hide'); });
+  $('#defBstSearchBtn').on('click', defSearchBstSys);
+  $('#defBstSearchSysId, #defBstSearchSysNm').on('keypress', function (e) {
+    if (e.which === 13) { defSearchBstSys(); }
+  });
 
   /* 저장 확인 팝업(퍼블_v15.0) — 검증을 통과해도 바로 저장하지 않고 팝업을 먼저 띄운다.
      [취소]는 팝업만 닫고, [등록]을 눌러야 실제 defDoSave()가 실행된다. */
@@ -170,7 +196,14 @@ function defLoadApiForEdit(apiNo) {
 
 function defFillFormFromDetail(def) {
   $('#editApiNo').val(def.apiNo);
+  $('#defPendingApiVerNo').val(''); // 기존 API를 그냥 불러온 것뿐 - 버전업 진행 중 상태는 아니다
 
+  g_def_loadedApiVer = def.apiVer || '';
+  g_def_loadedApiVerNo = def.apiVerNo || '';
+  $('#defBtnVerUp').toggleClass('qr_hide', !defIsVersionInPath(def.apiPath));
+
+  $('#apiId').val(def.apiId || '');
+  $('#apiId, #apiIdErr').removeClass('qr_input_err qr_show');
   $('#apiNm').val(def.apiNm || '');
   $('#apiDesc').val(def.apiDesc || '');
   $('#apiPath').val(def.apiPath || '');
@@ -178,6 +211,10 @@ function defFillFormFromDetail(def) {
   $('input[name="apiClass"][value="' + def.apiClass + '"]').prop('checked', true);
   $('#apiHandlerCd').val(def.apiHandlerCd || '');
   $('#providerSeq').val(def.providerSeq || '');
+  $('#useYn').val(def.useYn || 'Y');
+  $('#guideGubun').val(def.guideGubun || '');
+  $('#sandboxYn').val(def.sandboxYn || 'N');
+  $('#endpntMethodCd').val(def.endpntMethodCd || '');
   $('#providerNmDisp').val(def.providerSeq ? defProviderNmBySeq(def.providerSeq) : '');
   defOnApiClassChange();
   defSyncFullPath();
@@ -197,6 +234,12 @@ function defFillFormFromDetail(def) {
   $('#hdpReqMappingToBody').val(def.hdpReqMappingToBody || '');
   $('#hdpResMappingToBody').val(def.hdpResMappingToBody || '');
 
+  // BEAST 필드는 그룹이 BEAST를 안 쓰면 DOM에 아예 없다(th:if) - 있을 때만 채운다. 시스템명은
+  // DB에 저장 안 하므로(ID만 저장) 힌트는 비워둔다(다시 선택해야 이름이 다시 보임).
+  $('#bstgwTbSysId').val(def.bstgwTbSysId || '');
+  $('#bstgwPrdSysId').val(def.bstgwPrdSysId || '');
+  $('#bstgwTbSysNmHint, #bstgwPrdSysNmHint').text('');
+
   // 파라미터: 스코프별로 필터링해서 PT_STORE를 다시 구성(ptBuildTree는 flat row -> 중첩 트리)
   var rows = def.paramList || [];
   PT_STORE['in'] = ptBuildTree(rows.filter(function (r) { return r.paramTypeCd === 'PRMTYP1010' && r.paramLoc !== 'query'; }));
@@ -210,8 +253,13 @@ function defFillFormFromDetail(def) {
 
 function defResetToCreate() {
   $('#editApiNo').val('');
+  $('#defPendingApiVerNo').val('');
+  $('#defBtnVerUp').addClass('qr_hide');
+  g_def_loadedApiVer = ''; g_def_loadedApiVerNo = '';
   $('#defRegForm')[0].reset();
   $('#apiHandlerCd, #providerSeq, #providerNmDisp').val('');
+  $('#apiId, #apiIdErr').removeClass('qr_input_err qr_show');
+  $('#bstgwTbSysNmHint, #bstgwPrdSysNmHint').text('');
   defOnMethodChange();
   defOnApiClassChange();
   defSyncFullPath();
@@ -222,6 +270,118 @@ function defResetToCreate() {
 
   $('#defLeftTree .qr_lt_api').removeClass('qr_on');
   defSetEditMode(false);
+}
+
+/* ---------------- API 버전업 ---------------- */
+
+/* 기존 등록 마법사 KsmUtil.fmt_data(path, "fmt_version_in_path")/fn_is_version_in_path와 동일한
+   패턴 - Path의 두 번째 세그먼트가 v1.0 같은 형태일 때만 버전업 대상으로 본다. */
+function defIsVersionInPath(path) {
+  return /^(\/[\w\-.]+)\/(v\d+\.\d+)(\/[\w\-./]+)$/.test($.trim(path || ''));
+}
+function defReplaceVersionInPath(path, newVer) {
+  return $.trim(path).replace(/^(\/[\w\-.]+)\/(v\d+\.\d+)(\/[\w\-./]+)$/, '$1/' + newVer + '$3');
+}
+
+function defOpenVerUpModal() {
+  $('#defVerUpCur').val(g_def_loadedApiVer || '(알 수 없음)');
+  $('#defVerUpNew').val('');
+  $('#defVerUpNew, #defVerUpErr').removeClass('qr_input_err qr_show');
+  $('#defVerUpModal').removeClass('qr_hide');
+}
+
+/* [새 버전 만들기] 클릭 시: 새 버전 문자열을 검증하고, Path의 버전 세그먼트만 바꾼 뒤,
+   폼을 "새 API 추가" 상태로 전환한다(editApiNo 비움) - 나머지 필드는 지금 값을 그대로 이어받는다.
+   defPendingApiVerNo에 원본의 버전 패밀리 키를 담아두면, 저장 시 새 API가 그 패밀리에 합류한다. */
+function defApplyVerUp() {
+  var newVer = $.trim($('#defVerUpNew').val());
+  var isValidFormat = /^v\d+\.\d+$/.test(newVer);
+  $('#defVerUpNew, #defVerUpErr').removeClass('qr_input_err qr_show');
+
+  if (!newVer || !isValidFormat || newVer === g_def_loadedApiVer) {
+    $('#defVerUpNew').addClass('qr_input_err');
+    $('#defVerUpErr').addClass('qr_show');
+    return;
+  }
+
+  var origPath = $('#apiPath').val();
+  var newPath = defReplaceVersionInPath(origPath, newVer);
+
+  // 버전 패밀리 키: 원본이 이미 어딘가에 속해 있으면(g_def_loadedApiVerNo) 그걸 물려받고,
+  // 없으면(0 또는 빈 값) 원본의 apiNo 자체가 그 패밀리의 시작점이므로 그걸 물려받는다.
+  var inheritVerNo = g_def_loadedApiVerNo && g_def_loadedApiVerNo !== '0' ? g_def_loadedApiVerNo : $('#editApiNo').val();
+
+  $('#apiPath').val(newPath).trigger('input');
+  $('#editApiNo').val('');
+  $('#defPendingApiVerNo').val(inheritVerNo);
+  $('#defBtnVerUp').addClass('qr_hide');
+  $('#defLeftTree .qr_lt_api').removeClass('qr_on');
+
+  defSetEditMode(false);
+  $('#defHeadTitle').text('API 버전업');
+  $('#defHeadSub').html('<b>' + defEsc(g_def_loadedApiVer || '') + ' → ' + defEsc(newVer) + '</b>로 새 API를 만듭니다. 내용을 확인하고 저장하세요.');
+
+  $('#defVerUpModal').addClass('qr_hide');
+}
+
+/* ---------------- BEAST G/W 시스템 선택 ---------------- */
+
+function defOpenBstSysModal(target) {
+  g_def_bstTarget = target; // 'tb' 또는 'prd'
+  $('#defBstSysModalTitle').text(target === 'prd' ? '상용 G/W 시스템 선택' : 'TB G/W 시스템 선택');
+  $('#defBstSearchSysId, #defBstSearchSysNm').val('');
+  $('input[name="defBstPlatform"][value="KTC"]').prop('checked', true);
+  $('#defBstSysGrid').html('<p id="defBstSysEmptyMsg" class="qr_no_params">검색 조건을 입력하고 [검색]을 눌러주세요.</p>');
+  $('#defBstSysModal').removeClass('qr_hide');
+}
+
+function defSearchBstSys() {
+  var platform = $('input[name="defBstPlatform"]:checked').val() || 'KTC';
+  var target = (g_def_bstTarget === 'prd' ? 'PRD' : 'TB') + '_' + platform;
+  var sysId = $.trim($('#defBstSearchSysId').val());
+  var sysNm = $.trim($('#defBstSearchSysNm').val());
+
+  $('#defBstSysGrid').html('<p class="qr_no_params">검색 중...</p>');
+  $.ajax({
+    url: c_url + 'api/spcreg/def/selBstSysListAjax.do',
+    type: 'GET',
+    data: { target: target, sysId: sysId, sysNm: sysNm },
+    dataType: 'json',
+    success: function (res) { defRenderBstSysList(res.list || []); },
+    error: function () { $('#defBstSysGrid').html('<p class="qr_no_params">검색 중 오류가 발생했습니다.</p>'); }
+  });
+}
+
+function defRenderBstSysList(list) {
+  var $grid = $('#defBstSysGrid');
+  if (!list || list.length === 0) {
+    $grid.html('<p class="qr_no_params">검색 결과가 없습니다.</p>');
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i];
+    html += '<button type="button" class="qr_tmplt_row" data-sys-id="' + defEsc(row.sysId) + '" data-sys-nm="' + defEsc(row.sysNm) + '" onclick="defSelectBstSys(this);">'
+      + '<span class="qr_tmplt_icon"></span>'
+      + '<span class="qr_tmplt_txt"><span class="qr_tmplt_nm">' + defEsc(row.sysId) + '</span><span class="qr_tmplt_desc">' + defEsc(row.sysNm) + '</span></span>'
+      + '<span class="qr_tmplt_meta"><span class="qr_tmplt_method">' + defEsc(row.edptAtribUrl || '') + '</span></span>'
+      + '</button>';
+  }
+  $grid.html(html);
+}
+
+function defSelectBstSys(el) {
+  var $el = $(el);
+  var sysId = $el.attr('data-sys-id');
+  var sysNm = $el.attr('data-sys-nm');
+  if (g_def_bstTarget === 'prd') {
+    $('#bstgwPrdSysId').val(sysId);
+    $('#bstgwPrdSysNmHint').text(sysNm ? ('선택됨: ' + sysNm) : '');
+  } else {
+    $('#bstgwTbSysId').val(sysId);
+    $('#bstgwTbSysNmHint').text(sysNm ? ('선택됨: ' + sysNm) : '');
+  }
+  $('#defBstSysModal').addClass('qr_hide');
 }
 
 function defSetEditMode(isEdit, apiNm) {
@@ -303,6 +463,7 @@ function defSelectTemplate(el) {
   var mthCd = $el.attr('data-mth-cd');
   var path = $el.attr('data-path');
   var paramsJson = $el.attr('data-params');
+  var fieldsJson = $el.attr('data-fields');
 
   g_def_selectedTmpltNm = tmpltNm;
 
@@ -327,7 +488,28 @@ function defSelectTemplate(el) {
   defFillWrapperKids(PT_STORE.out[0], outParams);
   ptRenderPreview('def', defRefreshSummary);
 
+  defApplyTmpltFieldDefaults(fieldsJson);
+
   $('#qrTmpltModal').addClass('qr_hide');
+}
+
+/* 템플릿의 dfltFieldJson(YAML의 x-def-fields 확장에서 파생)을 API 등록 폼에 반영한다.
+   API 이름/권한그룹/엔드포인트/고급설정 등 "기본 정보"+"고급 설정" 영역의 임의 필드를 대상으로 하며,
+   템플릿이 정의하지 않은(키가 없거나 빈 값인) 필드는 건드리지 않는다 - 특정 필드를 코드에 하드코딩하지
+   않고 폼의 id와 x-def-fields의 key를 그대로 매칭하는 범용 방식이라, 폼에 필드가 추가돼도 템플릿의
+   YAML만 고치면 바로 반영된다. */
+function defApplyTmpltFieldDefaults(fieldsJson) {
+  if (!fieldsJson) { return; }
+  var fieldDefaults = {};
+  try { fieldDefaults = JSON.parse(fieldsJson) || {}; } catch (e) { return; }
+
+  Object.keys(fieldDefaults).forEach(function (key) {
+    var val = fieldDefaults[key];
+    if (val === undefined || val === null || val === '') { return; }
+    var $field = $('#' + key);
+    if ($field.length === 0) { return; }
+    $field.val(val).trigger('change');
+  });
 }
 
 /* 템플릿의 파라미터 배열로 request/response 래퍼 노드의 하위 필드를 교체한다.
@@ -404,22 +586,96 @@ function defEsc(s) {
   });
 }
 
+/* ---------------- API ID 중복검사 / 신규 발급 ---------------- */
+
+/* 한글/공백은 기존 등록 마법사와 동일한 규칙으로 막는다. */
+function defApiIdFormatError(apiId) {
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(apiId)) { return 'API 아이디에는 한글이 들어갈 수 없습니다.'; }
+  if (/\s/.test(apiId)) { return 'API 아이디에는 공백이 들어갈 수 없습니다.'; }
+  return '';
+}
+
+/* interactive=true면 버튼을 직접 눌러서 확인하는 경우(알림창으로도 결과를 보여줌).
+   false면 저장 직전에 조용히 한 번 더 확인하는 경우(defOnSaveClick) - callback(dup)로만 결과 전달. */
+function defCheckApiId(interactive, callback) {
+  var apiId = $.trim($('#apiId').val());
+  if (!apiId) {
+    if (interactive) { alert_message('API ID를 먼저 입력해 주세요.'); }
+    if (callback) { callback(false); }
+    return;
+  }
+  var fmtErr = defApiIdFormatError(apiId);
+  if (fmtErr) {
+    $('#apiIdErr').text(fmtErr).addClass('qr_show');
+    $('#apiId').addClass('qr_input_err');
+    if (interactive) { alert_message(fmtErr); }
+    if (callback) { callback(true); }
+    return;
+  }
+  $.ajax({
+    url: c_url + 'api/spcreg/def/selApiIdChkAjax.do',
+    type: 'GET',
+    data: { apiId: apiId, apiNo: $('#editApiNo').val(), apiVerNo: $('#defPendingApiVerNo').val() },
+    dataType: 'json',
+    success: function (res) {
+      var dup = !!res.dup;
+      $('#apiId').toggleClass('qr_input_err', dup);
+      $('#apiIdErr').text('이미 사용 중인 API ID입니다.').toggleClass('qr_show', dup);
+      $('#defApiIdHint').css('color', dup ? 'var(--qr-danger)' : 'var(--qr-teal-dark)')
+        .text(dup ? '이미 사용 중인 API ID입니다.' : '사용 가능한 API ID입니다.');
+      if (interactive) { alert_message(dup ? '이미 사용 중인 API ID입니다.' : '사용 가능한 API ID입니다.'); }
+      if (callback) { callback(dup); }
+    },
+    error: function () {
+      if (interactive) { alert_message('중복 확인 중 오류가 발생했습니다.'); }
+      if (callback) { callback(false); }
+    }
+  });
+}
+
+function defFillNextApiId() {
+  $.ajax({
+    url: c_url + 'api/spcreg/def/selNextApiIdAjax.do',
+    type: 'GET',
+    dataType: 'json',
+    success: function (res) {
+      if (res.returnCode === '1' && res.nextApiId) {
+        $('#apiId').val(res.nextApiId).trigger('input');
+      } else {
+        alert_message('다음 API ID를 가져오지 못했습니다.');
+      }
+    },
+    error: function () { alert_message('다음 API ID를 가져오는 중 오류가 발생했습니다.'); }
+  });
+}
+
 /* ---------------- 저장 ---------------- */
 
-/* "등록하기" 클릭 시: 검증만 하고 통과하면 저장 확인 팝업을 띄운다. 실제 저장은 defDoSave()에서. */
+/* "등록하기" 클릭 시: 검증만 하고 통과하면 저장 확인 팝업을 띄운다. API ID는 저장 직전에 한 번 더
+   조용히 중복 확인한다("중복검사" 버튼을 안 눌렀을 수도 있어서). 실제 저장은 defDoSave()에서. */
 function defOnSaveClick() {
   var autId = $('#autId').val();
+  var apiId = $.trim($('#apiId').val());
   var apiNm = $('#apiNm').val();
   var apiPath = $('#apiPath').val();
   var endpntTbUrl = $('#endpntTbUrl').val();
   var endpntPrdUrl = $('#endpntPrdUrl').val();
 
   var hasErr = false;
-  $('#apiNmErr, #apiPathErr, #endpntTbUrlErr, #endpntPrdUrlErr').removeClass('qr_show');
-  $('#apiNm, #apiPath, #endpntTbUrl, #endpntPrdUrl').removeClass('qr_input_err');
+  $('#apiNmErr, #apiPathErr, #endpntTbUrlErr, #endpntPrdUrlErr, #apiIdErr').removeClass('qr_show');
+  $('#apiNm, #apiPath, #endpntTbUrl, #endpntPrdUrl, #apiId').removeClass('qr_input_err');
 
+  var apiIdFmtErr = apiId ? defApiIdFormatError(apiId) : '';
+  if (!apiId) {
+    $('#apiIdErr').text('API ID를 입력하세요.').addClass('qr_show'); $('#apiId').addClass('qr_input_err'); hasErr = true;
+  } else if (apiIdFmtErr) {
+    $('#apiIdErr').text(apiIdFmtErr).addClass('qr_show'); $('#apiId').addClass('qr_input_err'); hasErr = true;
+  }
   if (!apiNm) { $('#apiNmErr').addClass('qr_show'); $('#apiNm').addClass('qr_input_err'); hasErr = true; }
-  if (!apiPath || apiPath.charAt(0) !== '/') { $('#apiPathErr').addClass('qr_show'); $('#apiPath').addClass('qr_input_err'); hasErr = true; }
+  if (!apiPath || apiPath.charAt(0) !== '/') {
+    $('#apiPathErr').text('Path를 입력하세요. (/로 시작)').addClass('qr_show');
+    $('#apiPath').addClass('qr_input_err'); hasErr = true;
+  }
   if (!autId) { alert_message('권한그룹을 선택해 주세요.'); hasErr = true; }
   /* 배포 후 게이트웨이가 실제로 호출하는 주소라 필수값이다 - 고급 설정(선택)이 아니라 여기서 검증. */
   if (!$.trim(endpntTbUrl)) { $('#endpntTbUrlErr').addClass('qr_show'); $('#endpntTbUrl').addClass('qr_input_err'); hasErr = true; }
@@ -427,7 +683,39 @@ function defOnSaveClick() {
 
   if (hasErr) { return; }
 
-  $('#qrConfirmModal').removeClass('qr_hide');
+  defCheckApiId(false, function (apiIdDup) {
+    if (apiIdDup) { $('#apiId').focus(); return; }
+    defCheckPathMethodDup(function (pathDup) {
+      if (pathDup) { $('#apiPath').focus(); return; }
+      $('#qrConfirmModal').removeClass('qr_hide');
+    });
+  });
+}
+
+/* Method+Path 중복 체크 - 기존 등록 마법사가 쓰던 엔드포인트(/api/reg/salApijDupPathCheckAjax.do,
+   ApiRegController.salApijDupPathCheckAjax -> salApijDupPathCheck)를 그대로 재사용한다(그룹 이름
+   중복검사와 동일한 이유 - 새 규칙이 아니라 기존과 완전히 동일한 검사라 재구현하지 않기로 확정됨).
+   이 검사는 그룹 이름 중복검사와 달리 "경고만"이 아니라 저장을 막는다 - 같은 경로/메서드가
+   중복되면 실제 게이트웨이 라우팅이 깨지기 때문. */
+function defCheckPathMethodDup(callback) {
+  $.ajax({
+    url: c_url + 'api/reg/salApijDupPathCheckAjax.do',
+    type: 'POST',
+    data: {
+      apiSpcNo: $('#apiSpcNo').val(),
+      apiPath: $.trim($('#apiPath').val()),
+      methodCd: $('#methodCd').val(),
+      apiNo: $('#editApiNo').val()
+    },
+    dataType: 'json',
+    success: function (res) {
+      var dup = res.duplYn === 'Y';
+      $('#apiPath').toggleClass('qr_input_err', dup);
+      $('#apiPathErr').text(dup ? '이미 등록된 Method/Path입니다.' : 'Path를 입력하세요. (/로 시작)').toggleClass('qr_show', dup);
+      callback(dup);
+    },
+    error: function () { callback(false); } // 확인 실패는 저장까지 막지 않음(구 화면도 별도 오류 안내만)
+  });
 }
 
 function defDoSave() {
@@ -439,6 +727,8 @@ function defDoSave() {
   var formData = {
     apiSpcNo: apiSpcNo,
     apiNo: $('#editApiNo').val(),
+    apiId: $.trim($('#apiId').val()),
+    apiVerNo: $('#defPendingApiVerNo').val(), // 버전업 진행 중일 때만 값이 있음(defApplyVerUp)
     autId: autId,
     apiNm: apiNm,
     apiDesc: $('#apiDesc').val(),
@@ -447,6 +737,10 @@ function defDoSave() {
     methodCd: $('#methodCd').val(),
     apiHandlerCd: $('#apiHandlerCd').val(),
     providerSeq: $('#providerSeq').val(),
+    useYn: $('#useYn').val(),
+    guideGubun: $('#guideGubun').val(),
+    sandboxYn: $('#sandboxYn').val(),
+    endpntMethodCd: $('#endpntMethodCd').val(),
     endpntTbUrl: $('#endpntTbUrl').val(),
     endpntPrdUrl: $('#endpntPrdUrl').val(),
     endpntClientIp: $('#endpntClientIp').val(),
@@ -460,7 +754,10 @@ function defDoSave() {
     hdpApiOutFormat: $('#hdpApiOutFormat').val(),
     hdpApiOutCommonParam: $('#hdpApiOutCommonParam').val(),
     hdpReqMappingToBody: $('#hdpReqMappingToBody').val(),
-    hdpResMappingToBody: $('#hdpResMappingToBody').val()
+    hdpResMappingToBody: $('#hdpResMappingToBody').val(),
+    // 그룹이 BEAST를 안 쓰면 이 입력칸 자체가 DOM에 없다(th:if) - 없으면 빈 문자열로 보낸다.
+    bstgwTbSysId: $('#bstgwTbSysId').val() || '',
+    bstgwPrdSysId: $('#bstgwPrdSysId').val() || ''
   };
 
   var paramList = ptFlattenTree(PT_STORE['in'], 'in')
@@ -477,6 +774,17 @@ function defDoSave() {
     formData['paramList[' + i + '].personalData'] = paramList[i].personalData;
     formData['paramList[' + i + '].tempId'] = paramList[i].tempId;
     formData['paramList[' + i + '].parentTempId'] = paramList[i].parentTempId;
+    formData['paramList[' + i + '].doNotSend'] = paramList[i].doNotSend;
+    formData['paramList[' + i + '].fixedValue'] = paramList[i].fixedValue;
+    formData['paramList[' + i + '].hidden'] = paramList[i].hidden;
+    formData['paramList[' + i + '].mappingKey'] = paramList[i].mappingKey;
+    formData['paramList[' + i + '].bigo'] = paramList[i].bigo;
+    formData['paramList[' + i + '].paramSandboxYn'] = paramList[i].paramSandboxYn;
+    formData['paramList[' + i + '].hdpUrlDecode'] = paramList[i].hdpUrlDecode;
+    formData['paramList[' + i + '].hdpUrlEncode'] = paramList[i].hdpUrlEncode;
+    formData['paramList[' + i + '].hdpUploadTarget'] = paramList[i].hdpUploadTarget;
+    formData['paramList[' + i + '].resCd'] = paramList[i].resCd;
+    formData['paramList[' + i + '].resDesc'] = paramList[i].resDesc;
   }
 
   var wasEdit = !!formData.apiNo;

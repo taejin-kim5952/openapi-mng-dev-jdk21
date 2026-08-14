@@ -30,6 +30,11 @@ public class SpcRegVO {
     private String apiClass;      // APIGUB1000 comn_cd (Public/Private/Internal)
     private String apiVeriBaseurl;
     private String bstgwYn;
+    // "YAML 등록"으로 그룹을 만들 때 붙여넣은/불러온 YAML 원문. 파일로 저장하지 않고 DB(YAML_SBST)에만
+    // 보관한다(파일 기반 저장은 폐기 - 물리 파일에 의존하는 소비자가 없음을 확인했고, 컨테이너에 그
+    // 경로에 대한 볼륨 마운트조차 없어 원래도 재배포 시 소실되는 상태였음). 직접입력으로 그룹을 만든
+    // 경우엔 비워둔다(수정 화면에서 다시 덮어쓰지 않음 - updApiSpc는 이 컬럼을 건드리지 않는다).
+    private String yamlSbst;
 
     // 등록자 (세션)
     private String regr;

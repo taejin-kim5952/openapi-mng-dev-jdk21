@@ -24,6 +24,7 @@ public class ApiQuickTmpltVO {
     private String cntTypeCd;
     private String pathPattern;
     private String dfltParamJson;
+    private String dfltFieldJson;
     private String sortOdrg;
     private String tmpltYaml;
     private String useYn;

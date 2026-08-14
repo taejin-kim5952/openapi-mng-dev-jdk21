@@ -20,7 +20,10 @@ var PT_SCOPES = {
 var PT_STORE = { 'in': [], 'query': [], 'out': [] }; // 스코프별 현재 트리(루트 노드 배열)
 var PT_MTH_CLASS = { GET: 'sv_mth_get', POST: 'sv_mth_post', PUT: 'sv_mth_put', DELETE: 'sv_mth_delete', PATCH: 'sv_mth_patch' };
 
-function ptNode(name, dataTypeCd, req, desc, ex, kids, ofDataTypeCd, personalData, tempId) {
+/* extra: 확장 속성 9종(KOA_TB_API_PARAM) + 응답 상태코드 2종을 담는 선택적 객체. 기존 호출부는
+   이 인자 없이 그대로 호출되고(전부 빈 값으로 초기화), DB에서 불러올 때만(ptBuildTree) 채워서 넘긴다. */
+function ptNode(name, dataTypeCd, req, desc, ex, kids, ofDataTypeCd, personalData, tempId, extra) {
+  extra = extra || {};
   return {
     tempId: tempId || ('t' + (g_pt_paramSeq++)),
     parentTempId: '',
@@ -33,7 +36,20 @@ function ptNode(name, dataTypeCd, req, desc, ex, kids, ofDataTypeCd, personalDat
     personalData: personalData || '',
     kids: kids || [],
     col: false,
-    open: false
+    open: false,
+    // 확장 속성 9종 - 전부 선택값. Y/N 플래그는 문자열('Y'/'')로 관리(체크박스 on/off와 매핑).
+    doNotSend: extra.doNotSend || '',
+    fixedValue: extra.fixedValue || '',
+    hidden: extra.hidden || '',
+    mappingKey: extra.mappingKey || '',
+    bigo: extra.bigo || '',
+    paramSandboxYn: extra.paramSandboxYn || '',
+    hdpUrlDecode: extra.hdpUrlDecode || '',
+    hdpUrlEncode: extra.hdpUrlEncode || '',
+    hdpUploadTarget: extra.hdpUploadTarget || '',
+    // 응답 상태코드(출력 파라미터에서만 의미 있음) - KOA_TB_API_PARAM.RES_CD/RES_DESC
+    resCd: extra.resCd || '',
+    resDesc: extra.resDesc || ''
   };
 }
 
@@ -53,7 +69,11 @@ function ptBuildTree(rows) {
   var i;
   for (i = 0; i < rows.length; i++) {
     var r = rows[i];
-    var n = ptNode(r.paramNm, r.dataTypeCd, r.required !== 'N', r.paramDesc, r.exam, [], null, r.personalData, 'r' + r.paramNo);
+    var n = ptNode(r.paramNm, r.dataTypeCd, r.required !== 'N', r.paramDesc, r.exam, [], null, r.personalData, 'r' + r.paramNo, {
+      doNotSend: r.doNotSend, fixedValue: r.fixedValue, hidden: r.hidden, mappingKey: r.mappingKey, bigo: r.bigo,
+      paramSandboxYn: r.paramSandboxYn, hdpUrlDecode: r.hdpUrlDecode, hdpUrlEncode: r.hdpUrlEncode, hdpUploadTarget: r.hdpUploadTarget,
+      resCd: r.resCd, resDesc: r.resDesc
+    });
     n.realParamNo = String(r.paramNo);
     n.prntsRealNo = r.prntsParamNo ? String(r.prntsParamNo) : '';
     n.objOdrg = parseInt(r.objOdrg || '0', 10) || 0;
@@ -95,7 +115,10 @@ function ptFlattenTree(nodes, scope) {
         exam: n.exam,
         personalData: n.personalData,
         paramTypeCd: sc.paramTypeCd,
-        paramLoc: sc.paramLoc
+        paramLoc: sc.paramLoc,
+        doNotSend: n.doNotSend, fixedValue: n.fixedValue, hidden: n.hidden, mappingKey: n.mappingKey, bigo: n.bigo,
+        paramSandboxYn: n.paramSandboxYn, hdpUrlDecode: n.hdpUrlDecode, hdpUrlEncode: n.hdpUrlEncode, hdpUploadTarget: n.hdpUploadTarget,
+        resCd: n.resCd, resDesc: n.resDesc
       });
       if (ptIsBranch(n) && n.kids.length) { walk(n.kids, n.tempId); }
     }
@@ -208,7 +231,32 @@ function ptRowHtml(n, d, path) {
     + '<input type="text" class="qr_pd_desc" value="' + ptEsc(n.paramDesc) + '" placeholder="설명">'
     + '<input type="text" class="qr_pd_ex" value="' + ptEsc(n.exam) + '" placeholder="예시">'
     + '<select class="qr_pd_pii' + (n.personalData ? ' qr_on' : '') + '" aria-label="민감정보 분류">' + ptPiiOpts(n.personalData) + '</select>'
+    + ptExtHtml(n)
     + '</div></div>';
+}
+/* 확장 속성 9종 + 응답 상태코드(출력 스코프에서만) - KOA_TB_API_PARAM 컬럼과 1:1. quickApiReg.css를
+   건드리지 않기로 한 원칙 때문에 별도 클래스 스타일 없이 인라인 스타일로만 배치한다. */
+function ptExtCheckHtml(cls, label, checked) {
+  return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin:0 12px 0 0;white-space:nowrap;">'
+    + '<input type="checkbox" class="' + cls + '"' + (checked === 'Y' ? ' checked' : '') + '>' + ptEsc(label) + '</label>';
+}
+function ptExtHtml(n) {
+  var html = '<div class="qr_pd_ext" style="flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">';
+  html += ptExtCheckHtml('qr_pd_donotsend', '미전송', n.doNotSend);
+  html += ptExtCheckHtml('qr_pd_hidden', '숨김', n.hidden);
+  html += ptExtCheckHtml('qr_pd_sandbox', 'sandbox 전용', n.paramSandboxYn);
+  html += ptExtCheckHtml('qr_pd_urldecode', 'URL Decode', n.hdpUrlDecode);
+  html += ptExtCheckHtml('qr_pd_urlencode', 'URL Encode', n.hdpUrlEncode);
+  html += ptExtCheckHtml('qr_pd_uploadtarget', '업로드 대상', n.hdpUploadTarget);
+  html += '<input type="text" class="qr_pd_fixedvalue" value="' + ptEsc(n.fixedValue) + '" placeholder="고정값" style="flex:1 1 100px;min-width:80px;">';
+  html += '<input type="text" class="qr_pd_mappingkey" value="' + ptEsc(n.mappingKey) + '" placeholder="매핑키" style="flex:1 1 100px;min-width:80px;">';
+  html += '<input type="text" class="qr_pd_bigo" value="' + ptEsc(n.bigo) + '" placeholder="비고" style="flex:2 1 160px;min-width:120px;">';
+  if (PT_SCOPE === 'out') {
+    html += '<input type="text" class="qr_pd_rescd" value="' + ptEsc(n.resCd) + '" placeholder="응답 상태코드(기본 200)" style="flex:1 1 140px;min-width:120px;">';
+    html += '<input type="text" class="qr_pd_resdesc" value="' + ptEsc(n.resDesc) + '" placeholder="상태 설명" style="flex:1 1 140px;min-width:120px;">';
+  }
+  html += '</div>';
+  return html;
 }
 function ptTree() {
   var html = '';
@@ -432,6 +480,23 @@ function ptBindDesigner() {
     $(this).toggleClass('qr_on', !!n.personalData);
     ptPushYaml();
   });
+
+  /* 확장 속성 9종 - 체크박스는 'Y'/'' 문자열로 저장(DB CHAR(1) 컬럼과 그대로 매핑). */
+  var extCheckMap = {
+    qr_pd_donotsend: 'doNotSend', qr_pd_hidden: 'hidden', qr_pd_sandbox: 'paramSandboxYn',
+    qr_pd_urldecode: 'hdpUrlDecode', qr_pd_urlencode: 'hdpUrlEncode', qr_pd_uploadtarget: 'hdpUploadTarget'
+  };
+  $.each(extCheckMap, function (cls, field) {
+    $pane.on('change.pt', '.' + cls, function () {
+      nodeOf(this)[field] = $(this).prop('checked') ? 'Y' : '';
+      ptPushYaml();
+    });
+  });
+  $pane.on('input.pt', '.qr_pd_fixedvalue', function () { nodeOf(this).fixedValue = $(this).val(); ptPushYaml(); });
+  $pane.on('input.pt', '.qr_pd_mappingkey', function () { nodeOf(this).mappingKey = $(this).val(); ptPushYaml(); });
+  $pane.on('input.pt', '.qr_pd_bigo', function () { nodeOf(this).bigo = $(this).val(); ptPushYaml(); });
+  $pane.on('input.pt', '.qr_pd_rescd', function () { nodeOf(this).resCd = $(this).val(); ptPushYaml(); });
+  $pane.on('input.pt', '.qr_pd_resdesc', function () { nodeOf(this).resDesc = $(this).val(); ptPushYaml(); });
   $pane.on('click.pt', '.qr_pd_req', function () {
     var n = nodeOf(this);
     n.required = !n.required;
@@ -458,13 +523,13 @@ function ptBindDesigner() {
   $pane.on('click.pt', '.qr_pd_addchild', function () {
     var n = ptNodeAt(PT_WORK, $(this).attr('data-path'));
     n.col = false;
-    var child = ptNode('field' + (n.kids.length + 1), 'DATTYP1010', false, '', '');
+    var child = ptNode('', 'DATTYP1010', false, '', '');
     child.parentTempId = n.tempId;
     n.kids.push(child);
     ptTree(); ptPushYaml();
   });
   $('.qr_pd_left').off('click.pt').on('click.pt', '.qr_pd_addroot', function () {
-    PT_WORK.push(ptNode('field' + (PT_WORK.length + 1), 'DATTYP1010', false, '', ''));
+    PT_WORK.push(ptNode('', 'DATTYP1010', false, '', ''));
     ptTree(); ptPushYaml();
     $('#qrPdPane').scrollTop($('#qrPdPane')[0].scrollHeight);
   });

@@ -34,6 +34,7 @@
       ,cnt_type_cd     AS cntTypeCd
       ,path_pattern    AS pathPattern
       ,dflt_param_json AS dfltParamJson
+      ,dflt_field_json AS dfltFieldJson
       ,sort_odrg       AS sortOdrg
     FROM KOA_TB_API_QUICK_TMPLT
     WHERE USE_YN = 'Y'
@@ -52,6 +53,7 @@
       ,cnt_type_cd     AS cntTypeCd
       ,path_pattern    AS pathPattern
       ,dflt_param_json AS dfltParamJson
+      ,dflt_field_json AS dfltFieldJson
       ,tmplt_yaml      AS tmpltYaml
       ,sort_odrg       AS sortOdrg
       ,use_yn          AS useYn
@@ -74,6 +76,7 @@
       ,CNT_TYPE_CD
       ,PATH_PATTERN
       ,DFLT_PARAM_JSON
+      ,DFLT_FIELD_JSON
       ,TMPLT_YAML
       ,SORT_ODRG
       ,USE_YN
@@ -89,6 +92,7 @@
       ,NULLIF(#{cntTypeCd}, '')
       ,#{pathPattern}
       ,#{dfltParamJson}
+      ,#{dfltFieldJson}
       ,#{tmpltYaml}
       ,COALESCE((SELECT MAX(SORT_ODRG) + 1 FROM KOA_TB_API_QUICK_TMPLT), 1)
       ,'Y'
@@ -109,6 +113,7 @@
       ,CNT_TYPE_CD     = NULLIF(#{cntTypeCd}, '')
       ,PATH_PATTERN    = #{pathPattern}
       ,DFLT_PARAM_JSON = #{dfltParamJson}
+      ,DFLT_FIELD_JSON = #{dfltFieldJson}
       ,TMPLT_YAML      = #{tmpltYaml}
       ,AMD_DT          = NOW()
       ,AMDR            = #{amdr}
@@ -135,6 +140,7 @@
       ,cnt_type_cd     AS cntTypeCd
       ,path_pattern    AS pathPattern
       ,dflt_param_json AS dfltParamJson
+      ,dflt_field_json AS dfltFieldJson
       ,tmplt_yaml      AS tmpltYaml
       ,sort_odrg       AS sortOdrg
       ,use_yn          AS useYn

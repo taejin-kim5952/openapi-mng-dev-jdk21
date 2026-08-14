@@ -5,6 +5,44 @@
 var g_tm_cm = null;
 var g_tm_lastParsed = null;
 
+// dfltParamJson에서 요청/응답 파라미터 배열을 뽑아낸다. apiDefReg.js의 defSelectTemplate과 같은 규칙:
+//  - 예전(quickApiReg) 템플릿: 평탄 배열 [{name,type,required,desc}, ...] = 입력 파라미터만(응답 없음)
+//  - 최신 템플릿: {in:[...], out:[...]} = 요청/응답 파라미터를 분리해서 담음
+function tmExtractParams(dfltParamJson) {
+  try {
+    var parsed = JSON.parse(dfltParamJson || '[]');
+    if (Array.isArray(parsed)) { return { inParams: parsed, outParams: [] }; }
+    return {
+      inParams: Array.isArray(parsed.in) ? parsed.in : [],
+      outParams: Array.isArray(parsed.out) ? parsed.out : []
+    };
+  } catch (e) {
+    return { inParams: [], outParams: [] };
+  }
+}
+
+// tmpltYaml 없이 만들어진(예: 초기 시드) 템플릿을 수정하러 들어온 경우, 기존 필드
+// (dfltParamJson/mthTypeCd/pathPattern 등)로 YAML을 재구성해 보여준다.
+function tmRebuildDefaultYaml(existing) {
+  var builtYaml = '';
+  try {
+    var methodNm = qrCodeNm(g_qr_mthTypeList, existing.mthTypeCd);
+    var params = tmExtractParams(existing.dfltParamJson);
+    var fieldDefaults = {};
+    try { fieldDefaults = JSON.parse(existing.dfltFieldJson || '{}') || {}; } catch (e) { fieldDefaults = {}; }
+    builtYaml = qrBuildOasYaml(existing.tmpltNm, existing.tmpltDesc, existing.pathPattern, methodNm, existing.cntTypeCd,
+      { params: params.inParams, outParams: params.outParams, fieldDefaults: fieldDefaults });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('템플릿 기본 YAML 재구성 실패 - dfltParamJson/mthTypeCd 데이터를 확인하세요.', e, existing);
+  }
+  if (!builtYaml || !builtYaml.trim()) {
+    // 재구성도 실패한 경우 최소한의 뼈대라도 보여줘서 완전한 빈 화면은 피한다.
+    builtYaml = 'openapi: 3.0.3\ninfo:\n  title: ' + (existing.tmpltNm || '') + '\n  version: "1.0"\npaths: {}\n';
+  }
+  return builtYaml;
+}
+
 $(document).ready(function () {
   // 목록 화면
   if ($('#tmMngRows').length > 0) {
@@ -16,14 +54,9 @@ $(document).ready(function () {
   if (yamlArea) {
     g_tm_cm = qrInitYamlEditor(yamlArea);
 
-    // tmpltYaml 없이 만들어진(예: 초기 시드) 템플릿을 수정하러 들어온 경우,
-    // 기존 필드(dfltParamJson/mthTypeCd/pathPattern 등)로 YAML을 재구성해 보여준다.
     if (g_tm_existing && (!g_tm_existing.tmpltYaml || !g_tm_existing.tmpltYaml.trim())) {
-      var existingParams = [];
-      try { existingParams = JSON.parse(g_tm_existing.dfltParamJson || '[]'); } catch (e) { existingParams = []; }
-      var methodNm = qrCodeNm(g_qr_mthTypeList, g_tm_existing.mthTypeCd);
-      var builtYaml = qrBuildOasYaml(g_tm_existing.tmpltNm, g_tm_existing.tmpltDesc, g_tm_existing.pathPattern, methodNm, g_tm_existing.cntTypeCd, existingParams);
-      g_tm_cm.setValue(builtYaml);
+      g_tm_cm.setValue(tmRebuildDefaultYaml(g_tm_existing));
+      g_tm_cm.refresh();
     }
   }
 });
@@ -91,11 +124,14 @@ function tmPreview() {
 
   g_tm_lastParsed = parsed;
 
+  var fieldDefaultCount = Object.keys(parsed.fieldDefaults || {}).length;
   $('#tmPvApiNm').text(parsed.apiNm || '(이름 없음)');
   $('#tmPvSummary').text(
     'OAS ' + (parsed.oasVersion || '3.0') + ' · ' +
     (parsed.methodNm || '-') + (parsed.apiPath ? (' ' + parsed.apiPath) : '') +
-    (parsed.cntTypeCd ? (' · ' + parsed.cntTypeCd) : '')
+    (parsed.cntTypeCd ? (' · ' + parsed.cntTypeCd) : '') +
+    ' · 응답 ' + (parsed.outParams || []).length + '건' +
+    (fieldDefaultCount > 0 ? (' · 추가 기본값(x-def-fields) ' + fieldDefaultCount + '건') : '')
   );
   $('#tmPvParamCount').text((parsed.params || []).length);
   $('#tmPreviewBox').removeClass('qr_hide');
@@ -116,6 +152,12 @@ function tmPreview() {
   return parsed;
 }
 
+function tmStripParam(p) {
+  var item = { name: p.name, type: p.type, required: p.required, desc: p.desc };
+  if (p.exam) { item.exam = p.exam; }
+  return item;
+}
+
 function tmSaveTmplt() {
   var tmpltNm = $('#tmpltNm').val();
   if (!tmpltNm || !tmpltNm.trim()) {
@@ -128,8 +170,9 @@ function tmSaveTmplt() {
     return;
   }
 
-  var dfltParams = (parsed.params || []).map(function (p) {
-    return { name: p.name, type: p.type, required: p.required, desc: p.desc };
+  var dfltParamJson = JSON.stringify({
+    in: (parsed.params || []).map(tmStripParam),
+    out: (parsed.outParams || []).map(tmStripParam)
   });
 
   var formData = {
@@ -140,7 +183,8 @@ function tmSaveTmplt() {
     mthTypeCd: parsed.methodCd || '',
     cntTypeCd: parsed.cntTypeCd || '',
     pathPattern: parsed.apiPath || '',
-    dfltParamJson: JSON.stringify(dfltParams),
+    dfltParamJson: dfltParamJson,
+    dfltFieldJson: JSON.stringify(parsed.fieldDefaults || {}),
     tmpltYaml: g_tm_cm ? g_tm_cm.getValue() : ''
   };
 

@@ -14,6 +14,7 @@ $(window).on('pageshow', function (e) {
 });
 
 var g_grp_pendingApiList = []; // YAML 등록으로 파싱된, 그룹 저장 직후 함께 등록할 API 목록
+var g_grp_pendingYamlSbst = ''; // YAML 등록으로 붙여넣은/불러온 YAML 원문 그대로 - 그룹 저장 시 YAML_SBST 컬럼에 저장(파일로는 저장하지 않음)
 var g_grp_isEdit = false; // true면 신규 생성이 아니라 기존 그룹(apiSpcNo) 수정
 
 $(document).ready(function () {
@@ -77,6 +78,10 @@ $(document).ready(function () {
   $('#sysId, #spcNm, #host, #basPath').on('input change', function () {
     $(this).removeClass('qr_input_err').closest('.qr_field').find('.qr_err').removeClass('qr_show');
   });
+
+  /* 그룹 이름 중복 체크 - 기존 등록 마법사(apiInfoReg.js)와 동일하게 입력을 마치면(blur) 바로
+     조용히 한 번 확인해서 보여준다("* 중복된API 이름이 존재합니다."). 저장을 막지는 않는다. */
+  $('#spcNm').on('blur', grpCheckSpcNmDup);
 
   /* apiSpcNo로 진입했다면(apiDefReg.html "그룹 정보 수정" 버튼) 기존 값을 불러와 수정 모드로 채운다.
      아니라면 기존과 동일하게, 새로고침/뒤로가기로 브라우저가 sysId 선택값을 복원해도 change 이벤트는
@@ -158,7 +163,10 @@ function grpDoSave() {
     apiClass: $('input[name="apiClass"]:checked').val(),
     testBaseUrl: $('#testBaseUrl').val(),
     apiVeriBaseurl: $('#testBaseUrl').val(),
-    bstgwYn: $('input[name="beastGw"]:checked').val()
+    bstgwYn: $('input[name="beastGw"]:checked').val(),
+    // "YAML 등록"으로 만든 그룹만 값이 있다(g_grp_pendingYamlSbst, grpApplyYaml에서 채워짐) - 파일이
+    // 아니라 DB(YAML_SBST)에만 저장한다. 직접입력으로 만든 그룹은 빈 문자열 그대로 전송(SQL에서 NULL 처리).
+    yamlSbst: g_grp_pendingYamlSbst
   };
 
   $.ajax({
@@ -220,6 +228,17 @@ function grpSaveApiListThen(apiSpcNo, apiList, onDone) {
     formData['paramList[' + i + '].personalData'] = p.personalData;
     formData['paramList[' + i + '].tempId'] = p.tempId;
     formData['paramList[' + i + '].parentTempId'] = p.parentTempId;
+    formData['paramList[' + i + '].doNotSend'] = p.doNotSend || '';
+    formData['paramList[' + i + '].fixedValue'] = p.fixedValue || '';
+    formData['paramList[' + i + '].hidden'] = p.hidden || '';
+    formData['paramList[' + i + '].mappingKey'] = p.mappingKey || '';
+    formData['paramList[' + i + '].bigo'] = p.bigo || '';
+    formData['paramList[' + i + '].paramSandboxYn'] = p.paramSandboxYn || '';
+    formData['paramList[' + i + '].hdpUrlDecode'] = p.hdpUrlDecode || '';
+    formData['paramList[' + i + '].hdpUrlEncode'] = p.hdpUrlEncode || '';
+    formData['paramList[' + i + '].hdpUploadTarget'] = p.hdpUploadTarget || '';
+    formData['paramList[' + i + '].resCd'] = p.resCd || '';
+    formData['paramList[' + i + '].resDesc'] = p.resDesc || '';
   }
 
   $.ajax({
@@ -258,6 +277,7 @@ function grpApplyYaml(yamlText) {
   $('#spcNm, #host, #basPath').trigger('input');
 
   g_grp_pendingApiList = spec.apiList;
+  g_grp_pendingYamlSbst = yamlText;
   if (spec.apiList.length > 0) {
     $('#grpYamlSummary').removeClass('qr_hide').text('YAML에서 API ' + spec.apiList.length + '건을 찾았습니다 — 그룹을 저장하면 함께 등록됩니다.');
   } else {
@@ -429,6 +449,27 @@ function grpSetEditMode(isEdit, spcNm) {
     $('#qrConfirmTitle').text('그룹을 저장할까요?');
     $('#qrConfirmModal .qr_confirm_msg').text('저장하면 이 그룹이 만들어지고, 이어서 API 등록 화면으로 이동합니다. 그룹 정보는 나중에 수정할 수 있습니다.');
   }
+}
+
+/* 그룹 이름 중복 체크 - 기존 등록 마법사가 쓰던 엔드포인트(/api/reg/selApiInfoNmCheckAjax.do,
+   ApiRegController.selApiInfoNmCheckAjax -> selApiInfoNmDupCheck)를 그대로 재사용한다(화면
+   독립 원칙의 예외 - 이 검사는 새 로직이 아니라 기존 화면과 완전히 동일한 규칙/데이터를 봐야
+   의미가 있어서, 별도로 다시 구현하지 않고 원본을 그대로 호출하기로 확정됨).
+   정책상 저장을 막지 않는 "경고"일 뿐이다 - 문구만 보여주고 그 외에는 아무 것도 안 한다. */
+function grpCheckSpcNmDup() {
+  var spcNm = $.trim($('#spcNm').val());
+  $('#spcNmDupWarn').removeClass('qr_show');
+  if (!spcNm) { return; }
+  $.ajax({
+    url: c_url + 'api/reg/selApiInfoNmCheckAjax.do',
+    type: 'POST',
+    data: { apiNm: spcNm, apiSpcNo: $('#editApiSpcNo').val() },
+    dataType: 'json',
+    success: function (res) {
+      $('#spcNmDupWarn').toggleClass('qr_show', res.duplYn === 'Y');
+    }
+    // 중복 확인은 참고용 경고라 실패해도 저장 흐름에 영향 없음 - error 핸들러에서 별도 처리 안 함.
+  });
 }
 
 function grpOnSysIdChange() {

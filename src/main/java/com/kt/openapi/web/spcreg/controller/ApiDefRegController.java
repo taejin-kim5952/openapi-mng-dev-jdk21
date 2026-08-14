@@ -1,5 +1,8 @@
 package com.kt.openapi.web.spcreg.controller;
 
+import com.kt.openapi.web.apiDeploy.service.ApiDeployService;
+import com.kt.openapi.web.apiDeploy.util.ApiDeployResultCode;
+import com.kt.openapi.web.apiDeploy.vo.ApiDeployInsertVo;
 import com.kt.openapi.web.spcreg.service.ApiDefRegService;
 import com.kt.openapi.web.spcreg.vo.ApiDefRegVO;
 import com.kt.openapi.web.auth.vo.AuthVO;
@@ -43,6 +46,9 @@ public class ApiDefRegController {
     @Qualifier("CmnService")
     private CmnService cmnService;
 
+    @Autowired
+    private ApiDeployService apiDeployService;
+
     /**
      * API 등록 화면 렌더. 이 화면은 앞 단계(spcReg)에서 이미 확정된 apiSpcNo를 받아 그 그룹에
      * API(DEF)만 추가한다 - apiSpcNo가 없거나 존재하지 않는 그룹이면 그룹부터 만들도록 spcReg로
@@ -83,6 +89,8 @@ public class ApiDefRegController {
         mv.addObject("spcNm", spc.get("spcNm"));
         mv.addObject("spcBasPath", spc.get("basPath"));
         mv.addObject("sysId", sysId);
+        // 그룹에서 BEAST G/W 사용을 켰을 때만 API 등록 화면에 BEAST 시스템 선택 UI를 노출한다.
+        mv.addObject("bstgwYn", spc.get("bstgwYn"));
 
         mv.addObject("apiGubList", cmnService.selComnList("APIGUB1000"));
         mv.addObject("mthTypeList", cmnService.selComnList("MTHTYP1000"));
@@ -125,6 +133,39 @@ public class ApiDefRegController {
         return mv;
     }
 
+    /** API ID 중복 체크 - 기존 마법사와 동일하게 시스템 전체(그룹 무관)에서 유일해야 한다.
+        수정 모드에서는 apiNo를 같이 넘겨 자기 자신은 중복 대상에서 빼고, 버전업 진행 중이면
+        apiVerNo(원본의 버전 패밀리 키)도 같이 넘겨 같은 패밀리는 중복 대상에서 뺀다. */
+    @ResponseBody
+    @RequestMapping(value = "/selApiIdChkAjax.do")
+    public ModelAndView selApiIdChkAjax(String apiId, String apiNo, String apiVerNo) throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+        boolean dup = apiDefRegService.selApiIdChk(apiId, apiNo, apiVerNo);
+        mv.addObject("returnCode", "1");
+        mv.addObject("dup", dup);
+        return mv;
+    }
+
+    /** BEAST G/W 시스템 검색 - "TB G/W 시스템 선택"/"상용 G/W 시스템 선택" 팝업. target은
+        tb|prd + platform(KTC|AZURE)을 조합해 "TB_KTC" 형태로 넘어온다. */
+    @ResponseBody
+    @RequestMapping(value = "/selBstSysListAjax.do")
+    public ModelAndView selBstSysListAjax(String target, String sysId, String sysNm) throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+        mv.addObject("list", apiDefRegService.selBstSysList(target, sysId, sysNm));
+        return mv;
+    }
+
+    /** 다음 API ID 제안값("OIF_" + 5자리 순번) 조회 - "신규 API ID" 버튼 */
+    @ResponseBody
+    @RequestMapping(value = "/selNextApiIdAjax.do")
+    public ModelAndView selNextApiIdAjax() throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+        mv.addObject("returnCode", "1");
+        mv.addObject("nextApiId", apiDefRegService.selNextApiId());
+        return mv;
+    }
+
     /** API(DEF) 등록/수정 저장 - apiNo가 넘어오면 수정, 없으면 신규 등록(카테고리 재사용/최초생성 포함) */
     @ResponseBody
     @RequestMapping(value = "/savApiDefRegAjax.do")
@@ -163,6 +204,11 @@ public class ApiDefRegController {
 
         try {
             String apiSpcNo = isEdit ? apiDefRegService.updApiDefReg(vo) : apiDefRegService.savApiDefReg(vo);
+
+            if (!isEdit) {
+                initDeployProc(vo.getApiNo(), userJVo.getEnCmbrId());
+            }
+
             mv.addObject("returnCode", "1");
             mv.addObject("apiSpcNo", apiSpcNo);
             mv.addObject("apiNo", vo.getApiNo());
@@ -173,5 +219,26 @@ public class ApiDefRegController {
         }
 
         return mv;
+    }
+
+    /**
+     * 신규 등록된 API의 배포 프로세스(KOA_TB_DEPLOY_PROC) 초기 행을 만든다 - "API 등록/배포현황"
+     * (/api/deploy/mvDeployList.do)이 이 테이블을 API_NO로 INNER JOIN해서 보여주므로, 이걸 안
+     * 만들면 방금 등록한 API가 배포현황 목록에 영원히 나타나지 않는다. 기존 등록 마법사의 마지막
+     * 단계(mvTempExcute.do, processGubun=insert)가 하던 일을 여기서 대신한다 - 초기 상태는 그
+     * 흐름과 동일하게 DEPLOY1010(TB 배포전)/VERIFI1010(검증시작코드). API 등록 자체는 이미 성공했으므로
+     * 여기서 실패해도 등록 결과는 그대로 성공 처리하되, 배포현황에 안 나타날 수 있다는 걸 로그로 남긴다.
+     */
+    private void initDeployProc(String apiNo, String regr) {
+        try {
+            ApiDeployInsertVo deployVo = new ApiDeployInsertVo();
+            deployVo.setApiNo(apiNo);
+            deployVo.setDeployCd(ApiDeployResultCode.CD_1010_DEPLOY_APPLY_CODE.getCode());
+            deployVo.setVerifiCd(ApiDeployResultCode.CD_1010_VERIFI_BASE_CODE.getCode());
+            deployVo.setRegr(regr);
+            apiDeployService.insertDeployInfo(deployVo);
+        } catch (Exception deployEx) {
+            LOG.error("API(apiNo={}) 배포 프로세스 초기화 실패 - 배포현황 목록에 나타나지 않을 수 있습니다.", apiNo, deployEx);
+        }
     }
 }

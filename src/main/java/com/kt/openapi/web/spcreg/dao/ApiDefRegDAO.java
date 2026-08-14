@@ -41,11 +41,24 @@ public interface ApiDefRegDAO {
     /** 선택한 apiSpcNo에 이미 있는 첫 카테고리 조회 (없으면 null - 그 그룹의 첫 API라는 뜻) */
     String selDefaultCtgryBySpc(String apiSpcNo);
 
+    /** API ID 중복 개수 조회 (Map: apiId, apiNo(수정 시 자기 자신 제외용, 없으면 null)) */
+    int selApiIdChk(Map<String, Object> params);
+
+    /** 다음 API ID 제안값 조회 ("OIF_" + 5자리 순번) */
+    String selNextApiId();
+
+    /** BEAST G/W 시스템 검색 (Map: target(TB_KTC/TB_AZURE/PRD_KTC/PRD_AZURE), sysId, sysNm) */
+    List<Map<String, Object>> selBstSysList(Map<String, Object> params);
+
     /** KOA_TB_API_CTGRY 기본 카테고리 등록 (생성된 PK는 selectKey로 vo.apiCtgryNo에 채워짐) */
     int savApiCtgry(ApiDefRegVO vo);
 
     /** KOA_TB_API_DEF 등록 (생성된 PK는 selectKey로 vo.apiNo에 채워짐) */
     int savApiDef(ApiDefRegVO vo);
+
+    /** 신규 등록된 DEF의 API_VER_NO를 자기 자신의 apiNo로 채운다("새 버전 패밀리 시작") -
+        버전업으로 만든 DEF는 이미 원본 apiVerNo를 갖고 있으므로 호출하지 않는다 */
+    int updApiVerNoSelf(String apiNo);
 
     /** KOA_TB_API_DEF 수정 (기존 API를 폼에서 불러와 다시 저장할 때) */
     int updApiDef(ApiDefRegVO vo);

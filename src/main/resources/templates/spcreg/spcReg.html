@@ -87,6 +87,9 @@
             <input type="text" id="spcNm" name="spcNm" maxlength="200" placeholder="예: 메시징 서비스">
             <span class="qr_field_hint">규격서와 목록에 노출되는 이름입니다.</span>
             <span class="qr_err" id="spcNmErr">API 그룹 이름을 입력하세요.</span>
+            <!-- 이름 중복은 저장을 막는 필수 검증이 아니라 경고만 - 기존 등록 마법사(apiInfoReg.js)와
+                 동일한 정책(저장은 그대로 가능). 그래서 #spcNmErr(필수값 에러)와 별도 span으로 둔다. -->
+            <span class="qr_err" id="spcNmDupWarn">* 중복된API 이름이 존재합니다.</span>
           </div>
           <div class="qr_field qr_span2">
             <label for="spcDesc">설명</label>

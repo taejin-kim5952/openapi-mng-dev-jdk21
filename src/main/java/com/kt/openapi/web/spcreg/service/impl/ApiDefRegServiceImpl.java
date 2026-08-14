@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <pre>
@@ -69,6 +71,29 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
     }
 
     @Override
+    public boolean selApiIdChk(String apiId, String apiNo, String apiVerNo) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("apiId", apiId);
+        params.put("apiNo", apiNo);
+        params.put("apiVerNo", apiVerNo);
+        return apiDefRegDAO.selApiIdChk(params) > 0;
+    }
+
+    @Override
+    public String selNextApiId() {
+        return apiDefRegDAO.selNextApiId();
+    }
+
+    @Override
+    public List<Map<String, Object>> selBstSysList(String target, String sysId, String sysNm) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("target", target);
+        params.put("sysId", sysId);
+        params.put("sysNm", sysNm);
+        return apiDefRegDAO.selBstSysList(params);
+    }
+
+    @Override
     @Transactional(rollbackFor = { Exception.class })
     public String savApiDefReg(ApiDefRegVO vo) {
         LOG.debug("####################### ApiDefRegServiceImpl savApiDefReg START ############################");
@@ -84,8 +109,18 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
             LOG.debug(" 생성된 apiCtgryNo ========== {} ", vo.getApiCtgryNo());
         }
 
+        // Path에 v1.0 같은 버전 세그먼트가 있으면 자동으로 뽑아서 API_VER에 저장(직접 입력 안 받음).
+        vo.setApiVer(extractVersionFromPath(vo.getApiPath()));
+        boolean isVersionUp = vo.getApiVerNo() != null && !vo.getApiVerNo().trim().isEmpty();
+
         apiDefRegDAO.savApiDef(vo);
         LOG.debug(" 생성된 apiNo ========== {} ", vo.getApiNo());
+
+        // 버전업으로 만든 게 아니면(=화면이 원본 버전 패밀리 키를 안 보냈으면) 새 API가 자기 자신의
+        // 버전 패밀리를 시작한다 - API_VER_NO를 자기 apiNo로 채운다.
+        if (!isVersionUp) {
+            apiDefRegDAO.updApiVerNoSelf(vo.getApiNo());
+        }
 
         savParamTree(vo.getParamList(), vo.getApiNo(), vo.getRegr());
 
@@ -98,11 +133,27 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
         LOG.debug("####################### ApiDefRegServiceImpl updApiDefReg START ############################");
         LOG.debug(" 대상 apiNo(기존 API) ========== {} ", vo.getApiNo());
 
+        // 수정 시에도 Path가 바뀌었을 수 있으니 API_VER은 다시 추출한다. API_VER_NO(버전 패밀리)는
+        // updApiDef가 아예 건드리지 않는다 - 수정으로는 패밀리가 안 바뀐다.
+        vo.setApiVer(extractVersionFromPath(vo.getApiPath()));
+
         apiDefRegDAO.updApiDef(vo);
         apiDefRegDAO.delParamsByApiNo(vo.getApiNo());
         savParamTree(vo.getParamList(), vo.getApiNo(), vo.getAmdr());
 
         return vo.getApiSpcNo();
+    }
+
+    // 기존 등록 마법사 KsmUtil.fmt_data(path, "fmt_version_in_path")와 동일한 패턴 - Path의
+    // 두 번째 세그먼트가 v1.0 같은 형태일 때만 그 값을 뽑아낸다(예: /kos/v1.0/ChildBidgRetv -> v1.0).
+    private static final Pattern VERSION_IN_PATH = Pattern.compile("^(/[\\w\\-.]+)/(v\\d+\\.\\d+)(/[\\w\\-./]+)$");
+
+    private String extractVersionFromPath(String path) {
+        if (path == null) {
+            return "";
+        }
+        Matcher m = VERSION_IN_PATH.matcher(path.trim());
+        return m.find() ? m.group(2) : "";
     }
 
     /**
@@ -154,6 +205,17 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
                 m.put("paramDesc", p.getParamDesc());
                 m.put("exam", p.getExam());
                 m.put("personalData", p.getPersonalData());
+                m.put("doNotSend", p.getDoNotSend());
+                m.put("fixedValue", p.getFixedValue());
+                m.put("hidden", p.getHidden());
+                m.put("mappingKey", p.getMappingKey());
+                m.put("bigo", p.getBigo());
+                m.put("paramSandboxYn", p.getParamSandboxYn());
+                m.put("hdpUrlDecode", p.getHdpUrlDecode());
+                m.put("hdpUrlEncode", p.getHdpUrlEncode());
+                m.put("hdpUploadTarget", p.getHdpUploadTarget());
+                m.put("resCd", p.getResCd());
+                m.put("resDesc", p.getResDesc());
                 m.put("prntsParamNo", prntsParamNo);
                 m.put("objNo", isRoot ? "" : prntsParamNo);
                 m.put("objOdrg", String.valueOf(odrg));

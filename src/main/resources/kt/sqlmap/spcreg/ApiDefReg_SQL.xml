@@ -27,6 +27,11 @@
     /* apiDefReg.selApiDefDetail */
     SELECT
        api_no                    AS "apiNo"
+      ,COALESCE(api_id, '')      AS "apiId"
+      ,COALESCE(api_ver, '')     AS "apiVer"
+      ,api_ver_no                AS "apiVerNo"
+      ,COALESCE(bstgw_tb_sys_id, '')  AS "bstgwTbSysId"
+      ,COALESCE(bstgw_prd_sys_id, '') AS "bstgwPrdSysId"
       ,api_spc_no                AS "apiSpcNo"
       ,api_ctgry_no              AS "apiCtgryNo"
       ,api_nm                    AS "apiNm"
@@ -36,6 +41,10 @@
       ,api_gubun                 AS "apiClass"
       ,api_handler_cd            AS "apiHandlerCd"
       ,provider_seq              AS "providerSeq"
+      ,COALESCE(use_yn, 'Y')     AS "useYn"
+      ,COALESCE(guide_gubun, '') AS "guideGubun"
+      ,COALESCE(sandbox_yn, 'N') AS "sandboxYn"
+      ,COALESCE(endpnt_method_cd, '') AS "endpntMethodCd"
       ,endpnt_tb_url             AS "endpntTbUrl"
       ,endpnt_prd_url            AS "endpntPrdUrl"
       ,endpnt_client_ip          AS "endpntClientIp"
@@ -72,6 +81,17 @@
       ,obj_odrg        AS "objOdrg"
       ,exam            AS "exam"
       ,personal_data   AS "personalData"
+      ,COALESCE(do_not_send, '')       AS "doNotSend"
+      ,COALESCE(fixed_value, '')       AS "fixedValue"
+      ,COALESCE(hidden, '')            AS "hidden"
+      ,COALESCE(mapping_key, '')       AS "mappingKey"
+      ,COALESCE(bigo, '')              AS "bigo"
+      ,COALESCE(param_sandbox_yn, '')  AS "paramSandboxYn"
+      ,COALESCE(hdp_url_decode, '')    AS "hdpUrlDecode"
+      ,COALESCE(hdp_url_encode, '')    AS "hdpUrlEncode"
+      ,COALESCE(hdp_upload_target, '') AS "hdpUploadTarget"
+      ,COALESCE(res_cd, '')            AS "resCd"
+      ,COALESCE(res_desc, '')          AS "resDesc"
     FROM KOA_TB_API_PARAM
     WHERE API_NO = #{apiNo}::integer
     ORDER BY SORT_ODRG, PARAM_NO
@@ -83,12 +103,13 @@
   <select id="selSpcByNo" parameterType="String" resultType="map">
     /* apiDefReg.selSpcByNo */
     SELECT
-       s.api_spc_no  AS "apiSpcNo"
-      ,s.api_nm      AS "spcNm"
-      ,s.sys_id      AS "sysId"
-      ,s.host        AS "host"
-      ,s.bas_path    AS "basPath"
-      ,s.ver         AS "ver"
+       s.api_spc_no        AS "apiSpcNo"
+      ,s.api_nm            AS "spcNm"
+      ,s.sys_id            AS "sysId"
+      ,s.host              AS "host"
+      ,s.bas_path          AS "basPath"
+      ,s.ver               AS "ver"
+      ,COALESCE(s.bstgw_yn, 'N') AS "bstgwYn"
     FROM KOA_TB_API_SPC s
     WHERE s.DEL_YN = 'N'
       AND s.API_SPC_NO = #{apiSpcNo}::integer
@@ -135,7 +156,11 @@
     )
   </insert>
 
-  <!-- KOA_TB_API_DEF 등록 -->
+  <!-- KOA_TB_API_DEF 등록. API_VER_NO(버전 패밀리 키)는 여기서 자기 자신의 apiNo로 채우지 못한다
+       (INSERT 시점엔 아직 apiNo를 모름 - selectKey가 AFTER라서) - 버전업이 아닌 일반 등록은
+       INSERT 직후 updApiVerNoSelf로 자기 자신을 가리키게 한 번 더 채운다. 버전업으로 만드는 DEF는
+       화면이 원본의 apiVerNo를 이미 채워서 보내므로 그 값 그대로 저장하고 updApiVerNoSelf를
+       호출하지 않는다(서비스 레이어에서 분기). -->
   <insert id="savApiDef" parameterType="com.kt.openapi.web.spcreg.vo.ApiDefRegVO">
     /* apiDefReg.savApiDef */
     <selectKey keyProperty="apiNo" resultType="String" order="AFTER">
@@ -144,6 +169,9 @@
     INSERT INTO KOA_TB_API_DEF
     (
        API_SPC_NO
+      ,API_ID
+      ,API_VER
+      ,API_VER_NO
       ,API_NM
       ,API_CTGRY_NO
       ,API_PATH
@@ -154,9 +182,12 @@
       ,AMD_DT
       ,AMDR
       ,USE_YN
+      ,GUIDE_GUBUN
+      ,SANDBOX_YN
       ,API_GUBUN
       ,API_HANDLER_CD
       ,PROVIDER_SEQ
+      ,ENDPNT_METHOD_CD
       ,ENDPNT_TB_URL
       ,ENDPNT_PRD_URL
       ,ENDPNT_CLIENT_IP
@@ -171,10 +202,15 @@
       ,HDP_API_OUT_COMMON_PARAM
       ,HDP_REQ_MAPPING_TO_BODY
       ,HDP_RES_MAPPING_TO_BODY
+      ,BSTGW_TB_SYS_ID
+      ,BSTGW_PRD_SYS_ID
     )
     VALUES
     (
        #{apiSpcNo}::integer
+      ,#{apiId}
+      ,NULLIF(#{apiVer}, '')
+      ,COALESCE(NULLIF(#{apiVerNo}, '')::integer, 0)
       ,#{apiNm}
       ,#{apiCtgryNo}::integer
       ,#{apiPath}
@@ -184,10 +220,13 @@
       ,#{regr}
       ,NOW()
       ,#{amdr}
-      ,'Y'
+      ,COALESCE(NULLIF(#{useYn}, ''), 'Y')
+      ,NULLIF(#{guideGubun}, '')
+      ,COALESCE(NULLIF(#{sandboxYn}, ''), 'N')
       ,#{apiClass}
       ,NULLIF(#{apiHandlerCd}, '')
       ,NULLIF(#{providerSeq}, '')::integer
+      ,NULLIF(#{endpntMethodCd}, '')
       ,#{endpntTbUrl}
       ,#{endpntPrdUrl}
       ,#{endpntClientIp}
@@ -202,8 +241,18 @@
       ,#{hdpApiOutCommonParam}
       ,#{hdpReqMappingToBody}
       ,#{hdpResMappingToBody}
+      ,NULLIF(#{bstgwTbSysId}, '')
+      ,NULLIF(#{bstgwPrdSysId}, '')
     )
   </insert>
+
+  <!-- 신규 등록(버전업 아님)된 DEF의 API_VER_NO를 자기 자신의 apiNo로 채운다 - "이 API가 자신의
+       버전 패밀리의 시작점"이라는 뜻. savApiDef 직후, apiVerNo를 화면이 안 보냈을 때만 호출한다
+       (버전업으로 만든 DEF는 이미 원본의 apiVerNo를 그대로 갖고 있어 호출하지 않음). -->
+  <update id="updApiVerNoSelf" parameterType="String">
+    /* apiDefReg.updApiVerNoSelf */
+    UPDATE KOA_TB_API_DEF SET API_VER_NO = #{apiNo}::integer WHERE API_NO = #{apiNo}::integer
+  </update>
 
   <!-- 템플릿 선택 팝업용 목록. quickApiReg의 selTmpltList와 같은 테이블을 보지만, 화면 독립
        원칙에 따라 이 화면 전용으로 별도 조회한다(공유 서비스 재사용 안 함).
@@ -222,6 +271,7 @@
       ,mth_type_cd                 AS "mthTypeCd"
       ,COALESCE(path_pattern, '')    AS "pathPattern"
       ,COALESCE(dflt_param_json, '') AS "dfltParamJson"
+      ,COALESCE(dflt_field_json, '') AS "dfltFieldJson"
       ,sort_odrg                   AS "sortOdrg"
     FROM KOA_TB_API_QUICK_TMPLT
     WHERE USE_YN = 'Y'
@@ -242,19 +292,55 @@
     ORDER BY COALESCE(pvd.SORT_ODRG, 999), pvd.PROVIDER_NM, pvd.SEQ
   </select>
 
+  <!-- API ID 중복 체크 - ApiReg_SQL.xml(기존 마법사)의 selectApiIdChk와 같은 규칙(그룹 무관하게
+       KOA_TB_API_DEF 전체에서 유일해야 함)이지만, 화면 독립 원칙에 따라 별도 조회한다. 수정 모드에서는
+       자기 자신(현재 apiNo)은 중복 대상에서 제외한다. apiVerNo가 함께 넘어오면(버전업 진행 중) 같은
+       버전 패밀리(API_VER_NO 동일)도 예외 처리한다 - 기존 마법사의 salApiIdCheck/selApiNmDupCheck가
+       쓰던 것과 동일한 규칙(같은 API의 여러 버전은 API ID가 같아도 중복이 아님). -->
+  <select id="selApiIdChk" parameterType="map" resultType="int">
+    /* apiDefReg.selApiIdChk */
+    SELECT COUNT(API_NO)
+    FROM KOA_TB_API_DEF
+    WHERE API_ID = REPLACE(#{apiId}, ' ', '')
+    <if test="apiNo != null and apiNo != ''">
+      AND API_NO != #{apiNo}::integer
+    </if>
+    <if test="apiVerNo != null and apiVerNo != ''">
+      AND API_VER_NO != #{apiVerNo}::integer
+    </if>
+  </select>
+
+  <!-- 다음 API ID 조회 - ApiReg_SQL.xml의 selNextApiId/selNextApiIdInfo(핸들러별 min/max 구간 관리)는
+       레거시 규칙이 복잡해 그대로 옮기지 않고, 실제 운영 데이터(참고자료/API샘플YML/gigaGenie.yml의
+       operationId: OIF_502 등)에서 확인되는 기본 접두어 "OIF_" + 5자리 순번 규칙만 단순하게 재구현했다. -->
+  <select id="selNextApiId" resultType="String">
+    /* apiDefReg.selNextApiId */
+    SELECT COALESCE(
+      (SELECT 'OIF_' || LPAD((CAST(SUBSTRING(MAX(API_ID) FROM 5) AS INTEGER) + 1)::text, 5, '0')
+       FROM KOA_TB_API_DEF
+       WHERE API_ID ~ '^OIF_[0-9]{5}$')
+    , 'OIF_00001')
+  </select>
+
   <!-- API(DEF) 수정 - 좌측 트리에서 불러온 기존 API를 다시 저장할 때. 기본 정보 + 고급 설정 전부
        갱신한다(카테고리/그룹 소속은 이 화면에서 바꾸지 않으므로 API_SPC_NO/API_CTGRY_NO는 그대로 둠). -->
   <update id="updApiDef" parameterType="com.kt.openapi.web.spcreg.vo.ApiDefRegVO">
     /* apiDefReg.updApiDef */
     UPDATE KOA_TB_API_DEF
     SET
-       API_NM                    = #{apiNm}
+       API_ID                    = #{apiId}
+      ,API_VER                   = NULLIF(#{apiVer}, '')
+      ,API_NM                    = #{apiNm}
       ,API_PATH                  = #{apiPath}
       ,METHOD_CD                 = #{methodCd}
       ,API_DESC                  = #{apiDesc}
+      ,USE_YN                    = COALESCE(NULLIF(#{useYn}, ''), 'Y')
+      ,GUIDE_GUBUN                = NULLIF(#{guideGubun}, '')
+      ,SANDBOX_YN                = COALESCE(NULLIF(#{sandboxYn}, ''), 'N')
       ,API_GUBUN                 = #{apiClass}
       ,API_HANDLER_CD            = NULLIF(#{apiHandlerCd}, '')
       ,PROVIDER_SEQ              = NULLIF(#{providerSeq}, '')::integer
+      ,ENDPNT_METHOD_CD          = NULLIF(#{endpntMethodCd}, '')
       ,ENDPNT_TB_URL             = #{endpntTbUrl}
       ,ENDPNT_PRD_URL            = #{endpntPrdUrl}
       ,ENDPNT_CLIENT_IP          = #{endpntClientIp}
@@ -269,10 +355,40 @@
       ,HDP_API_OUT_COMMON_PARAM  = #{hdpApiOutCommonParam}
       ,HDP_REQ_MAPPING_TO_BODY   = #{hdpReqMappingToBody}
       ,HDP_RES_MAPPING_TO_BODY   = #{hdpResMappingToBody}
+      ,BSTGW_TB_SYS_ID           = NULLIF(#{bstgwTbSysId}, '')
+      ,BSTGW_PRD_SYS_ID          = NULLIF(#{bstgwPrdSysId}, '')
       ,AMD_DT                    = NOW()
       ,AMDR                      = #{amdr}
     WHERE API_NO = #{apiNo}::integer
   </update>
+
+  <!-- BEAST G/W 시스템 검색(TB/상용 각각 KTC/AZURE 4개 테이블 중 target으로 선택) - 구 팝업
+       (popBstSysSelect.html)이 부르던 컨트롤러(/beast/api/popBstSysSelect/ajax_query.do)는 자바
+       소스에 없어 이미 동작하지 않는 죽은 기능이었다. 실데이터가 있는 테이블(Beast_SQL.xml의
+       sel_BST_SYNC_ADM_SYS_DPLY와 동일한 대상)만 그대로 가져와 화면 독립 원칙에 따라 새로 조회한다. -->
+  <select id="selBstSysList" parameterType="map" resultType="map">
+    /* apiDefReg.selBstSysList */
+    SELECT
+       as_item.SYS_ID                        AS "sysId"
+      ,as_item.SYS_NM                        AS "sysNm"
+      ,COALESCE(as_item.EDPT_ATRIB_URL, '')  AS "edptAtribUrl"
+    FROM
+    <choose>
+      <when test="target == 'TB_AZURE'">BST_SYNC_TB_AZURE_ADM_SYS_DPLY as_item</when>
+      <when test="target == 'PRD_KTC'">BST_SYNC_ADM_SYS_DPLY as_item</when>
+      <when test="target == 'PRD_AZURE'">BST_SYNC_AZURE_ADM_SYS_DPLY as_item</when>
+      <otherwise>BST_SYNC_TB_ADM_SYS_DPLY as_item</otherwise>
+    </choose>
+    WHERE as_item.DPLY_TYPE = 'DPLY'
+    <if test="sysId != null and sysId != ''">
+      AND UPPER(as_item.SYS_ID) LIKE CONCAT('%', UPPER(#{sysId}), '%')
+    </if>
+    <if test="sysNm != null and sysNm != ''">
+      AND UPPER(as_item.SYS_NM) LIKE CONCAT('%', UPPER(#{sysNm}), '%')
+    </if>
+    ORDER BY as_item.SYS_ID
+    LIMIT 200
+  </select>
 
   <!-- 입력(PRMTYP1010)/출력(PRMTYP1020) 파라미터만 삭제(수정 시 재구성). 혹시 있을 수 있는
        헤더(param_loc='header') 파라미터는 이 화면이 다루지 않으므로 보존한다. -->
@@ -306,6 +422,17 @@
       ,OBJ_ODRG
       ,EXAM
       ,PERSONAL_DATA
+      ,DO_NOT_SEND
+      ,FIXED_VALUE
+      ,HIDDEN
+      ,MAPPING_KEY
+      ,BIGO
+      ,PARAM_SANDBOX_YN
+      ,HDP_URL_DECODE
+      ,HDP_URL_ENCODE
+      ,HDP_UPLOAD_TARGET
+      ,RES_CD
+      ,RES_DESC
       ,REG_DT
       ,REGR
       ,AMD_DT
@@ -326,6 +453,17 @@
       ,NULLIF(#{objOdrg}, '')::integer
       ,#{exam}
       ,#{personalData}
+      ,NULLIF(#{doNotSend}, '')
+      ,NULLIF(#{fixedValue}, '')
+      ,NULLIF(#{hidden}, '')
+      ,NULLIF(#{mappingKey}, '')
+      ,NULLIF(#{bigo}, '')
+      ,NULLIF(#{paramSandboxYn}, '')
+      ,NULLIF(#{hdpUrlDecode}, '')
+      ,NULLIF(#{hdpUrlEncode}, '')
+      ,NULLIF(#{hdpUploadTarget}, '')
+      ,NULLIF(#{resCd}, '')
+      ,NULLIF(#{resDesc}, '')
       ,NOW()
       ,#{regr}
       ,NOW()
