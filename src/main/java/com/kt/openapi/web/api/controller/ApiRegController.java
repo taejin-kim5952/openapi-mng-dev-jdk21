@@ -216,7 +216,16 @@ public class ApiRegController {
 					LOG.debug("{}.{} Auth Count ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), authCount);
 					//int adminCount = apiRegService.selMbrAuthCheck(apiRegVO);
 					//LOG.debug("{}.{} Admin Count ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), adminCount);
-					if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId())
+					// [SPCREG 읽기전용] 신규 등록화면(spcreg)으로 만든 명세는 KOA_TB_API_DEF/PARAM이 정본이고
+					// YAML_SBST는 거기서 생성한 파생 캐시다. 이 화면에서 저장하면 YAML만 덮어써서 정본과
+					// 어긋나므로, 권한과 무관하게 편집을 막는다(조회는 그대로 가능).
+					// 게이트는 이미 존재한다 - g_isAuthYn == "N" 이면 apiGlobalScript.js의 fnApiAuthCheck()가
+					// 모든 저장 진입점(fn_check_regform_action)에서 차단한다.
+					boolean isSpcregSpc = "SPCREG".equalsIgnoreCase(map_apiSpc.getSpcSrcCd());
+					if (isSpcregSpc) {
+						mv.addObject("readOnlyReason", "SPCREG");
+					}
+					else if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId())
 						|| apiRegVO.getSysId().equalsIgnoreCase(this.apisystemSysidArsenal)
 						|| authCount > 0) {
 						isAuthYn = "Y";
@@ -459,12 +468,17 @@ public class ApiRegController {
 		LOG.debug("{}.{} Auth Count ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), authCount);
 		//int adminCount = apiRegService.selMbrAuthCheck(apiRegVO);
 		//LOG.debug("{}.{} Admin Count ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), adminCount);
-		if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId()) 
+		// [SPCREG 읽기전용] mvApiInfoReg와 동일한 이유 - 신규 등록화면으로 만든 명세는 이 화면에서
+		// 조회만 가능하다. 기본정보 화면만 막고 여기를 열어두면 좌측 메뉴로 넘어와 수정이 가능해진다.
+		if ("SPCREG".equalsIgnoreCase(map_apiSpc.getSpcSrcCd())) {
+			mv.addObject("readOnlyReason", "SPCREG");
+		}
+		else if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId())
 			|| map_apiSpc.getSysId().equalsIgnoreCase(this.apisystemSysidArsenal)
 			|| authCount > 0) {
 			isAuthYn = "Y";
 		}
-		
+
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
 		model.addAttribute("sIsAuthYn", isAuthYn);
@@ -1175,12 +1189,16 @@ public class ApiRegController {
 		LOG.debug("{}.{} REGR ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), vo.getRegr());
 		int authCount = apiRegService.selApiSpcAuthCheck(vo);
 		LOG.debug("{}.{} Auth Count ========== {} ", getClass().getSimpleName(), Thread.currentThread().getStackTrace()[1].getMethodName(), authCount);
-		if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId()) 
+		// [SPCREG 읽기전용] mvApiInfoReg / mvApiPathReg와 동일
+		if ("SPCREG".equalsIgnoreCase(map_apiSpc.getSpcSrcCd())) {
+			model.addAttribute("readOnlyReason", "SPCREG");
+		}
+		else if(map_apiSpc.getRegr().equalsIgnoreCase(userJVo.getEnCmbrId())
 			|| map_apiSpc.getSysId().equalsIgnoreCase(this.apisystemSysidArsenal)
 			|| authCount > 0) {
 			isAuthYn = "Y";
 		}
-		
+
 		// 권한 세션 셋업
 		session.setAttribute("sIsAuthYn", isAuthYn);
 		model.addAttribute("sIsAuthYn", isAuthYn);

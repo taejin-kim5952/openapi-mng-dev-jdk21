@@ -1,6 +1,6 @@
 /* simpleView.js - API "간단 상세" 화면 전용 스크립트 (디자인 리뉴얼판).
    기존 편집폼 JS(apiInfoReg.js 등)와는 무관하게 이 화면만을 위해 새로 작성했다.
-   공용 유틸(alert_message 등)만 apiGlobalScript.js, 아이콘/코드조회는 quickRegShared.js에서 가져다 쓴다. */
+   공용 유틸(alert_message 등)만 apiGlobalScript.js, 아이콘/코드조회는 apiRegShared.js에서 가져다 쓴다. */
 
 var MTH_CLASS = { GET: 'sv_mth_get', POST: 'sv_mth_post', PUT: 'sv_mth_put', DELETE: 'sv_mth_delete', PATCH: 'sv_mth_patch' };
 

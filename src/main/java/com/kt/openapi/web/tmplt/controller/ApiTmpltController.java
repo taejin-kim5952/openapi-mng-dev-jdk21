@@ -1,8 +1,8 @@
-package com.kt.openapi.web.api.controller;
+package com.kt.openapi.web.tmplt.controller;
 
-import com.kt.openapi.web.api.service.ApiQuickRegService;
-import com.kt.openapi.web.api.vo.ApiQuickTmpltVO;
 import com.kt.openapi.web.cmm.service.CmnService;
+import com.kt.openapi.web.tmplt.service.ApiTmpltService;
+import com.kt.openapi.web.tmplt.vo.ApiTmpltVO;
 import com.kt.openapi.web.userJoin.vo.UserJoinVO;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -16,22 +16,23 @@ import org.springframework.web.servlet.ModelAndView;
 
 /**
  * <pre>
- * 1. 패키지명 : com.kt.openapi.web.api.controller
- * 2. 타입명   : ApiQuickTmpltController.java
- * 5. 설명     : "빠른 API 등록" 템플릿 관리(목록/등록/수정/삭제) 전용 컨트롤러.
- *              ApiQuickRegController와 같은 "빠른등록" 기능군이라 서비스/DAO는 공유하되,
- *              URL 네임스페이스만 /api/quickreg/tmplt로 분리했다.
+ * 1. 패키지명 : com.kt.openapi.web.tmplt.controller
+ * 2. 타입명   : ApiTmpltController.java
+ * 5. 설명     : API 등록 템플릿 관리(목록/등록/수정/삭제) 전용 컨트롤러.
+ *              원래 "빠른 API 등록"(/api/quickreg) 기능군에 속해 있었으나, 해당 화면이 폐지되면서
+ *              중립 URL(/api/tmplt)로 분리하고 서비스/DAO도 이 패키지 전용으로 새로 두었다.
+ *              여기서 관리한 템플릿은 API 등록 화면(/api/spcreg/def)의 "템플릿으로 시작"에서 쓰인다.
  * </pre>
  */
 @Controller
-@RequestMapping(value = "/api/quickreg/tmplt")
-public class ApiQuickTmpltController {
+@RequestMapping(value = "/api/tmplt")
+public class ApiTmpltController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ApiQuickTmpltController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ApiTmpltController.class);
 
     @Autowired
-    @Qualifier("apiQuickRegService")
-    private ApiQuickRegService apiQuickRegService;
+    @Qualifier("apiTmpltService")
+    private ApiTmpltService apiTmpltService;
 
     @Autowired
     @Qualifier("CmnService")
@@ -41,7 +42,7 @@ public class ApiQuickTmpltController {
     @RequestMapping(value = "/mvTmpltMng.do")
     public ModelAndView mvTmpltMng() throws Exception {
         ModelAndView mv = new ModelAndView("api/tmpltMngList");
-        mv.addObject("tmpltList", apiQuickRegService.selTmpltMngList());
+        mv.addObject("tmpltList", apiTmpltService.selTmpltMngList());
         mv.addObject("mthTypeList", cmnService.selComnList("MTHTYP1000"));
         mv.addObject("apiGubList", cmnService.selComnList("APIGUB1000"));
         return mv;
@@ -52,7 +53,7 @@ public class ApiQuickTmpltController {
     public ModelAndView mvTmpltForm(String tmpltNo) throws Exception {
         ModelAndView mv = new ModelAndView("api/tmpltMngForm");
         if (tmpltNo != null && !tmpltNo.trim().isEmpty()) {
-            mv.addObject("tmplt", apiQuickRegService.selTmpltDetail(tmpltNo));
+            mv.addObject("tmplt", apiTmpltService.selTmpltDetail(tmpltNo));
         }
         mv.addObject("apiGubList", cmnService.selComnList("APIGUB1000"));
         mv.addObject("dataTypeList", cmnService.selComnList("DATTYP1000"));
@@ -63,7 +64,7 @@ public class ApiQuickTmpltController {
     /** 템플릿 저장 (신규/수정 겸용) */
     @ResponseBody
     @RequestMapping(value = "/savTmpltAjax.do")
-    public ModelAndView savTmpltAjax(HttpSession session, ApiQuickTmpltVO vo) throws Exception {
+    public ModelAndView savTmpltAjax(HttpSession session, ApiTmpltVO vo) throws Exception {
         ModelAndView mv = new ModelAndView("jsonView");
 
         UserJoinVO userJVo = (UserJoinVO) session.getAttribute("ssUserVo");
@@ -83,7 +84,7 @@ public class ApiQuickTmpltController {
         vo.setAmdr(userJVo.getEnCmbrId());
 
         try {
-            String tmpltNo = apiQuickRegService.savTmplt(vo);
+            String tmpltNo = apiTmpltService.savTmplt(vo);
             mv.addObject("returnCode", "1");
             mv.addObject("tmpltNo", tmpltNo);
         } catch (Exception e) {
@@ -100,7 +101,7 @@ public class ApiQuickTmpltController {
     public ModelAndView delTmpltAjax(String tmpltNo) throws Exception {
         ModelAndView mv = new ModelAndView("jsonView");
         try {
-            apiQuickRegService.delTmplt(tmpltNo);
+            apiTmpltService.delTmplt(tmpltNo);
             mv.addObject("returnCode", "1");
         } catch (Exception e) {
             LOG.error("delTmpltAjax error", e);

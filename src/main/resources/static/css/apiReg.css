@@ -1,4 +1,5 @@
-/* quickApiReg.css - "빠른 API 등록" 전용 화면 스타일 (디자인 리뉴얼판).
+/* apiReg.css - API 등록 계열 화면(SPC 등록/API 등록/템플릿 관리/간단 상세) 공용 스타일.
+   (구 quickApiReg.css - "빠른 API 등록" 화면 제거에 맞춰 이름에서 quick을 뺐다.)
    외곽 골격(#container/.contents/.conBox/.api_content/.regist_wrap/.regi_bar/.regist_layout/
    .api_left/.api_right)은 기존 API 등록 마법사와 시각적 일관성을 위해 registration.css를
    그대로 재사용한다(레이아웃 시트만 재사용, 그 안의 실제 컨텐츠는 이 화면 전용으로 새로 작성).
@@ -110,6 +111,8 @@
 .qr_pill_ghost { background: #fff; border-color: var(--qr-line); color: var(--qr-ink-soft); height: 52px; padding: 0 34px; font-size: 16px; }
 .qr_pill_ghost:hover { background: #f0f0f0; }
 .qr_pill svg { flex: none; }
+/* _sm 은 크기 모디파이어 - variant(ghost/accent 등)가 뒤에 선언돼도 이기도록 specificity를 올린다(퍼블_v19.0). */
+.qr_pill.qr_pill_sm { height: 32px; padding: 0 16px; font-size: 13px; }
 .qr_ico { font-size: 12px; line-height: 1; }
 
 /* ① 시작 방식 (카드형) */
@@ -176,7 +179,16 @@
 }
 .qr_field textarea { height: auto; padding: 14px 18px; line-height: 23px; resize: vertical; }
 .qr_field input:focus, .qr_field select:focus, .qr_field textarea:focus { border-color: var(--qr-teal); outline: none; }
-.qr_field input.qr_input_err, .qr_field select.qr_input_err { border-color: var(--qr-danger); background: var(--qr-danger-bg); }
+.qr_field input.qr_input_err, .qr_field select.qr_input_err, .qr_field textarea.qr_input_err { border-color: var(--qr-danger); background: var(--qr-danger-bg); }
+
+/* Handler 설정의 Y/N 체크박스(비즈나루API 여부 등) - .qr_param_table과 같은 이유로 레거시 시트의
+   checkbox display:none을 되돌린다. .qr_field가 input에 주는 높이/테두리도 여기서 해제한다. */
+.qr_chk_wrap { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.qr_field .qr_chk_wrap input[type="checkbox"] {
+  display: inline-block; -webkit-appearance: checkbox; appearance: checkbox;
+  width: 17px; height: 17px; min-height: 0; padding: 0; border: 0; border-radius: 3px;
+  background: none; vertical-align: middle; accent-color: var(--qr-teal); cursor: pointer;
+}
 .qr_field_hint { display: block; font-size: 12.5px; color: var(--qr-mute); margin-top: 6px; }
 .qr_err { display: none; font-size: 12.5px; color: var(--qr-danger); margin-top: 5px; }
 .qr_err.qr_show { display: block; }
@@ -483,3 +495,175 @@
 /* ---------------- 간단 상세 ---------------- */
 .sv_val { margin: 0; padding: 10px 0 2px; font-size: 15px; color: #222; min-height: 20px; word-break: break-all; }
 
+/* ===== 기본 정보 간소화 - 퍼블_v19.0(API등록_기본정보_간소화_디자인퍼블_요청서 회신) 반영.
+   타이틀 옆 챗봇 아이콘(.qr_title_bot)은 이 화면에 해당 기능이 없어 가져오지 않았다. ===== */
+/* 아코디언 헤더 — 클릭 가능한 영역임이 드러나도록 우측에 라벨+아이콘을 묶어 둡니다. */
+.sv_acc_toggle { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border: 1px solid var(--qr-line); border-radius: var(--qr-radius-pill); color: var(--qr-mute); font-size: 12px; font-weight: 700; transition: border-color .15s ease, color .15s ease; }
+.sv_acc_head:hover .sv_acc_toggle { border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.sv_acc.sv_open .sv_acc_toggle_lbl { display: none; }
+.sv_acc.sv_open .sv_acc_toggle { padding: 5px 8px; }
+/* 접힘 상태 요약 — 값은 개발 쪽에서 채웁니다. */
+.qr_sum_v { color: var(--qr-ink-soft); font-weight: 700; }
+.qr_sum_sep { margin: 0 7px; color: var(--qr-line); }
+
+/* API ID 처럼 입력 + 보조 버튼이 한 줄에 오는 필드 */
+/* 입력 + 보조 버튼(중복검사 / 신규 API ID) — 한 줄. 입력이 최소 폭을 확보하고 버튼은 폭을 좁게 씁니다. */
+.qr_input_btns { display: flex; align-items: center; gap: 6px; }
+.qr_input_btns input { flex: 1 1 auto; min-width: 0; }
+.qr_input_btns .qr_pill.qr_pill_sm { flex: none; padding: 0 10px; white-space: nowrap; }
+
+/* "추가 설정" 인라인 토글 — .sv_acc 아코디언보다 한 단계 가벼운 단계 */
+.qr_inline_more { margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--qr-line); }
+.qr_inline_toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; border: 0; background: none; cursor: pointer; font-family: inherit; text-align: left; }
+.qr_inline_ico { display: inline-flex; color: var(--qr-mute); transition: transform .18s ease; }
+.qr_inline_toggle.qr_on .qr_inline_ico { transform: rotate(180deg); }
+.qr_inline_toggle:hover .qr_inline_ico, .qr_inline_toggle:hover .qr_inline_nm { color: var(--qr-teal-dark); }
+.qr_inline_nm { flex: none; font-size: 13.5px; font-weight: 800; color: var(--qr-ink-soft); }
+.qr_inline_sub { flex: none; font-size: 12px; color: var(--qr-mute); }
+.qr_inline_sum { flex: 1 1 auto; min-width: 0; text-align: right; font-size: 12px; font-weight: 700; color: var(--qr-teal-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qr_inline_toggle.qr_on .qr_inline_sum { visibility: hidden; }
+.qr_inline_box { padding: 18px 0 2px; }
+@media (max-width: 900px) {
+  .qr_inline_sub, .qr_inline_sum { display: none; }
+}
+
+/* ===== AI 챗봇 팝업 - 퍼블_v24.0(API등록_챗봇팝업_디자인퍼블_요청서 회신) 반영 =====
+   마크업은 apiDefReg.html, 동작은 js/chat/chatWidget.js 에 있다. */
+.qr_title_bot { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 8px; padding: 0; vertical-align: 3px; border: 0; background: none; color: var(--qr-teal-dark); cursor: pointer; transition: color .15s ease; }
+.qr_title_bot:hover { color: var(--qr-accent); }
+
+/* 필드 라벨 옆 도움말 아이콘 - 누르면 챗봇이 열리며 그 필드에 대한 질문이 바로 나간다.
+   타이틀의 챗봇 아이콘(.qr_title_bot)과 같은 모양을 작게 써서 "같은 도우미"임을 알린다.
+   평소에는 흐리게 두어 입력 흐름을 방해하지 않는다. */
+.qr_help_bot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 4px; padding: 0; vertical-align: -3px; border: 0; border-radius: 50%; background: none; color: var(--qr-line); cursor: pointer; transition: color .15s ease, background .15s ease; }
+.qr_help_bot:hover { background: var(--qr-teal-bg); color: var(--qr-teal-dark); }
+.qr_field label:hover .qr_help_bot, .sv_sub_head:hover .qr_help_bot { color: var(--qr-mute); }
+
+/* ===== AI 챗봇 팝업 (chat_*) =====
+   화면 우하단 고정 패널. backdrop이 없어 뒤쪽 화면을 계속 조작할 수 있습니다.
+   특정 화면에 맞춘 위치 가정 없이 viewport 우하단에만 붙습니다. */
+/* 폭은 퍼블_v24.0 산출물의 512px 에서 20% 넓힌 값이다 - 실제로 띄워보니 답변 안의
+   표/코드블록이 좁아 가로 스크롤이 잦았다. 900px 이하에서는 아래 미디어쿼리가 전체 폭으로 바꾼다. */
+.chat_panel { position: fixed; right: 24px; bottom: 24px; z-index: 900; display: flex; flex-direction: column; width: 614px; max-width: calc(100vw - 32px); height: 620px; max-height: calc(100vh - 48px); border: 1px solid var(--qr-line); border-radius: var(--qr-radius); background: #fff; box-shadow: 0 18px 44px rgba(0,0,0,.16); font-size: 13px; color: var(--qr-ink); }
+.chat_panel.chat_min { height: auto; }
+.chat_panel.chat_min .chat_body, .chat_panel.chat_min .chat_input, .chat_panel.chat_min .chat_to_btm, .chat_panel.chat_min .chat_topic_pop { display: none; }
+
+.chat_head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 14px 13px 16px; border-bottom: 1px solid var(--qr-line); background: #fbfdfd; border-radius: var(--qr-radius) var(--qr-radius) 0 0; }
+.chat_head_txt { min-width: 0; cursor: pointer; }
+.chat_nm { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--qr-ink); }
+.chat_nm svg { color: var(--qr-teal-dark); }
+.chat_desc { margin-top: 2px; font-size: 11.5px; color: var(--qr-mute); }
+.chat_head_acts { flex: none; display: flex; align-items: center; gap: 2px; }
+.chat_ico_btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--qr-mute); cursor: pointer; }
+.chat_ico_btn:hover { background: #eef6f6; color: var(--qr-teal-dark); }
+
+/* 세로 스크롤은 이 영역에만 */
+.chat_body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 14px 6px; }
+
+.chat_intro_q { margin: 2px 0 14px; font-size: 15px; font-weight: 800; color: var(--qr-ink); }
+.chat_intro_sub { margin: 0 0 8px; font-size: 11.5px; font-weight: 800; color: var(--qr-mute); }
+.chat_chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat_chip { padding: 6px 11px; border: 1px solid #dcecec; border-radius: var(--qr-radius-pill); background: #f7fdfd; color: var(--qr-teal-dark); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.chat_chip:hover { border-color: var(--qr-teal); background: #eef8f8; }
+
+.chat_msgs { display: flex; flex-direction: column; gap: 14px; padding: 14px 0 8px; }
+.chat_row { display: flex; }
+.chat_row_me { justify-content: flex-end; }
+.chat_bubble { max-width: 90%; padding: 11px 13px; border: 1px solid var(--qr-line); border-radius: 10px; background: #fff; line-height: 1.65; }
+.chat_bubble_me { max-width: 84%; border-color: #cfe6e6; background: #eef8f8; color: var(--qr-ink); }
+
+/* 답변 본문에 허용되는 표현만 정의합니다 — 이미지는 답변에 넣지 않습니다(문서 상세에서만). */
+.chat_txt > *:first-child { margin-top: 0; }
+.chat_txt > *:last-child { margin-bottom: 0; }
+.chat_txt p { margin: 0 0 8px; }
+.chat_txt h4 { margin: 12px 0 6px; font-size: 13px; font-weight: 800; color: var(--qr-ink); }
+.chat_txt ul, .chat_txt ol { margin: 0 0 8px; padding-left: 20px; }
+.chat_txt li { margin-bottom: 3px; }
+.chat_txt code { padding: 1px 5px; border-radius: 4px; background: #f2f2f2; font-family: monospace; font-size: 12px; color: var(--qr-accent); }
+.chat_link { color: var(--qr-teal-dark); font-weight: 700; text-decoration: underline; }
+.chat_link:hover { color: var(--qr-accent); }
+/* 표·코드블록은 말풍선 폭이 좁으므로 가로 스크롤 */
+.chat_tbl_wrap { overflow-x: auto; margin: 0 0 8px; }
+.chat_tbl { border-collapse: collapse; min-width: 100%; font-size: 12px; }
+.chat_tbl th, .chat_tbl td { padding: 6px 9px; border: 1px solid var(--qr-line); white-space: nowrap; text-align: left; }
+.chat_tbl th { background: #f7f7f7; font-weight: 800; color: var(--qr-ink-soft); }
+.chat_code { margin: 0 0 8px; padding: 10px 12px; overflow-x: auto; border: 1px solid var(--qr-line); border-radius: 6px; background: #fbfbfb; }
+.chat_code code { padding: 0; background: none; color: var(--qr-ink-soft); font-family: monospace; font-size: 11.5px; line-height: 1.65; white-space: pre; }
+
+.chat_srcs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chat_src { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 9px; border: 1px solid var(--qr-line); border-radius: var(--qr-radius-pill); background: #fafafa; color: var(--qr-ink-soft); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.chat_src:hover { border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.chat_src svg { flex: none; }
+
+.chat_foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--qr-line); }
+.chat_verified { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--qr-teal-dark); }
+.chat_ai { font-size: 11px; color: var(--qr-mute); }
+.chat_fb { display: inline-flex; align-items: center; gap: 3px; }
+.chat_fb_lbl { margin-right: 3px; font-size: 11px; color: var(--qr-mute); }
+.chat_fb_btn { display: inline-flex; padding: 3px; border: 0; border-radius: 5px; background: none; color: #cfcfcf; cursor: pointer; }
+.chat_fb_btn:hover { color: var(--qr-ink-soft); }
+.chat_fb_btn.qr_on { color: var(--qr-teal); }
+
+.chat_docs { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.chat_doc { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border: 1px solid var(--qr-line); border-radius: 8px; background: #fafafa; font-family: inherit; text-align: left; cursor: pointer; }
+.chat_doc:hover { border-color: var(--qr-teal); background: #f7fdfd; }
+.chat_doc_nm { font-size: 12.5px; font-weight: 800; color: var(--qr-ink); }
+.chat_doc_sec { font-size: 11px; color: var(--qr-mute); }
+.chat_unresolved { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding: 10px 11px; border: 1px dashed var(--qr-line); border-radius: 8px; background: #fcfcfc; font-size: 11.5px; color: var(--qr-mute); }
+
+.chat_to_btm { position: absolute; right: 14px; bottom: 74px; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--qr-line); border-radius: 50%; background: #fff; color: var(--qr-ink-soft); box-shadow: 0 3px 10px rgba(0,0,0,.1); cursor: pointer; }
+.chat_to_btm:hover { border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+
+.chat_input { flex: none; display: flex; align-items: flex-end; gap: 6px; padding: 10px 12px 12px; border-top: 1px solid var(--qr-line); }
+.chat_topic_btn, .chat_send { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--qr-line); border-radius: 8px; background: #fff; color: var(--qr-ink-soft); cursor: pointer; }
+.chat_topic_btn:hover { border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.chat_send { border-color: var(--qr-teal); background: var(--qr-teal); color: #fff; }
+.chat_send:hover { background: var(--qr-teal-dark); border-color: var(--qr-teal-dark); }
+.chat_input textarea { box-sizing: border-box; flex: 1; min-width: 0; height: 34px; max-height: 90px; padding: 8px 10px; border: 1px solid var(--qr-line); border-radius: 8px; resize: none; font-family: inherit; font-size: 12.5px; line-height: 1.4; color: var(--qr-ink); }
+.chat_input textarea:focus { outline: none; border-color: var(--qr-teal); box-shadow: 0 0 0 2px rgba(48,155,162,.13); }
+
+.chat_topic_pop { position: absolute; left: 12px; right: 12px; bottom: 58px; z-index: 2; max-height: 280px; display: flex; flex-direction: column; border: 1px solid var(--qr-line); border-radius: var(--qr-radius); background: #fff; box-shadow: 0 10px 26px rgba(0,0,0,.14); }
+.chat_topic_srch { padding: 10px 12px; border-bottom: 1px solid var(--qr-line); }
+.chat_topic_srch input { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--qr-line); border-radius: 6px; font-family: inherit; font-size: 12.5px; }
+.chat_topic_srch input:focus { outline: none; border-color: var(--qr-teal); }
+.chat_topic_list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
+.chat_topic { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: var(--qr-ink-soft); font-family: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.chat_topic:hover { background: #f4fbfb; color: var(--qr-teal-dark); }
+.chat_topic_empty { margin: 0; padding: 14px 12px; font-size: 12px; color: var(--qr-mute); }
+
+/* 주제 팝오버 2단계 - 그룹 머리(펼치기)와 2단계 머리말 */
+.chat_topic_group { display: flex; align-items: center; gap: 6px; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: var(--qr-mute); font-family: inherit; font-size: 12px; font-weight: 800; text-align: left; cursor: pointer; }
+.chat_topic_group:hover { background: #f7f7f7; color: var(--qr-ink-soft); }
+.chat_topic_group_ico { display: inline-flex; transition: transform .15s ease; }
+.chat_topic_group.is_open .chat_topic_group_ico { transform: rotate(90deg); }
+.chat_topic_sub { display: none; padding-left: 8px; }
+.chat_topic_group.is_open + .chat_topic_sub { display: block; }
+.chat_topic_head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--qr-line); }
+.chat_topic_back { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--qr-line); border-radius: 6px; background: #fff; color: var(--qr-mute); cursor: pointer; }
+.chat_topic_back:hover { border-color: var(--qr-teal); color: var(--qr-teal-dark); }
+.chat_topic_head_nm { font-size: 12.5px; font-weight: 800; color: var(--qr-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 2단계에서는 검색칸을 감춘다 - 예시 질문은 몇 개 안 되고, 검색은 주제를 찾을 때 쓰는 것이다. */
+.chat_topic_pop.is_step2 .chat_topic_srch { display: none; }
+
+/* 고른 주제 표시 */
+.chat_picked { display: flex; align-items: center; gap: 6px; margin: 0 12px 6px; padding: 5px 8px 5px 10px; border: 1px solid var(--qr-teal); border-radius: var(--qr-radius-pill); background: var(--qr-teal-bg); color: var(--qr-teal-dark); font-size: 12px; font-weight: 700; align-self: flex-start; max-width: calc(100% - 24px); }
+.chat_picked_nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat_picked_clear { flex: none; padding: 0 2px; border: 0; background: none; color: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+
+/* 문서 상세 - 화면 중앙 모달. 표와 도식을 넓게 봅니다. */
+.chat_doc_modal { display: flex; flex-direction: column; width: min(760px, 94vw); max-height: 86vh; padding: 0; }
+.chat_doc_modal .qr_modal_head { padding: 22px 26px 16px; }
+.chat_doc_body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 26px; font-size: 13.5px; line-height: 1.75; color: var(--qr-ink-soft); }
+.chat_doc_body h4 { margin: 20px 0 8px; font-size: 15px; font-weight: 800; color: var(--qr-ink); }
+.chat_doc_body h4:first-child { margin-top: 0; }
+.chat_doc_body p { margin: 0 0 10px; }
+.chat_doc_body ul, .chat_doc_body ol { margin: 0 0 12px; padding-left: 22px; }
+.chat_doc_body .chat_tbl { font-size: 13px; }
+.chat_fig { margin: 0 0 12px; }
+.chat_fig img { display: block; width: 100%; border: 1px solid var(--qr-line); border-radius: 6px; }
+.chat_fig figcaption { margin-top: 7px; font-size: 12px; color: var(--qr-mute); }
+.chat_doc_modal .qr_modal_foot { display: flex; justify-content: flex-end; padding: 14px 26px 20px; border-top: 1px solid var(--qr-line); }
+
+@media (max-width: 620px) {
+  .chat_panel { right: 12px; left: 12px; bottom: 12px; width: auto; height: calc(100vh - 24px); }
+}

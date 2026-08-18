@@ -11,7 +11,7 @@
     <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/codemirror.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
-    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/apiReg.css}">
     <link rel="stylesheet" th:href="@{/resources/css/simpleView.css}">
 </head>
 <body>
@@ -319,7 +319,7 @@
   </div>
 </div>
 
-<!-- 팝업: 파라미터 설계 - 스코프 하나만 다룹니다(quickApiReg.html과 동일한 마크업/ID를 공유해서
+<!-- 팝업: 파라미터 설계 - 스코프 하나만 다룹니다((폐지된) 빠른 API 등록 화면과 동일한 마크업/ID를 공유해서
      paramTreeEditor.js를 그대로 재사용). 좌측 트리와 우측 YAML 에디터는 같은 데이터를 보고 있어
      어느 쪽을 고쳐도 반대쪽이 따라옵니다. -->
 <div id="qrParamModal" class="qr_modal_backdrop qr_hide">
@@ -390,7 +390,7 @@
 <script th:src="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.js}"></script>
 <script th:src="@{/resources/js/cdn/codemirror/addon/fold/indent-fold.js}"></script>
 <script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
-<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiRegShared.js}"></script>
 <script th:src="@{/resources/js/api_reg/paramTreeEditor.js}"></script>
 <script th:src="@{/resources/js/api_reg/simpleView.js}"></script>
 

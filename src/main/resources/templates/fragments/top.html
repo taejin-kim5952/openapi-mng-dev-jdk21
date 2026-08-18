@@ -83,37 +83,7 @@
     }
   }
 
-  //빠른 API 등록 (기존 apiReg()와 동일한 로그인/권한 체크 패턴 재사용 - 메뉴에서 직접 진입하지 않고
-  //  spcReg 저장 후 리다이렉트나 "기존 그룹에 API 추가" 진입점으로만 도달)
-  var apiQuickReg = function() {
-    if (!fnIsLoggedin()) {
-      var btnHtm = '';
-      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'apiquickreg\')">확인</button> ';
-      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
-      fnOpenLayer(btnHtm, '로그인', /*[[#{top.login.req}]]*/ '로그인이 필요합니다.');
-      return;
-    }
-
-    var list = new Array();
-    /*[# th:if="${ssUserVo != null}"]*/
-    /*[# th:each="item : ${ssUserVo.authList}"]*/
-    list.push(/*[[${item.autId}]]*/ '');
-    /*[/]*/
-    /*[/]*/
-
-    if (!list[0]) {
-      var btnHtm = '';
-      btnHtm += ' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm cid_btn_close" onclick="fn_golink_with_login(\'mypage\')">확인</button> ';
-      btnHtm += ' <button type="button" title="취소" class="btn btn_sml3 btn_popup_close cid_btn_close">취소</button> ';
-      fnOpenLayer(btnHtm, 'API 권한 신청', /*[[#{top.aut.req}]]*/ 'API 권한 신청이 필요합니다.');
-      return;
-    }
-    else {
-      location.href = fn_get_direct_url('apiquickreg');
-    }
-  }
-
-  //템플릿 관리 (빠른 API 등록의 템플릿 CRUD - 로그인만 되어 있으면 접근 가능)
+  //템플릿 관리 (API 등록 화면에서 쓰는 템플릿 CRUD - 로그인만 되어 있으면 접근 가능)
   var tmpltMng = function() {
     if (!fnIsLoggedin()) {
       var btnHtm = '';
@@ -151,14 +121,11 @@
     else if ('apireg' == direct) {
       go_url = /*[[@{/api/main/mvMainList.do}]]*/ '/api/main/mvMainList.do';
     }
-    else if ('apiquickreg' == direct) {
-      go_url = /*[[@{/api/quickreg/mvApiQuickReg.do}]]*/ '/api/quickreg/mvApiQuickReg.do';
-    }
     else if ('apispcreg' == direct) {
       go_url = /*[[@{/api/spcreg/mvSpcReg.do}]]*/ '/api/spcreg/mvSpcReg.do';
     }
     else if ('tmpltmng' == direct) {
-      go_url = /*[[@{/api/quickreg/tmplt/mvTmpltMng.do}]]*/ '/api/quickreg/tmplt/mvTmpltMng.do';
+      go_url = /*[[@{/api/tmplt/mvTmpltMng.do}]]*/ '/api/tmplt/mvTmpltMng.do';
     }
     return go_url;
   }

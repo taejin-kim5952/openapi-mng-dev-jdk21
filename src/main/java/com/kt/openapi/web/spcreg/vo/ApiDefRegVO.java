@@ -73,6 +73,18 @@ public class ApiDefRegVO {
     private String hdpReqMappingToBody;
     private String hdpResMappingToBody;
 
+    // Handler별 추가 파라미터. 어떤 Handler를 골랐느냐에 따라 화면에 노출되는 항목이 달라진다
+    // (기존 마법사 regFormPrivateHandlerParam_inc.html의 g_handler_param과 같은 구성).
+    // Handler에 해당하지 않는 항목은 저장 시 컨트롤러에서 비워 KOA_TB_API_DEF에 잔값이 남지 않게 한다.
+    private String hdpReqConfigToBody;
+    private String hdpReqHeaderToBody;
+    private String hdpResProvideParam;
+    private String hdpReqUrlDecode;
+    private String hdpReqUrlEncode;
+    private String hdpResUrlEncode;
+    private String hdpHndlroptnConfig;
+    private String hdpExtProp;
+
     // 파라미터 목록 (KOA_TB_API_PARAM)
     private List<ApiDefParamVO> paramList;
 

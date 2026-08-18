@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!--/* api/tmpltMngForm.html - "빠른 API 등록" 템플릿 등록/수정 폼.
-     YAML을 붙여넣으면 실제 "YAML 등록"과 동일한 파서(quickRegShared.js)로 미리보기 후 저장한다. */-->
+<!--/* api/tmpltMngForm.html - API 등록 템플릿 등록/수정 폼.
+     YAML을 붙여넣으면 실제 "YAML 등록"과 동일한 파서(apiRegShared.js)로 미리보기 후 저장한다. */-->
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
 <head>
@@ -10,7 +10,7 @@
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/lint/lint.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/hint/show-hint.css}">
-    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/apiReg.css}">
 </head>
 <body>
 <div layout:fragment="content">
@@ -29,7 +29,7 @@
               </p>
             </div>
             <div class="right_menu">
-              <p><a th:href="@{/api/quickreg/tmplt/mvTmpltMng.do}" title="템플릿 목록" class="btn btn_list"><span>템플릿 목록</span></a></p>
+              <p><a th:href="@{/api/tmplt/mvTmpltMng.do}" title="템플릿 목록" class="btn btn_list"><span>템플릿 목록</span></a></p>
             </div>
           </div><!-- .regi_bar -->
 
@@ -96,7 +96,7 @@
     </table>
 
     <div class="qr_btn_area">
-      <a th:href="@{/api/quickreg/tmplt/mvTmpltMng.do}" class="qr_pill qr_pill_ghost">취소</a>
+      <a th:href="@{/api/tmplt/mvTmpltMng.do}" class="qr_pill qr_pill_ghost">취소</a>
       <button type="button" class="qr_pill qr_pill_accent" onclick="tmSaveTmplt();">저장</button>
     </div>
   </form>
@@ -126,7 +126,7 @@
 <script th:src="@{/resources/js/cdn/codemirror/addon/hint/show-hint.js}"></script>
 <script th:src="@{/resources/js/cdn/codemirror/addon/hint/anyword-hint.js}"></script>
 <script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
-<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiRegShared.js}"></script>
 <script th:src="@{/resources/js/api_reg/tmpltMng.js}"></script>
 
 </div>

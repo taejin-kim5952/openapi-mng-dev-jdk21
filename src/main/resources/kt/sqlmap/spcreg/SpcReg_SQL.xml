@@ -58,6 +58,7 @@
       ,API_SCHEMA
       ,BSTGW_YN
       ,API_VERI_BASEURL
+      ,SPC_SRC_CD
     )
     SELECT
        NID.ID
@@ -83,6 +84,7 @@
       ,#{apiSchema}
       ,#{bstgwYn}
       ,#{apiVeriBaseurl}
+      ,'SPCREG'
     FROM ( SELECT NEXTVAL('koa_tb_api_spc_api_spc_no_seq') AS ID ) NID
   </insert>
 

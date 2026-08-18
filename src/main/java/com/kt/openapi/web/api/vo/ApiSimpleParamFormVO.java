@@ -12,7 +12,7 @@ import java.util.List;
  * 2. 타입명   : ApiSimpleParamFormVO.java
  * 5. 설명     : "간단 상세" 팝업의 파라미터 목록 저장 폼 바인딩 전용 VO.
  *              paramList[n].xxx 형태의 indexed form 파라미터를 Spring이 자동 바인딩할 수 있도록
- *              커맨드 객체로 감싼다(ApiQuickRegVO.ApiQuickParamVO와 동일한 패턴).
+ *              커맨드 객체로 감싼다(ApiDefRegVO.ApiDefParamVO와 동일한 패턴).
  * </pre>
  */
 @Getter

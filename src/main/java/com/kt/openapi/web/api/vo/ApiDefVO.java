@@ -113,6 +113,12 @@ public class ApiDefVO implements Serializable {
     private String sysId;
     private String amdrNm;
     
+    /**
+     * 명세 생성 출처(KOA_TB_API_SPC.SPC_SRC_CD). LEGACY=구버전 등록화면, SPCREG=신규 등록화면,
+     * QUICK=빠른 API 등록. 구버전 등록화면에서 SPCREG 명세를 읽기 전용으로 막는 판정 기준.
+     */
+    private String spcSrcCd;
+
     // Missing fields from selApiInfo SQL
     private String apiSpcId;
     private String ver;

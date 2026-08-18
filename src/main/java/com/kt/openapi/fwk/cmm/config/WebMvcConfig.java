@@ -211,7 +211,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "api/pathRegForm",
             "api/pathRegFormArsenal",
             "api/pathRegFormPrivate",
-            "api/quickApiReg",
             "spcreg/spcReg",
             "spcreg/apiDefReg",
             "api/tmpltMngList",

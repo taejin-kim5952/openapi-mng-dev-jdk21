@@ -463,9 +463,17 @@
             <!-- api_right -->
             <div class="api_right">
               <h5 class="rTitleOneDep">기본정보 <a href="javascript:void(0)" title="API 등록하는 방법보기" class="rtit_btn" onclick="showApiMV(this, '.mv-wrap');return false;">API 등록하는 방법보기</a></h5>
+              <!--/* [SPCREG 읽기전용] 신규 "API 등록" 화면으로 만든 명세는 이 화면에서 조회만 된다.
+                     저장을 눌러야만 알 수 있으면 늦으므로 진입 시점에 배지로 알린다. 저장 자체는
+                     apiGlobalScript.js fnApiAuthCheck()가 이미 막는다(g_isAuthYn == 'N'). */-->
+              <div th:if="${readOnlyReason == 'SPCREG'}"
+                   style="margin:8px 0;padding:10px 14px;border:1px solid #d9b400;background:#fff9e0;border-radius:4px;color:#6b5600;font-size:13px;line-height:1.6;">
+                <strong>읽기 전용</strong> — 신규 &quot;API 등록&quot; 화면에서 만든 API입니다.
+                이 화면은 조회용이며, 수정은 신규 등록 화면에서 해주세요.
+              </div>
               <div class="btn_RT">
                 <button type="button" title="취소" class="btn btn_sml" onClick="history.back()"><span>취소</span></button>
-                <button type="button" title="저장" class="btn btn_sml btn_black" onclick="apiInfoSave();"><span>저장</span></button>
+                <button type="button" title="저장" class="btn btn_sml btn_black" th:unless="${readOnlyReason == 'SPCREG'}" onclick="apiInfoSave();"><span>저장</span></button>
               </div>
               <div class="rightConBoxing">
                 <!-- accordian active type -->

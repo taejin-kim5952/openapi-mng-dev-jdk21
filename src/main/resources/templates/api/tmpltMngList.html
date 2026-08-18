@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!--/* api/tmpltMngList.html - "API 등록 (새 버전)" 템플릿 관리 목록 화면.
-     quickApiReg.html과 동일한 외곽 골격(registration.css)을 재사용한다. */-->
+<!--/* api/tmpltMngList.html - API 등록 템플릿 관리 목록 화면.
+     (폐지된) 빠른 API 등록 화면과 동일한 외곽 골격(registration.css)을 재사용한다. */-->
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default(layoutType='apiReg', bodyClass=null)}">
 <head>
     <title>KT Open API - 템플릿 관리</title>
     <link rel="stylesheet" th:href="@{/resources/css/pretendard.css}">
-    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/apiReg.css}">
 </head>
 <body>
 <div layout:fragment="content">
@@ -25,14 +25,14 @@
               </p>
             </div>
             <div class="right_menu">
-              <p><a th:href="@{/api/quickreg/mvApiQuickReg.do}" title="API 등록 (새 버전)" class="btn btn_list"><span>API 등록 (새 버전)</span></a></p>
+              <p><a th:href="@{/api/spcreg/mvSpcReg.do}" title="SPC 등록" class="btn btn_list"><span>SPC 등록</span></a></p>
             </div>
           </div><!-- .regi_bar -->
 
           <div class="regist_layout">
             <div class="api_left">
               <h5 class="lTitle">템플릿 관리</h5>
-              <p class="qr_left_hint">API 등록 (새 버전) 화면에서 쓰이는 템플릿을 관리합니다.</p>
+              <p class="qr_left_hint">API 등록 화면의 "템플릿으로 시작"에서 쓰이는 템플릿을 관리합니다.</p>
             </div><!-- .api_left -->
 
             <div class="api_right">
@@ -46,7 +46,7 @@
 
   <section class="qr_start_row">
     <input type="text" id="tmMngSearch" placeholder="템플릿 이름/설명 검색" class="qr_tmMng_search" oninput="tmFilterList(this.value);">
-    <a th:href="@{/api/quickreg/tmplt/mvTmpltForm.do}" class="qr_pill qr_pill_accent qr_pill_sm">+ 새 템플릿</a>
+    <a th:href="@{/api/tmplt/mvTmpltForm.do}" class="qr_pill qr_pill_accent qr_pill_sm">+ 새 템플릿</a>
   </section>
 
   <section class="qr_section">
@@ -75,7 +75,7 @@
             <span th:unless="${t.useYn == 'Y'}" class="qr_tm_badge qr_tm_badge_off">중지</span>
           </td>
           <td class="qr_tm_actions">
-            <a th:href="@{/api/quickreg/tmplt/mvTmpltForm.do(tmpltNo=${t.tmpltNo})}" class="qr_pill qr_pill_ghost qr_pill_sm">수정</a>
+            <a th:href="@{/api/tmplt/mvTmpltForm.do(tmpltNo=${t.tmpltNo})}" class="qr_pill qr_pill_ghost qr_pill_sm">수정</a>
             <button type="button" class="qr_pill qr_pill_ghost qr_pill_sm" th:attr="onclick=|tmDeleteTmplt('${t.tmpltNo}');|">삭제</button>
           </td>
         </tr>
@@ -98,7 +98,7 @@
   var con_SYSTEMID_ARSENAL = '';
 </script>
 <script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
-<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiRegShared.js}"></script>
 <script th:src="@{/resources/js/api_reg/tmpltMng.js}"></script>
 
 </div>

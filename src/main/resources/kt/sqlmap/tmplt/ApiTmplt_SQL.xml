@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- API 등록 템플릿 관리 화면 전용 매퍼. 원래 ApiQuickReg_SQL.xml에 있던 템플릿 SQL을
+     "빠른 API 등록" 화면 폐지에 맞춰 이쪽으로 옮긴 것이다. 테이블명(KOA_TB_API_QUICK_TMPLT)과
+     시퀀스명은 운영 데이터가 있어 그대로 둔다. -->
+<mapper namespace="com.kt.openapi.web.tmplt.dao.ApiTmpltDAO">
+
+  <!-- 템플릿 관리 화면용 전체 목록 (사용여부 무관) -->
+  <select id="selTmpltMngList" resultType="com.kt.openapi.web.tmplt.vo.ApiTmpltVO">
+    /* apiTmplt.selTmpltMngList */
+    SELECT
+       tmplt_no        AS tmpltNo
+      ,tmplt_nm        AS tmpltNm
+      ,tmplt_desc      AS tmpltDesc
+      ,api_class       AS apiClass
+      ,mth_type_cd     AS mthTypeCd
+      ,cnt_type_cd     AS cntTypeCd
+      ,path_pattern    AS pathPattern
+      ,dflt_param_json AS dfltParamJson
+      ,dflt_field_json AS dfltFieldJson
+      ,tmplt_yaml      AS tmpltYaml
+      ,sort_odrg       AS sortOdrg
+      ,use_yn          AS useYn
+    FROM KOA_TB_API_QUICK_TMPLT
+    ORDER BY SORT_ODRG, TMPLT_NO
+  </select>
+
+  <!-- 템플릿 신규 등록 -->
+  <insert id="savTmplt" parameterType="com.kt.openapi.web.tmplt.vo.ApiTmpltVO">
+    /* apiTmplt.savTmplt */
+    <selectKey keyProperty="tmpltNo" resultType="String" order="AFTER">
+      SELECT CURRVAL('koa_tb_api_quick_tmplt_tmplt_no_seq')
+    </selectKey>
+    INSERT INTO KOA_TB_API_QUICK_TMPLT
+    (
+       TMPLT_NM
+      ,TMPLT_DESC
+      ,API_CLASS
+      ,MTH_TYPE_CD
+      ,CNT_TYPE_CD
+      ,PATH_PATTERN
+      ,DFLT_PARAM_JSON
+      ,DFLT_FIELD_JSON
+      ,TMPLT_YAML
+      ,SORT_ODRG
+      ,USE_YN
+      ,REG_DT
+      ,REGR
+    )
+    VALUES
+    (
+       #{tmpltNm}
+      ,#{tmpltDesc}
+      ,#{apiClass}
+      ,#{mthTypeCd}
+      ,NULLIF(#{cntTypeCd}, '')
+      ,#{pathPattern}
+      ,#{dfltParamJson}
+      ,#{dfltFieldJson}
+      ,#{tmpltYaml}
+      ,COALESCE((SELECT MAX(SORT_ODRG) + 1 FROM KOA_TB_API_QUICK_TMPLT), 1)
+      ,'Y'
+      ,NOW()
+      ,#{regr}
+    )
+  </insert>
+
+  <!-- 템플릿 수정 -->
+  <update id="updTmplt" parameterType="com.kt.openapi.web.tmplt.vo.ApiTmpltVO">
+    /* apiTmplt.updTmplt */
+    UPDATE KOA_TB_API_QUICK_TMPLT
+    SET
+       TMPLT_NM        = #{tmpltNm}
+      ,TMPLT_DESC      = #{tmpltDesc}
+      ,API_CLASS       = #{apiClass}
+      ,MTH_TYPE_CD     = #{mthTypeCd}
+      ,CNT_TYPE_CD     = NULLIF(#{cntTypeCd}, '')
+      ,PATH_PATTERN    = #{pathPattern}
+      ,DFLT_PARAM_JSON = #{dfltParamJson}
+      ,DFLT_FIELD_JSON = #{dfltFieldJson}
+      ,TMPLT_YAML      = #{tmpltYaml}
+      ,AMD_DT          = NOW()
+      ,AMDR            = #{amdr}
+    WHERE TMPLT_NO = #{tmpltNo}::integer
+  </update>
+
+  <!-- 템플릿 소프트 삭제 -->
+  <update id="delTmplt" parameterType="String">
+    /* apiTmplt.delTmplt */
+    UPDATE KOA_TB_API_QUICK_TMPLT
+    SET USE_YN = 'N'
+    WHERE TMPLT_NO = #{tmpltNo}::integer
+  </update>
+
+  <!-- 빠른등록 템플릿 상세 -->
+  <select id="selTmpltDetail" parameterType="String" resultType="com.kt.openapi.web.tmplt.vo.ApiTmpltVO">
+    /* apiTmplt.selTmpltDetail */
+    SELECT
+       tmplt_no        AS tmpltNo
+      ,tmplt_nm        AS tmpltNm
+      ,tmplt_desc      AS tmpltDesc
+      ,api_class       AS apiClass
+      ,mth_type_cd     AS mthTypeCd
+      ,cnt_type_cd     AS cntTypeCd
+      ,path_pattern    AS pathPattern
+      ,dflt_param_json AS dfltParamJson
+      ,dflt_field_json AS dfltFieldJson
+      ,tmplt_yaml      AS tmpltYaml
+      ,sort_odrg       AS sortOdrg
+      ,use_yn          AS useYn
+    FROM KOA_TB_API_QUICK_TMPLT
+    WHERE TMPLT_NO = #{tmpltNo}::integer
+  </select>
+
+</mapper>

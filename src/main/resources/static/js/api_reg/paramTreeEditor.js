@@ -1,9 +1,9 @@
 /* paramTreeEditor.js - "파라미터 설계" 트리+YAML 팝업 공용 모듈.
-   quickApiReg.js/simpleView.js 둘 다 이 모듈을 불러다 쓴다(둘 다 같은 마크업/ID로 팝업을 갖고 있어야 함:
+   (폐지된) 빠른 API 등록 화면/simpleView.js 둘 다 이 모듈을 불러다 쓴다(둘 다 같은 마크업/ID로 팝업을 갖고 있어야 함:
    #qrParamModal, #qrPdPane, #qrPdYaml 등 - 퍼블리셔 산출물의 ID를 그대로 재사용).
    원본 데이터는 KOA_TB_API_PARAM의 flat row(PRNTS_PARAM_NO로 자기참조)이고, 화면에서는 이걸
    중첩 트리(kids 배열)로 재구성해서 보여준다. YAML 파싱/생성은 이미 로드된 swagger-parser.min.js
-   (YAML.parse/YAML.stringify - quickRegShared.js의 qrParseOasYaml과 동일 라이브러리)를 재사용한다. */
+   (YAML.parse/YAML.stringify - apiRegShared.js의 qrParseOasYaml과 동일 라이브러리)를 재사용한다. */
 
 /* g_pt_dataTypeList(DATTYP1000)/g_pt_piiList(PIICLS1000)는 이 파일이 로드되기 전에
    각 페이지의 인라인 스크립트가 이미 선언·할당해 둔다(g_qr_dataTypeList 등과 동일한 관례).
@@ -234,7 +234,7 @@ function ptRowHtml(n, d, path) {
     + ptExtHtml(n)
     + '</div></div>';
 }
-/* 확장 속성 9종 + 응답 상태코드(출력 스코프에서만) - KOA_TB_API_PARAM 컬럼과 1:1. quickApiReg.css를
+/* 확장 속성 9종 + 응답 상태코드(출력 스코프에서만) - KOA_TB_API_PARAM 컬럼과 1:1. apiReg.css를
    건드리지 않기로 한 원칙 때문에 별도 클래스 스타일 없이 인라인 스타일로만 배치한다. */
 function ptExtCheckHtml(cls, label, checked) {
   return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin:0 12px 0 0;white-space:nowrap;">'

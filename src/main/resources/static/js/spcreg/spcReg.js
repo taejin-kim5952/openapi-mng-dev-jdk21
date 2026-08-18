@@ -1,5 +1,5 @@
 /* spcReg.js - "SPC 등록" 화면 전용 스크립트.
-   기존 quickApiReg.js의 아코디언/좌측트리/검증 패턴을 참고해 이 화면 전용으로 새로 작성했다.
+   기존 (폐지된) 빠른 API 등록 화면의 아코디언/좌측트리/검증 패턴을 참고해 이 화면 전용으로 새로 작성했다.
    공용 유틸(alert_message 등)은 apiGlobalScript.js에서 가져다 쓴다. */
 
 /* 브라우저 뒤로가기(bfcache)로 이 페이지에 복귀하면 <select>의 표시 라벨은 남아있는데
@@ -85,7 +85,7 @@ $(document).ready(function () {
 
   /* apiSpcNo로 진입했다면(apiDefReg.html "그룹 정보 수정" 버튼) 기존 값을 불러와 수정 모드로 채운다.
      아니라면 기존과 동일하게, 새로고침/뒤로가기로 브라우저가 sysId 선택값을 복원해도 change 이벤트는
-     안 뜨는 경우가 있어 로드 시 한 번 강제로 동기화한다(quickApiReg.js의 qrOnApiSpcNoChange 초기
+     안 뜨는 경우가 있어 로드 시 한 번 강제로 동기화한다((폐지된) 빠른 API 등록 화면의 qrOnApiSpcNoChange 초기
      호출과 동일한 이유). */
   if (g_grp_existing) {
     grpFillFormFromExisting(g_grp_existing);
@@ -288,11 +288,11 @@ function grpApplyYaml(yamlText) {
 }
 
 /* OAS 3.0 / Swagger 2.0 YAML 문서 전체를 파싱해서 그룹(SPC) 기본값 + 여러 Path/Method(API)
-   목록을 뽑아낸다. quickRegShared.js의 qrParseOasYaml은 Path/Method 1개(빠른등록용) 제약이 있어
+   목록을 뽑아낸다. apiRegShared.js의 qrParseOasYaml은 Path/Method 1개(빠른등록용) 제약이 있어
    재사용하지 않고, 이 화면 전용으로 모든 path/method를 순회하는 파서를 새로 작성했다.
    실제 운영 시스템이 내보내는 YAML(참고자료/API샘플YML/gigaGenie.yml)이 OAS3가 아니라
    Swagger 2.0(`swagger: '2.0'`, host/basePath, parameters[in=body|query], responses.N.headers)라서
-   quickRegShared.js의 qrParseOasYaml(OAS2/OAS3 겸용)과 같은 방식으로 두 포맷을 모두 지원한다. */
+   apiRegShared.js의 qrParseOasYaml(OAS2/OAS3 겸용)과 같은 방식으로 두 포맷을 모두 지원한다. */
 function grpParseYamlSpec(yamlText) {
   var doc = YAML.parse(yamlText);
   if (!doc || typeof doc !== 'object') { throw new Error('빈 문서이거나 형식이 올바르지 않습니다.'); }
@@ -382,7 +382,7 @@ function grpParseYamlSpec(yamlText) {
 }
 
 /* Swagger2 문서 내 최상위 $ref(예: '#/definitions/Foo')만 따라간다(중첩/외부 참조 미지원) -
-   quickRegShared.js의 qrResolveSwagger2Ref와 동일한 범위 제약. */
+   apiRegShared.js의 qrResolveSwagger2Ref와 동일한 범위 제약. */
 function grpResolveSwagger2Ref(doc, schema) {
   if (schema && schema.$ref) {
     var parts = String(schema.$ref).replace(/^#\//, '').split('/');

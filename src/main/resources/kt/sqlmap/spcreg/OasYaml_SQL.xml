@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  KOA_TB_API_DEF / KOA_TB_API_PARAM(정본)에서 OAS 3.0 / Swagger 2.0 YAML을 생성하기 위한 조회와,
+  생성 결과를 KOA_TB_API_SPC의 두 컬럼(YAML_SBST_V3 / YAML_SBST)에 한 번에 반영하는 UPDATE.
+
+  매핑 규칙 전문은 docs/04_OAS_GENERATOR_MAPPING.md 참조.
+
+  별칭을 큰따옴표로 감싸는 이유는 ApiDefReg_SQL.xml과 동일 - PostgreSQL이 따옴표 없는 식별자를
+  소문자로 접어버려서(AS apiSpcNo -> apispcno) MyBatis map 키가 camelCase가 아니게 되는 걸 막는다.
+-->
+<mapper namespace="com.kt.openapi.web.spcreg.dao.OasYamlDAO">
+
+  <!-- 문서 루트(info/servers)용 SPC 1건. SPC_SRC_CD를 함께 내려서 호출부가 SPCREG 명세인지
+       판정할 수 있게 한다(LEGACY/QUICK은 재생성 대상이 아니다). -->
+  <select id="selSpcForOas" parameterType="String" resultType="map">
+    /* oasYaml.selSpcForOas */
+    SELECT
+       s.api_spc_no                AS "apiSpcNo"
+      ,s.api_nm                    AS "apiNm"
+      ,COALESCE(s.api_desc, '')    AS "apiDesc"
+      ,s.ver                       AS "ver"
+      ,s.host                      AS "host"
+      ,s.bas_path                  AS "basPath"
+      ,s.sys_id                    AS "sysId"
+      ,COALESCE(s.spc_src_cd, 'LEGACY') AS "spcSrcCd"
+    FROM KOA_TB_API_SPC s
+    WHERE s.API_SPC_NO = #{apiSpcNo}::integer
+      AND s.DEL_YN = 'N'
+  </select>
+
+  <!-- tags[] 용 카테고리 목록 -->
+  <select id="selCtgryListForOas" parameterType="String" resultType="map">
+    /* oasYaml.selCtgryListForOas */
+    SELECT
+       c.api_ctgry_no            AS "apiCtgryNo"
+      ,c.ctgry_nm                AS "ctgryNm"
+      ,COALESCE(c.ctgry_desc,'') AS "ctgryDesc"
+    FROM KOA_TB_API_CTGRY c
+    WHERE c.API_SPC_NO = #{apiSpcNo}::integer
+      AND c.DEL_YN = 'N'
+    ORDER BY c.SORT_ODRG, c.API_CTGRY_NO
+  </select>
+
+  <!-- paths[] 용 API(Operation) 목록.
+       METHOD_CD는 MTHTYP1000 공통코드값이므로 실제 HTTP 동사(CD_NM)를 조인해서 가져온다 -
+       코드값을 자바에 하드코딩하지 않기 위함(ApiReg_SQL.xml의 기존 조회들과 동일한 방식). -->
+  <select id="selDefListForOas" parameterType="String" resultType="map">
+    /* oasYaml.selDefListForOas */
+    SELECT
+       d.api_no                       AS "apiNo"
+      ,d.api_nm                       AS "apiNm"
+      ,COALESCE(d.api_desc, '')       AS "apiDesc"
+      ,d.api_path                     AS "apiPath"
+      ,LOWER(COALESCE(m.cd_nm, ''))   AS "methodNm"
+      ,COALESCE(d.api_id, '')         AS "apiId"
+      ,COALESCE(d.api_ver, '')        AS "apiVer"
+      ,COALESCE(c.ctgry_nm, '')       AS "ctgryNm"
+      ,COALESCE(d.use_yn, 'Y')        AS "useYn"
+    FROM KOA_TB_API_DEF d
+    LEFT JOIN KOA_TB_API_CTGRY c ON c.API_CTGRY_NO = d.API_CTGRY_NO
+    LEFT JOIN KOA_TB_COMN_CD   m ON m.COMN_CD = d.METHOD_CD AND m.GROUP_CD = 'MTHTYP1000'
+    WHERE d.API_SPC_NO = #{apiSpcNo}::integer
+    ORDER BY c.SORT_ODRG, d.SORT_ODRG, d.API_NO
+  </select>
+
+  <!-- 그룹에 속한 전체 파라미터를 한 번에 조회한다(API별 N+1 조회 회피).
+       호출부가 apiNo로 그룹핑한 뒤 PRNTS_PARAM_NO로 트리를 재구성한다.
+       정렬은 paramTreeEditor.js ptBuildTree()와 동일하게 OBJ_ODRG 우선. -->
+  <select id="selParamListForOas" parameterType="String" resultType="map">
+    /* oasYaml.selParamListForOas */
+    SELECT
+       p.api_no                  AS "apiNo"
+      ,p.param_no                AS "paramNo"
+      ,p.prnts_param_no          AS "prntsParamNo"
+      ,p.param_nm                AS "paramNm"
+      ,p.data_type_cd            AS "dataTypeCd"
+      ,p.param_type_cd           AS "paramTypeCd"
+      ,COALESCE(p.param_loc, '') AS "paramLoc"
+      ,COALESCE(p.required, 'N') AS "required"
+      ,COALESCE(p.param_desc,'') AS "paramDesc"
+      ,COALESCE(p.exam, '')      AS "exam"
+      ,COALESCE(p.personal_data, '') AS "personalData"
+      ,COALESCE(p.res_cd, '')    AS "resCd"
+      ,COALESCE(p.res_desc, '')  AS "resDesc"
+      ,COALESCE(p.obj_odrg, 0)   AS "objOdrg"
+      ,COALESCE(p.sort_odrg, 0)  AS "sortOdrg"
+    FROM KOA_TB_API_PARAM p
+    INNER JOIN KOA_TB_API_DEF d ON d.API_NO = p.API_NO
+    WHERE d.API_SPC_NO = #{apiSpcNo}::integer
+    ORDER BY p.API_NO, p.OBJ_ODRG, p.SORT_ODRG, p.PARAM_NO
+  </select>
+
+  <!-- 생성 결과 반영. 두 컬럼은 항상 함께 갱신한다(따로 갱신되는 경로를 만들지 않는 것이 핵심).
+       AMD_DT는 건드리지 않는다 - YAML 재생성은 사용자의 수정 행위가 아니라 파생 캐시 갱신이므로
+       "마지막 수정일시"를 흔들면 목록 화면의 정렬/표시가 의미 없이 바뀐다. -->
+  <update id="updSpcYamlBoth" parameterType="map">
+    /* oasYaml.updSpcYamlBoth */
+    UPDATE KOA_TB_API_SPC
+       SET YAML_SBST    = #{yamlV2}
+          ,YAML_SBST_V3 = #{yamlV3}
+     WHERE API_SPC_NO = #{apiSpcNo}::integer
+  </update>
+
+  <!-- 일괄 재생성 배치용 - 아직 YAML이 채워지지 않은 SPCREG 명세 목록 -->
+  <select id="selSpcNoListForRegen" resultType="String">
+    /* oasYaml.selSpcNoListForRegen */
+    SELECT s.API_SPC_NO
+    FROM KOA_TB_API_SPC s
+    WHERE s.DEL_YN = 'N'
+      AND s.SPC_SRC_CD = 'SPCREG'
+    ORDER BY s.API_SPC_NO
+  </select>
+
+</mapper>

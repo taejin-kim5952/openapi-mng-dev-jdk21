@@ -1,5 +1,5 @@
 /* simpleView.css - "API 간단 상세" 화면 전용 스타일 (디자인 리뉴얼판).
-   quickApiReg.css(공통 토큰 :root, .qr_pill/.qr_modal/.qr_field/.qr_lt_* 등)를 먼저 로드한 뒤
+   apiReg.css(공통 토큰 :root, .qr_pill/.qr_modal/.qr_field/.qr_lt_* 등)를 먼저 로드한 뒤
    이 파일을 로드한다. 여기에는 이 화면 전용 클래스(.sv_*)만 정의한다. */
 
 /* ---------------- 좌측 네비게이션 카드 ---------------- */
@@ -38,7 +38,7 @@
 .sv_def_span3 { grid-column: 1 / -1; }
 .sv_edit_actions { display: flex; justify-content: flex-end; gap: 8px; grid-column: 1 / -1; margin-top: 4px; }
 
-/* 아코디언 컴포넌트(.sv_acc 등)는 quickApiReg.css로 이동함 - "빠른 API 등록" 화면과 공용으로 쓰기 위함 */
+/* 아코디언 컴포넌트(.sv_acc 등)는 apiReg.css로 이동함 - "빠른 API 등록" 화면과 공용으로 쓰기 위함 */
 .sv_acc_body .sv_defs { padding-top: 20px; }
 .sv_acc_foot { display: flex; justify-content: flex-end; margin-top: 16px; }
 
@@ -96,7 +96,7 @@
 .sv_block { margin-bottom: 28px; }
 .sv_block:last-child { margin-bottom: 0; }
 
-/* 읽기 전용 값 (배포현황 등, 기존 클래스 - quickApiReg.css에도 정의돼 있음) */
+/* 읽기 전용 값 (배포현황 등, 기존 클래스 - apiReg.css에도 정의돼 있음) */
 .sv_val { margin: 0; padding: 10px 0 2px; font-size: 15px; color: #222; min-height: 20px; word-break: break-all; }
 
 @media (max-width: 1200px) {

@@ -652,6 +652,7 @@
       ,YAML_SBST
       ,SHOW_YN
       ,API_CLASS
+      ,SPC_SRC_CD
     )
     SELECT
       (CASE WHEN #{importType} = '1' THEN API_SPC_ID
@@ -683,7 +684,8 @@
       ,#{yamlSbst}
       ,'N'
       ,API_CLASS
-    FROM KOA_TB_API_SPC 
+      ,SPC_SRC_CD   <!-- 버전업은 원본 명세의 생성 출처를 그대로 승계한다 -->
+    FROM KOA_TB_API_SPC
     WHERE (API_SPC_NO = #{apiSpcNo})
   </insert>
 

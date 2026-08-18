@@ -55,6 +55,9 @@
     ** CYD - 2020.07.14
     *///////////////////////////////////////////////
     var g_isAuthYn = /*[[${sIsAuthYn != null ? sIsAuthYn : ''}]]*/ "N";
+    // g_isAuthYn == "N" 의 사유 구분. 'SPCREG'이면 권한 부족이 아니라 "신규 등록화면으로 만든 명세라
+    // 이 화면에서는 조회 전용"이라는 뜻이다(apiGlobalScript.js fnApiAuthCheck에서 메시지 분기).
+    var g_readOnlyReason = /*[[${readOnlyReason != null ? readOnlyReason : ''}]]*/ '';
     ////////////////////////////////////////////////
 
     var g_map_apiDef = {};

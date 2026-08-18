@@ -52,6 +52,19 @@ $(document).ready(function () {
     $(this).closest('.sv_acc').toggleClass('sv_open');
   });
 
+  /* "추가 설정" 인라인 토글(퍼블_v19.0) - qr_hide(display:none)로만 감춘다. 입력 요소는 DOM에
+     남아 있어야 저장 시 값을 읽을 수 있다. */
+  $('#defExtraToggle').on('click', function () {
+    defToggleExtra($('#defExtraBox').hasClass('qr_hide'));
+  });
+
+  /* 접혀 있을 때 보이는 요약 문구는 값이 바뀔 때마다 다시 만든다. */
+  $('#autId, #useYn, #guideGubun, #sandboxYn').on('change', defRefreshExtraSum);
+  $('#apiNm, #apiPath').on('input', defRefreshBasicSum);
+  $('#methodCd').on('change', defRefreshBasicSum);
+  defRefreshExtraSum();
+  defRefreshBasicSum();
+
   $('#apiPath').on('input', defSyncFullPath);
   defSyncFullPath();
   defLoadGroupApiList();
@@ -216,23 +229,16 @@ function defFillFormFromDetail(def) {
   $('#sandboxYn').val(def.sandboxYn || 'N');
   $('#endpntMethodCd').val(def.endpntMethodCd || '');
   $('#providerNmDisp').val(def.providerSeq ? defProviderNmBySeq(def.providerSeq) : '');
+  // Handler 파라미터는 입력칸이 동적으로 만들어지므로, defOnApiClassChange()가 폼을 그리기 전에
+  // 값부터 DEF_HP_VALUES에 실어둔다(그려질 때 여기서 값을 되찾아 간다).
+  defLoadHandlerParamValues(def);
   defOnApiClassChange();
   defSyncFullPath();
 
   $('#endpntTbUrl').val(def.endpntTbUrl || '');
   $('#endpntPrdUrl').val(def.endpntPrdUrl || '');
-  $('#endpntClientIp').val(def.endpntClientIp || '');
   $('#endpntTimeout').val(def.endpntTimeout || '');
-  $('#resmapResCdField').val(def.resmapResCdField || '');
-  $('#resmapSuccVal').val(def.resmapSuccVal || '');
-  $('#resmapErrCdField').val(def.resmapErrCdField || '');
-  $('#resmapErrMsgField').val(def.resmapErrMsgField || '');
-  $('#hdpApiEndpointId').val(def.hdpApiEndpointId || '');
-  $('#hdpReqApiName').val(def.hdpReqApiName || '');
-  $('#hdpApiOutFormat').val(def.hdpApiOutFormat || '');
-  $('#hdpApiOutCommonParam').val(def.hdpApiOutCommonParam || '');
-  $('#hdpReqMappingToBody').val(def.hdpReqMappingToBody || '');
-  $('#hdpResMappingToBody').val(def.hdpResMappingToBody || '');
+  // 응답매핑/HDP/클라이언트 IP는 Handler 설정 영역에서 동적으로 그려진다(위 defLoadHandlerParamValues 참고).
 
   // BEAST 필드는 그룹이 BEAST를 안 쓰면 DOM에 아예 없다(th:if) - 있을 때만 채운다. 시스템명은
   // DB에 저장 안 하므로(ID만 저장) 힌트는 비워둔다(다시 선택해야 이름이 다시 보임).
@@ -248,6 +254,8 @@ function defFillFormFromDetail(def) {
   defInitDefaultParamTree(); // 아직 파라미터가 하나도 없던 API라면 request/response 기본 골격을 깔아준다
   ptRenderPreview('def', defRefreshSummary);
 
+  defRefreshExtraSum();
+  defRefreshBasicSum();
   defSetEditMode(true, def.apiNm);
 }
 
@@ -260,6 +268,11 @@ function defResetToCreate() {
   $('#apiHandlerCd, #providerSeq, #providerNmDisp').val('');
   $('#apiId, #apiIdErr').removeClass('qr_input_err qr_show');
   $('#bstgwTbSysNmHint, #bstgwPrdSysNmHint').text('');
+  defClearHandlerParamValues();
+  // form.reset()이 selected 속성 기준으로 되돌리므로 권한그룹/노출여부/가이드구분/sandbox는
+  // 마크업의 기본값(개발자그룹 · 비노출 · REST · 미적용)으로 자동 복원된다.
+  defToggleExtra(false);
+  defRefreshBasicSum();
   defOnMethodChange();
   defOnApiClassChange();
   defSyncFullPath();
@@ -404,8 +417,13 @@ function defMethodNm(methodCd) {
 
 function defOnApiClassChange() {
   var apiClass = $('input[name="apiClass"]:checked').val();
-  if (apiClass === 'APIGUB1020') { $('#defPrivateRow').removeClass('qr_hide'); }
-  else { $('#defPrivateRow').addClass('qr_hide'); }
+  var isPrivate = (apiClass === 'APIGUB1020');
+  $('#defPrivateRow').toggleClass('qr_hide', !isPrivate);
+
+  // Handler 설정은 Private일 때만 의미가 있다. 열릴 때마다 현재 Handler 기준으로 입력칸을 다시 그린다.
+  $('#defHandlerParamBox').toggleClass('qr_hide', !isPrivate);
+  if (isPrivate) { defBuildHandlerParamForm($('#apiHandlerCd').val()); }
+  else { $('#defHandlerParamGrid').empty(); }
 }
 
 function defOnMethodChange() {
@@ -450,7 +468,7 @@ function defInitDefaultParamTree() {
 
 var g_def_selectedTmpltNm = '';
 
-/* quickApiReg.js의 qrSelectTemplate과 동일한 카드 클릭 처리다. 다만 이 화면은 입력 파라미터를
+/* (폐지된) 빠른 API 등록 화면의 qrSelectTemplate과 동일한 카드 클릭 처리다. 다만 이 화면은 입력 파라미터를
    항상 request 오브젝트로 감싸는 규칙이 있어서, PT_STORE['in']을 통째로 갈아치우지 않고
    request 노드의 kids만 템플릿 값으로 바꾼다(request 래퍼 자체는 유지). */
 function defSelectTemplate(el) {
@@ -503,13 +521,30 @@ function defApplyTmpltFieldDefaults(fieldsJson) {
   var fieldDefaults = {};
   try { fieldDefaults = JSON.parse(fieldsJson) || {}; } catch (e) { return; }
 
+  // Handler 파라미터는 지금 화면에 입력칸이 없을 수도 있다(다른 Handler를 고른 상태). DOM 대신
+  // DEF_HP_VALUES에 넣고 마지막에 한 번만 다시 그린다.
+  var hpField = {};
+  DEF_HANDLER_PARAM_FIELDS.forEach(function (fd) { hpField[fd] = true; });
+  defSyncHandlerParamsFromDom();
+
+  // Handler 자체가 바뀌면 입력칸 구성이 달라지므로 다른 키보다 먼저 반영한다. 여기서는 change를
+  // 쏘지 않는다 - 지금 쏘면 아직 옛 Handler의 입력칸이 남아 있어 아래에서 넣을 값을 덮어쓴다.
+  if (fieldDefaults.apiHandlerCd) {
+    $('#apiHandlerCd').val(fieldDefaults.apiHandlerCd);
+  }
+
   Object.keys(fieldDefaults).forEach(function (key) {
     var val = fieldDefaults[key];
-    if (val === undefined || val === null || val === '') { return; }
+    if (val === undefined || val === null || val === '' || key === 'apiHandlerCd') { return; }
+    if (hpField[key]) { DEF_HP_VALUES[key] = val; return; }
     var $field = $('#' + key);
     if ($field.length === 0) { return; }
     $field.val(val).trigger('change');
   });
+
+  if (!$('#defHandlerParamBox').hasClass('qr_hide')) {
+    defBuildHandlerParamForm($('#apiHandlerCd').val());
+  }
 }
 
 /* 템플릿의 파라미터 배열로 request/response 래퍼 노드의 하위 필드를 교체한다.
@@ -676,10 +711,27 @@ function defOnSaveClick() {
     $('#apiPathErr').text('Path를 입력하세요. (/로 시작)').addClass('qr_show');
     $('#apiPath').addClass('qr_input_err'); hasErr = true;
   }
-  if (!autId) { alert_message('권한그룹을 선택해 주세요.'); hasErr = true; }
-  /* 배포 후 게이트웨이가 실제로 호출하는 주소라 필수값이다 - 고급 설정(선택)이 아니라 여기서 검증. */
-  if (!$.trim(endpntTbUrl)) { $('#endpntTbUrlErr').addClass('qr_show'); $('#endpntTbUrl').addClass('qr_input_err'); hasErr = true; }
-  if (!$.trim(endpntPrdUrl)) { $('#endpntPrdUrlErr').addClass('qr_show'); $('#endpntPrdUrl').addClass('qr_input_err'); hasErr = true; }
+  /* 권한그룹은 "추가 설정" 안에 접혀 있을 수 있다 - 비어 있으면 펼쳐서 어디를 고쳐야 하는지 보여준다. */
+  $('#autIdErr').removeClass('qr_show');
+  $('#autId').removeClass('qr_input_err');
+  if (!autId) {
+    defToggleExtra(true);
+    $('#autId').addClass('qr_input_err');
+    $('#autIdErr').addClass('qr_show');
+    hasErr = true;
+  }
+  /* 게이트웨이가 뒤에서 실제로 호출하는 주소라 필수값이다("제공 시스템 주소" 섹션).
+     접힌 상태면 오류 표시가 안 보이므로 섹션을 펼쳐준다. */
+  var endpntErr = false;
+  if (!$.trim(endpntTbUrl)) { $('#endpntTbUrlErr').addClass('qr_show'); $('#endpntTbUrl').addClass('qr_input_err'); endpntErr = true; }
+  if (!$.trim(endpntPrdUrl)) { $('#endpntPrdUrlErr').addClass('qr_show'); $('#endpntPrdUrl').addClass('qr_input_err'); endpntErr = true; }
+  if (endpntErr) {
+    $('#endpntTbUrl').closest('.sv_acc').addClass('sv_open');
+    hasErr = true;
+  }
+  /* Handler별 필수 항목(예: COMMON/ANYCOMMON의 Request Client IP 매핑키) - 선택한 Handler에
+     따라 검사 대상 자체가 달라진다. */
+  if (!defValidateHandlerParams()) { hasErr = true; }
 
   if (hasErr) { return; }
 
@@ -743,22 +795,14 @@ function defDoSave() {
     endpntMethodCd: $('#endpntMethodCd').val(),
     endpntTbUrl: $('#endpntTbUrl').val(),
     endpntPrdUrl: $('#endpntPrdUrl').val(),
-    endpntClientIp: $('#endpntClientIp').val(),
     endpntTimeout: $('#endpntTimeout').val(),
-    resmapResCdField: $('#resmapResCdField').val(),
-    resmapSuccVal: $('#resmapSuccVal').val(),
-    resmapErrCdField: $('#resmapErrCdField').val(),
-    resmapErrMsgField: $('#resmapErrMsgField').val(),
-    hdpApiEndpointId: $('#hdpApiEndpointId').val(),
-    hdpReqApiName: $('#hdpReqApiName').val(),
-    hdpApiOutFormat: $('#hdpApiOutFormat').val(),
-    hdpApiOutCommonParam: $('#hdpApiOutCommonParam').val(),
-    hdpReqMappingToBody: $('#hdpReqMappingToBody').val(),
-    hdpResMappingToBody: $('#hdpResMappingToBody').val(),
+    // Handler 파라미터(응답매핑/HDP/클라이언트 IP 등)는 아래 defAppendHandlerParams()가 채운다.
     // 그룹이 BEAST를 안 쓰면 이 입력칸 자체가 DOM에 없다(th:if) - 없으면 빈 문자열로 보낸다.
     bstgwTbSysId: $('#bstgwTbSysId').val() || '',
     bstgwPrdSysId: $('#bstgwPrdSysId').val() || ''
   };
+
+  defAppendHandlerParams(formData);
 
   var paramList = ptFlattenTree(PT_STORE['in'], 'in')
     .concat(ptFlattenTree(PT_STORE.query, 'query'))
@@ -809,4 +853,265 @@ function defDoSave() {
       alert_message('등록 중 오류가 발생했습니다.');
     }
   });
+}
+
+/* ============================================================================
+   Handler 설정 - 선택한 Handler(APIHDR10xx)에 따라 입력 항목이 달라진다.
+
+   기존 등록 마법사(regFormPrivateHandlerParam_inc.html)의 g_handler_param_cfg/g_handler_param을
+   이 화면 형태로 옮긴 것이다. 원래 이 화면은 응답매핑 4종과 HDP 6종을 Handler와 무관하게 "고급
+   설정"에 항상 노출했는데, 실제로는 Handler마다 필요한 항목이 다르고 일부는 필수라서 잘못된
+   구현이었다. 항목 구성/필수 여부는 마법사 쪽 정의를 그대로 따른다.
+
+   입력값은 DOM이 아니라 DEF_HP_VALUES에 모아 둔다. Handler를 바꾸면 입력칸을 새로 그리는데,
+   DOM만 믿으면 그때 값이 날아가기 때문이다(예: SCAP -> CAPRI로 바꿨다가 되돌린 경우).
+   ========================================================================== */
+
+// gub: stxt(한 줄) | mtxt(여러 줄) | chkyn(체크박스=Y/N)
+// man: 'Y'면 필수. fd: KOA_TB_API_DEF 컬럼과 1:1인 VO 필드명(= input의 id/name)
+var DEF_HANDLER_PARAM_CFG = {
+  req_CLIENT_IP_RULE       : { title: 'Request Client IP 매핑키'      , fd: 'endpntClientIp'       , gub: 'stxt' , man: 'Y', max: 200  },
+  res_RESMAP_RES_CD_FIELD  : { title: 'Response 결과매핑-결과필드'      , fd: 'resmapResCdField'     , gub: 'stxt' , man: 'N', max: 200  },
+  res_RESMAP_SUCC_VAL      : { title: 'Response 결과매핑-성공기준'      , fd: 'resmapSuccVal'        , gub: 'stxt' , man: 'N', max: 100  },
+  res_RESMAP_ERR_CD_FIELD  : { title: 'Response 결과매핑-에러코드필드'   , fd: 'resmapErrCdField'     , gub: 'stxt' , man: 'N', max: 200  },
+  res_RESMAP_ERR_MSG_FIELD : { title: 'Response 결과매핑-에러메시지필드' , fd: 'resmapErrMsgField'    , gub: 'stxt' , man: 'N', max: 200  },
+  api_OUT_FORMAT           : { title: 'out-format'                   , fd: 'hdpApiOutFormat'      , gub: 'stxt' , man: 'Y', max: 50   },
+  api_OUT_COMMON_PARAM     : { title: 'out-common-param'             , fd: 'hdpApiOutCommonParam' , gub: 'stxt' , man: 'Y', max: 50   },
+  api_ENDPOINT_ID          : { title: 'endpoint-id'                  , fd: 'hdpApiEndpointId'     , gub: 'stxt' , man: 'Y', max: 100  },
+  req_API_NAME             : { title: 'Request API_NAME'             , fd: 'hdpReqApiName'        , gub: 'stxt' , man: 'Y', max: 200  },
+  req_CONFIG_TO_BODY       : { title: 'Request CONFIG_TO_BODY'       , fd: 'hdpReqConfigToBody'   , gub: 'mtxt' , man: 'N', max: 8000 },
+  req_HEADER_TO_BODY       : { title: 'Request HEADER_TO_BODY'       , fd: 'hdpReqHeaderToBody'   , gub: 'mtxt' , man: 'N', max: 8000 },
+  req_MAPPING_TO_BODY      : { title: 'Request MAPPING_TO_BODY'      , fd: 'hdpReqMappingToBody'  , gub: 'mtxt' , man: 'N', max: 8000 },
+  req_URL_DECODE           : { title: 'Request URL_DECODE'           , fd: 'hdpReqUrlDecode'      , gub: 'stxt' , man: 'N', max: 50   },
+  req_URL_ENCODE           : { title: 'Request URL_ENCODE'           , fd: 'hdpReqUrlEncode'      , gub: 'stxt' , man: 'N', max: 50   },
+  res_MAPPING_TO_BODY      : { title: 'Response MAPPING_TO_BODY'     , fd: 'hdpResMappingToBody'  , gub: 'mtxt' , man: 'N', max: 8000 },
+  res_PROVIDE_PARAM        : { title: 'Response PROVIDE_PARAM'       , fd: 'hdpResProvideParam'   , gub: 'mtxt' , man: 'N', max: 8000 },
+  res_URL_ENCODE           : { title: 'Response URL_ENCODE'          , fd: 'hdpResUrlEncode'      , gub: 'stxt' , man: 'N', max: 50   },
+  HNDLROPTN_CONFIG         : { title: 'handler option CONFIG'        , fd: 'hdpHndlroptnConfig'   , gub: 'mtxt' , man: 'N', max: 8000 },
+  // 체크박스 하나가 컬럼 전체가 아니라 "key=value" 여러 줄 중 is_biznaru 한 줄만 담당한다.
+  ext_prop_IS_BIZNARU      : { title: '비즈나루API 여부'               , fd: 'hdpExtProp'           , gub: 'chkyn', man: 'N', max: -1, propKey: 'is_biznaru' }
+};
+
+// Handler 코드별로 노출할 항목(순서 그대로 렌더링). 마법사 g_handler_param과 동일.
+var DEF_HANDLER_PARAM = {
+  APIHDR1010: ['req_CLIENT_IP_RULE', 'HNDLROPTN_CONFIG'],                                                     // COMMON
+  APIHDR1020: ['req_CLIENT_IP_RULE', 'res_RESMAP_RES_CD_FIELD', 'res_RESMAP_SUCC_VAL',
+               'res_RESMAP_ERR_CD_FIELD', 'res_RESMAP_ERR_MSG_FIELD', 'HNDLROPTN_CONFIG'],                    // ANYCOMMON
+  APIHDR1030: ['HNDLROPTN_CONFIG'],                                                                           // KOS
+  APIHDR1040: ['HNDLROPTN_CONFIG'],                                                                           // KOSMOS
+  APIHDR1050: ['api_OUT_COMMON_PARAM', 'api_ENDPOINT_ID', 'req_API_NAME', 'req_URL_DECODE', 'res_URL_ENCODE',
+               'req_CONFIG_TO_BODY', 'req_HEADER_TO_BODY', 'req_MAPPING_TO_BODY', 'res_MAPPING_TO_BODY',
+               'res_PROVIDE_PARAM', 'HNDLROPTN_CONFIG'],                                                      // SCAP
+  APIHDR1060: ['req_URL_DECODE', 'req_URL_ENCODE', 'res_URL_ENCODE', 'req_CONFIG_TO_BODY',
+               'req_HEADER_TO_BODY', 'req_MAPPING_TO_BODY', 'res_MAPPING_TO_BODY', 'res_PROVIDE_PARAM',
+               'HNDLROPTN_CONFIG'],                                                                           // CAPRI
+  APIHDR1070: ['api_OUT_FORMAT', 'api_OUT_COMMON_PARAM', 'req_API_NAME', 'req_URL_DECODE', 'res_URL_ENCODE',
+               'req_CONFIG_TO_BODY', 'req_HEADER_TO_BODY', 'req_MAPPING_TO_BODY', 'res_MAPPING_TO_BODY',
+               'res_PROVIDE_PARAM', 'HNDLROPTN_CONFIG']                                                       // SB
+};
+
+// Handler에 따라 켜지고 꺼지는 전체 필드 목록(저장 payload 구성/초기화에 사용)
+var DEF_HANDLER_PARAM_FIELDS = (function () {
+  var seen = {}, out = [];
+  for (var key in DEF_HANDLER_PARAM_CFG) {
+    var fd = DEF_HANDLER_PARAM_CFG[key].fd;
+    if (!seen[fd]) { seen[fd] = true; out.push(fd); }
+  }
+  return out;
+})();
+
+var DEF_HP_VALUES = {}; // { VO필드명: 값 } - 화면에 지금 안 보이는 항목의 값도 여기 남아 있다
+
+/* 비즈나루 서비스일 때만 COMMON에 "비즈나루API 여부"가 붙는다(마법사의 bIsSysIdBiznaru와 동일). */
+function defHandlerParamKeys(handlerCd) {
+  var keys = (DEF_HANDLER_PARAM[handlerCd] || []).slice();
+  if (handlerCd === 'APIHDR1010' && $('#defIsSysIdBiznaru').val() === 'Y') {
+    keys.push('ext_prop_IS_BIZNARU');
+  }
+  return keys;
+}
+
+/* ext_prop 컬럼은 "key=value"를 줄바꿈으로 이어붙인 형식이다(기존 ksmutil.js $fn_get/set_ext_prop). */
+function defExtPropGet(propKey, raw) {
+  var found = '';
+  String(raw || '').split('\n').forEach(function (line) {
+    var pos = line.indexOf('=');
+    if (pos < 0) { return; }
+    if ($.trim(line.substring(0, pos)).toLowerCase() === propKey) {
+      found = $.trim(line.substring(pos + 1));
+    }
+  });
+  return found;
+}
+
+function defExtPropSet(propKey, propVal, raw) {
+  var lines = [], done = false;
+  String(raw || '').split('\n').forEach(function (line) {
+    var pos = line.indexOf('=');
+    if (pos < 0) { return; }
+    var key = $.trim(line.substring(0, pos)).toLowerCase();
+    if (key === propKey) {
+      if (propVal !== null) { lines.push(key + '=' + propVal); done = true; }
+      return; // propVal이 null이면 그 줄을 지운다
+    }
+    lines.push(key + '=' + $.trim(line.substring(pos + 1)));
+  });
+  if (propVal !== null && !done) { lines.push(propKey + '=' + propVal); }
+  return lines.join('\n');
+}
+
+/* 지금 그려져 있는 입력칸의 값을 DEF_HP_VALUES로 되받는다(입력칸을 다시 그리기 직전에 호출). */
+function defSyncHandlerParamsFromDom() {
+  $('#defHandlerParamGrid').find('[data-hp-key]').each(function () {
+    var cfg = DEF_HANDLER_PARAM_CFG[$(this).attr('data-hp-key')];
+    if (!cfg) { return; }
+    if (cfg.gub === 'chkyn') {
+      DEF_HP_VALUES[cfg.fd] = defExtPropSet(cfg.propKey, $(this).is(':checked') ? 'Y' : null, DEF_HP_VALUES[cfg.fd]);
+    } else {
+      DEF_HP_VALUES[cfg.fd] = $(this).val();
+    }
+  });
+}
+
+/* 선택한 Handler에 맞는 입력칸을 새로 그린다. 값은 DEF_HP_VALUES에서 복원한다. */
+function defBuildHandlerParamForm(handlerCd) {
+  var keys = defHandlerParamKeys(handlerCd);
+  var $grid = $('#defHandlerParamGrid').empty();
+
+  if (keys.length === 0) {
+    $('#defHandlerParamSub').text('이 Handler는 추가로 입력할 항목이 없습니다.');
+    return;
+  }
+  $('#defHandlerParamSub').text('선택한 Handler에 필요한 항목입니다. *는 필수입니다.');
+
+  keys.forEach(function (key) {
+    var cfg = DEF_HANDLER_PARAM_CFG[key];
+    var val = DEF_HP_VALUES[cfg.fd] || '';
+    var attrs = ' id="' + cfg.fd + '" name="' + cfg.fd + '" data-hp-key="' + key + '"';
+    if (cfg.max > 0) { attrs += ' maxlength="' + cfg.max + '"'; }
+
+    var inputHtml;
+    if (cfg.gub === 'mtxt') {
+      inputHtml = '<textarea' + attrs + ' rows="3" style="font-family:monospace;"></textarea>';
+    } else if (cfg.gub === 'chkyn') {
+      inputHtml = '<label class="qr_chk_wrap"><input type="checkbox"' + attrs + '> <span>사용</span></label>';
+    } else {
+      inputHtml = '<input type="text"' + attrs + ' style="font-family:monospace;">';
+    }
+
+    var $field = $('<div class="qr_field' + (cfg.gub === 'mtxt' ? ' qr_span2' : '') + '">'
+      + '<label for="' + cfg.fd + '">' + qrEsc(cfg.title) + (cfg.man === 'Y' ? ' <em>*</em>' : '') + '</label>'
+      + inputHtml
+      + '<span class="qr_err" id="' + cfg.fd + 'Err">' + qrEsc(cfg.title) + ' 값을 입력하세요.</span>'
+      + '</div>');
+
+    // 값은 마크업 문자열이 아니라 .val()로 넣는다(따옴표/줄바꿈이 섞여도 안전).
+    if (cfg.gub === 'chkyn') {
+      $field.find('input[type="checkbox"]').prop('checked', defExtPropGet(cfg.propKey, val) === 'Y');
+    } else {
+      $field.find('#' + cfg.fd).val(val);
+    }
+    $grid.append($field);
+  });
+}
+
+/* Handler 변경 - 현재 입력값을 보관한 뒤 새 Handler의 입력칸으로 교체한다. */
+function defOnHandlerChange() {
+  defSyncHandlerParamsFromDom();
+  defBuildHandlerParamForm($('#apiHandlerCd').val());
+}
+
+/* 필수 Handler 파라미터 검증. 화면에 보이는 항목만 검사한다(안 보이는 값은 저장 시 서버가 비운다). */
+function defValidateHandlerParams() {
+  if ($('#defHandlerParamBox').hasClass('qr_hide')) { return true; }
+
+  var hasErr = false;
+  $('#defHandlerParamGrid').find('.qr_err').removeClass('qr_show');
+  $('#defHandlerParamGrid').find('input, textarea').removeClass('qr_input_err');
+
+  defHandlerParamKeys($('#apiHandlerCd').val()).forEach(function (key) {
+    var cfg = DEF_HANDLER_PARAM_CFG[key];
+    if (cfg.man !== 'Y' || cfg.gub === 'chkyn') { return; }
+    if (!$.trim($('#' + cfg.fd).val() || '')) {
+      $('#' + cfg.fd).addClass('qr_input_err');
+      $('#' + cfg.fd + 'Err').addClass('qr_show');
+      hasErr = true;
+    }
+  });
+
+  if (hasErr) {
+    $('#defHandlerParamGrid').find('.qr_input_err').first().focus();
+  }
+  return !hasErr;
+}
+
+/* 저장 payload에 Handler 파라미터를 채운다. 화면에 없는 항목은 빈 값으로 보내고, 서버도
+   clearUnusedHandlerParams()로 한 번 더 정리한다. */
+function defAppendHandlerParams(formData) {
+  defSyncHandlerParamsFromDom();
+  var used = {};
+  if (!$('#defHandlerParamBox').hasClass('qr_hide')) {
+    defHandlerParamKeys($('#apiHandlerCd').val()).forEach(function (key) {
+      used[DEF_HANDLER_PARAM_CFG[key].fd] = true;
+    });
+  }
+  DEF_HANDLER_PARAM_FIELDS.forEach(function (fd) {
+    formData[fd] = used[fd] ? (DEF_HP_VALUES[fd] || '') : '';
+  });
+  return formData;
+}
+
+/* 수정 모드로 기존 API를 불러올 때 - 입력칸을 그리기 전에 값부터 채워 넣는다. */
+function defLoadHandlerParamValues(def) {
+  DEF_HP_VALUES = {};
+  DEF_HANDLER_PARAM_FIELDS.forEach(function (fd) {
+    DEF_HP_VALUES[fd] = def[fd] || '';
+  });
+}
+
+function defClearHandlerParamValues() {
+  DEF_HP_VALUES = {};
+}
+
+/* ---------------- 기본 정보 간소화(퍼블_v19.0) ---------------- */
+
+/* "추가 설정" 열고 닫기. qr_hide(display:none)로만 감춘다 - 입력 요소를 DOM에서 빼면
+   저장 시 값을 읽을 수 없다. */
+function defToggleExtra(open) {
+  $('#defExtraBox').toggleClass('qr_hide', !open);
+  $('#defExtraToggle').toggleClass('qr_on', open).attr('aria-expanded', open ? 'true' : 'false');
+  if (!open) { defRefreshExtraSum(); }
+}
+
+/* 접혀 있을 때 보이는 요약 - "개발자그룹 · 비노출 · REST · 미적용" 형태.
+   셀렉트의 선택된 텍스트를 그대로 쓰므로 옵션 문구가 바뀌어도 따라간다. */
+function defRefreshExtraSum() {
+  var parts = [];
+  ['#autId', '#useYn', '#guideGubun', '#sandboxYn'].forEach(function (sel) {
+    var txt = $.trim($(sel).find('option:selected').text());
+    if (txt && txt !== '선택' && txt !== '선택안함') { parts.push(txt); }
+  });
+  $('#defExtraSum').text(parts.join(' · '));
+}
+
+/* "기본 정보" 아코디언을 접었을 때 헤더에 보이는 요약 - 입력 중인 API 이름과 Method/Path.
+   아직 아무것도 안 넣었으면 원래 안내 문구를 그대로 둔다. */
+function defRefreshBasicSum() {
+  var apiNm = $.trim($('#apiNm').val() || '');
+  var apiPath = $.trim($('#apiPath').val() || '');
+  var $sum = $('#defBasicSum');
+
+  if (!apiNm && !apiPath) {
+    $sum.text('반드시 입력해야 하는 항목만 남겼습니다');
+    return;
+  }
+
+  var $out = $();
+  if (apiNm) { $out = $out.add($('<span class="qr_sum_v"></span>').text(apiNm)); }
+  if (apiPath) {
+    if (apiNm) { $out = $out.add($('<span class="qr_sum_sep">·</span>')); }
+    var method = defMethodNm($('#methodCd').val()) || '';
+    $out = $out.add($('<span class="qr_sum_v qr_mono"></span>').text($.trim(method + ' ' + apiPath)));
+  }
+  $sum.empty().append($out);
 }

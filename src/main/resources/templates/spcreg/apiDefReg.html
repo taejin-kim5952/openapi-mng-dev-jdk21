@@ -13,7 +13,7 @@
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/fold/foldgutter.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/lint/lint.css}">
     <link rel="stylesheet" th:href="@{/resources/js/cdn/codemirror/addon/hint/show-hint.css}">
-    <link rel="stylesheet" th:href="@{/resources/css/quickApiReg.css}">
+    <link rel="stylesheet" th:href="@{/resources/css/apiReg.css}">
     <link rel="stylesheet" th:href="@{/resources/css/spcreg.css}">
 </head>
 <body>
@@ -48,7 +48,12 @@
 
   <div class="qr_head">
     <div class="qr_head_txt">
-      <h2 class="qr_title"><span class="qr_title_bullet"></span><span id="defHeadTitle">API 등록</span></h2>
+      <h2 class="qr_title"><span class="qr_title_bullet"></span><span id="defHeadTitle">API 등록</span>
+        <!-- AI 챗봇 진입(퍼블_v24.0) - 봇 얼굴 + AI 스파클 아이콘 -->
+        <button type="button" class="qr_title_bot" id="qrBtnChatbot" aria-label="AI 챗봇 열기" title="AI 챗봇">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/><path d="M17.6 2.2l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5z" fill="currentColor" stroke-width="1.1"/></svg>
+        </button>
+      </h2>
       <p class="qr_sub" id="defHeadSub"><span th:text="${spcNm}">그룹</span> 그룹에 API(Method+Path)를 추가합니다.</p>
     </div>
     <div class="qr_head_acts">
@@ -83,13 +88,14 @@
     <section class="sv_acc sv_open" style="margin-top:28px;">
       <button type="button" class="sv_acc_head">
         <span class="sv_acc_nm">기본 정보</span>
-        <span class="sv_acc_sum">반드시 입력해야 하는 항목만 남겼습니다</span>
-        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        <!-- 접혀 있을 때 입력한 API 이름/Path가 보이는 자리(퍼블_v19.0). 값은 defRefreshBasicSum()이 채운다. -->
+        <span class="sv_acc_sum" id="defBasicSum">반드시 입력해야 하는 항목만 남겼습니다</span>
+        <span class="sv_acc_toggle"><span class="sv_acc_toggle_lbl">펼치기</span><span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
       </button>
       <div class="sv_acc_body">
         <div class="qr_grid2" id="defBasicGrid" style="margin-top:20px;">
           <div class="qr_field">
-            <label for="apiNm">API 이름 <em>*</em></label>
+            <label for="apiNm">API 이름 <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="API 이름에는 어떤 정보를 넣나요?" aria-label="API 이름 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <input type="text" id="apiNm" name="apiNm" maxlength="200" placeholder="예: 가입자 목록 조회">
             <span class="qr_err" id="apiNmErr">API 이름을 입력하세요.</span>
           </div>
@@ -97,80 +103,88 @@
                추가함. 그룹 무관하게 시스템 전체(KOA_TB_API_DEF)에서 유일해야 하므로 저장 전에 "중복검사"로
                직접 확인하거나, "신규 API ID"로 다음 값을 자동으로 채울 수 있다. -->
           <div class="qr_field">
-            <label for="apiId">API ID <em>*</em></label>
-            <div class="qr_inline_select">
+            <label for="apiId">API ID <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="API ID는 어떤 규칙으로 정하나요?" aria-label="API ID 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+            <div class="qr_input_btns">
               <input type="text" id="apiId" name="apiId" placeholder="예: OIF_00001" style="font-family:monospace;">
               <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" id="defBtnApiIdChk">중복검사</button>
-              <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" id="defBtnNextApiId">신규 API ID</button>
+              <button type="button" class="qr_pill qr_pill_ghost qr_pill_sm" id="defBtnNextApiId">신규 API ID</button>
             </div>
             <span class="qr_field_hint" id="defApiIdHint">예시: OIF_00001 (한글/공백 불가, 시스템 전체에서 유일해야 함)</span>
             <span class="qr_err" id="apiIdErr">API ID를 입력하거나 중복검사를 통과해야 합니다.</span>
           </div>
           <div class="qr_field">
-            <label for="autId">권한그룹 <em>*</em></label>
-            <select id="autId" name="autId">
-              <option value="">선택</option>
-              <option th:each="a : ${autList}" th:value="${a.autId}" th:text="${a.autNm}"></option>
-            </select>
-          </div>
-          <div class="qr_field">
-            <label for="apiPath">Path <em>*</em></label>
+            <label for="apiPath">Path <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="Path는 어떻게 입력하나요? 전체 경로와는 어떻게 다른가요?" aria-label="Path 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <input type="text" id="apiPath" name="apiPath" placeholder="예: /v1/subscribers" style="font-family:monospace;">
             <span class="qr_field_hint">전체 경로 <span class="qr_mono" id="defFullPath">/</span> — 앞의 기본경로는 그룹 값입니다.</span>
             <span class="qr_err" id="apiPathErr">Path를 입력하세요. (/로 시작)</span>
           </div>
           <div class="qr_field">
-            <label for="methodCd">Method</label>
+            <label for="methodCd">Method <button type="button" class="qr_help_bot" data-chat-ask="Method는 무엇을 기준으로 고르나요?" aria-label="Method 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <select id="methodCd" name="methodCd">
               <option th:each="m : ${mthTypeList}" th:value="${m.comnCd}" th:text="${m.cdNm}" th:selected="${m.comnCd == 'MTHTYP1020'}"></option>
             </select>
           </div>
-          <!-- 노출여부/가이드 구분/sandbox 적용여부 - 기존 등록 마법사에 있던 필드인데 이 화면엔
-               빠져 있던 것을 추가함. useYn은 기본 '노출', sandboxYn은 기본 '미적용'(기존 마법사 기본값과 동일). -->
-          <div class="qr_field">
-            <label for="useYn">API 노출여부</label>
-            <select id="useYn" name="useYn">
-              <option value="Y">노출</option>
-              <option value="N">비노출</option>
-            </select>
-          </div>
-          <div class="qr_field">
-            <label for="guideGubun">가이드 구분</label>
-            <select id="guideGubun" name="guideGubun">
-              <option value="">선택안함</option>
-              <option value="REST">REST</option>
-              <option value="SOAP">SOAP</option>
-            </select>
-          </div>
-          <div class="qr_field">
-            <label for="sandboxYn">sandbox 적용여부</label>
-            <select id="sandboxYn" name="sandboxYn">
-              <option value="N">미적용</option>
-              <option value="Y">적용</option>
-            </select>
-            <span class="qr_field_hint">API Link를 통해 API 사용 신청 시 sandbox 적용 여부입니다.</span>
-          </div>
-          <!-- TB/운영 엔드포인트 URL - 배포 후 게이트웨이가 실제로 호출해서 사용자에게 결과를 돌려주는
-               주소라 "고급 설정(선택)"이 아니라 필수 기본 정보다. 원래 "고급 설정" 아코디언(엔드포인트/
-               게이트웨이 그룹)에 있었으나 이 화면 필수값으로 재분류해 여기로 옮김. -->
-          <div class="qr_field">
-            <label for="endpntTbUrl">TB 엔드포인트 URL <em>*</em></label>
-            <input type="text" id="endpntTbUrl" name="endpntTbUrl" style="font-family:monospace;">
-            <span class="qr_err" id="endpntTbUrlErr">TB 엔드포인트 URL을 입력하세요.</span>
-          </div>
-          <div class="qr_field">
-            <label for="endpntPrdUrl">운영 엔드포인트 URL <em>*</em></label>
-            <input type="text" id="endpntPrdUrl" name="endpntPrdUrl" style="font-family:monospace;">
-            <span class="qr_err" id="endpntPrdUrlErr">운영 엔드포인트 URL을 입력하세요.</span>
-          </div>
           <div class="qr_field qr_span2">
-            <label for="apiDesc">설명</label>
+            <label for="apiDesc">설명 <button type="button" class="qr_help_bot" data-chat-ask="API 설명에는 무엇을 적나요?" aria-label="설명 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <textarea id="apiDesc" name="apiDesc" rows="2" placeholder="이 API가 무엇을 하는지 한 줄로 적어주세요 (선택)"></textarea>
           </div>
         </div>
 
+        <!-- 추가 설정(퍼블_v19.0) - 매번 같은 값으로 고르는 4개는 기본값을 넣어두고 접어 둔다.
+             "고급 설정"(.sv_acc) 아코디언보다 한 단계 가벼운 인라인 토글이다.
+             접혀 있어도 qr_hide(display:none)로만 감추므로 입력 요소는 DOM에 그대로 남는다
+             - 저장 시 값을 읽어가기 때문에 마크업에서 빼면 안 된다. -->
+        <div class="qr_inline_more">
+          <button type="button" class="qr_inline_toggle" id="defExtraToggle" aria-expanded="false" aria-controls="defExtraBox">
+            <span class="qr_inline_ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            <span class="qr_inline_nm">추가 설정</span>
+            <span class="qr_inline_sub">권한그룹 · 노출여부 · 가이드 구분 · sandbox</span>
+            <!-- 접혀 있을 때 현재 값 요약. 값은 defRefreshExtraSum()이 채운다. -->
+            <span class="qr_inline_sum" id="defExtraSum"></span>
+          </button>
+          <div class="qr_inline_box qr_hide" id="defExtraBox">
+            <div class="qr_grid2" style="margin-top:0;">
+              <!-- 권한그룹은 로그인 사용자의 권한 목록이라 서버가 렌더링한다. 기본값은 이름이
+                   "개발자그룹"인 항목(기존 popSimpleApiReg.html과 같은 규칙). -->
+              <div class="qr_field">
+                <label for="autId">권한그룹 <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="권한그룹은 무엇이고 어떤 것을 선택해야 하나요?" aria-label="권한그룹 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+                <select id="autId" name="autId">
+                  <option value="">선택</option>
+                  <option th:each="a : ${autList}" th:value="${a.autId}" th:text="${a.autNm}"
+                          th:selected="${a.autNm == '개발자그룹'}"></option>
+                </select>
+                <span class="qr_err" id="autIdErr">권한그룹을 선택하세요.</span>
+              </div>
+              <div class="qr_field">
+                <label for="useYn">API 노출여부 <button type="button" class="qr_help_bot" data-chat-ask="API 노출여부는 언제 노출로 바꾸나요?" aria-label="API 노출여부 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+                <select id="useYn" name="useYn">
+                  <option value="Y">노출</option>
+                  <option value="N" selected>비노출</option>
+                </select>
+                <span class="qr_field_hint">검증 전에는 비노출로 두고, 확인 후 노출로 바꾸세요.</span>
+              </div>
+              <div class="qr_field">
+                <label for="guideGubun">가이드 구분 <button type="button" class="qr_help_bot" data-chat-ask="가이드 구분은 무엇인가요?" aria-label="가이드 구분 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+                <select id="guideGubun" name="guideGubun">
+                  <option value="">선택안함</option>
+                  <option value="REST" selected>REST</option>
+                  <option value="SOAP">SOAP</option>
+                </select>
+              </div>
+              <div class="qr_field">
+                <label for="sandboxYn">sandbox 적용여부 <button type="button" class="qr_help_bot" data-chat-ask="sandbox 적용여부는 어떤 기준으로 정하나요?" aria-label="sandbox 적용여부 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+                <select id="sandboxYn" name="sandboxYn">
+                  <option value="N" selected>미적용</option>
+                  <option value="Y">적용</option>
+                </select>
+                <span class="qr_field_hint">API Link를 통해 API 사용 신청 시 sandbox 적용 여부입니다.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="qr_field" style="margin-top:22px;">
-          <label>API 구분</label>
+          <label>API 구분 <button type="button" class="qr_help_bot" data-chat-ask="API 구분(Public/Private/Internal)은 어떤 차이가 있나요?" aria-label="API 구분 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
           <div class="qr_scope_pills">
             <label th:each="g : ${apiGubList}" class="qr_scope_pill_wrap">
               <input type="radio" name="apiClass" th:value="${g.comnCd}" th:checked="${g.comnCd == 'APIGUB1010'}" onchange="defOnApiClassChange();">
@@ -180,13 +194,14 @@
         </div>
         <div id="defPrivateRow" class="qr_grid2 qr_private_box qr_hide" style="margin-top:16px;">
           <div class="qr_field">
-            <label for="apiHandlerCd">Handler</label>
-            <select id="apiHandlerCd" name="apiHandlerCd">
+            <label for="apiHandlerCd">Handler <button type="button" class="qr_help_bot" data-chat-ask="Handler는 무엇이고 어떤 것을 선택해야 하나요?" aria-label="Handler 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+            <select id="apiHandlerCd" name="apiHandlerCd" onchange="defOnHandlerChange();">
               <option th:each="h : ${apiHandlerList}" th:value="${h.comnCd}" th:text="${h.cdNm}" th:selected="${h.comnCd == 'APIHDR1010'}"></option>
             </select>
+            <span class="qr_field_hint">Handler를 바꾸면 아래 "Handler 설정" 입력 항목이 함께 바뀝니다.</span>
           </div>
           <div class="qr_field">
-            <label for="providerNmDisp">Provider</label>
+            <label for="providerNmDisp">Provider <button type="button" class="qr_help_bot" data-chat-ask="Provider는 무엇인가요?" aria-label="Provider 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <!-- 자유 입력이 아니라 KOA_TB_API_PROVIDER 목록에서 골라 넣는다(기존 등록 마법사
                  pathRegFormPrivate.html의 "Provider 선택" 팝업과 동일한 방식). 실제 저장값은
                  hidden #providerSeq, 화면엔 이름만 읽기전용으로 보여준다. -->
@@ -197,26 +212,67 @@
             </div>
           </div>
         </div>
+
+        <!-- Handler 설정 - 선택한 Handler(APIHDR10xx)에 따라 필요한 항목만 노출된다. 실제 입력칸은
+             apiDefReg.js의 DEF_HANDLER_PARAM_CFG/DEF_HANDLER_PARAM 매핑을 보고 런타임에 만든다
+             (기존 마법사 regFormPrivateHandlerParam_inc.html과 동일한 구성).
+             Private일 때만 의미가 있어 #defPrivateRow와 같이 열리고 닫힌다. -->
+        <input type="hidden" id="defIsSysIdBiznaru" th:value="${isSysIdBiznaru}">
+        <div id="defHandlerParamBox" class="qr_adv_group qr_hide" style="margin-top:16px;">
+          <div class="sv_sub_head">
+            <h4>Handler 설정 <button type="button" class="qr_help_bot" data-chat-ask="Handler에 따라 입력 항목이 달라지는 이유가 무엇인가요?" aria-label="Handler 설정 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></h4>
+            <span id="defHandlerParamSub">선택한 Handler에 필요한 항목입니다.</span>
+          </div>
+          <div id="defHandlerParamGrid" class="qr_grid2" style="margin-top:0;"></div>
+        </div>
       </div>
     </section>
 
-    <!-- 고급 설정(선택) - 엔드포인트/게이트웨이, 응답매핑, HDP 연동. 퍼블_v18.0(API등록_고급설정_
-         디자인퍼블_요청서 회신)의 apiReg.html "②-1 고급 설정" 정식 마크업 그대로 반영 - 개발 쪽에서
-         붙였던 임시 버전(인라인 style 라벨)을 교체함. id/name은 퍼블의 qrAdv*가 아니라 이 화면이 이미
-         쓰던 VO 필드명 그대로 유지(값 바인딩/저장 로직이 필드명 기준이라 굳이 맞출 필요 없음 - 요청서
-         3항에도 명시). 거의 안 쓰는 고급 값이라 기본 접힘. -->
-    <section class="sv_acc" style="margin-top:28px;">
+    <!-- 제공 시스템 주소(퍼블_v22.0) - "엔드포인트"라는 단어가 공개 주소(소비자가 호출하는 주소)로
+         오해되어 명칭을 바꾸고 별도 섹션으로 분리했다. DB 컬럼(ENDPNT_*)과 id/name은 그대로다.
+         필수 입력이라 초기 상태는 반드시 펼침(sv_open)이다. -->
+    <section class="sv_acc sv_open" style="margin-top:28px;">
       <button type="button" class="sv_acc_head">
-        <span class="sv_acc_nm">고급 설정</span>
-        <span class="sv_acc_sum">엔드포인트 · 응답 매핑 · HDP 연동 — 필요할 때만 펼쳐 입력하세요 (선택)</span>
-        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="sv_acc_nm">제공 시스템 주소</span>
+        <span class="sv_acc_sum">게이트웨이가 뒤에서 실제로 호출할 원본 시스템 주소입니다</span>
+        <span class="sv_acc_toggle"><span class="sv_acc_toggle_lbl">펼치기</span><span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
       </button>
       <div class="sv_acc_body">
 
-        <!-- TB/운영 엔드포인트 URL은 "기본 정보"로 옮겨 필수값이 됐으므로 여기서는 제외 -
-             클라이언트 IP/타임아웃처럼 정말 선택적인 값만 남는다. -->
+        <div class="qr_grid2" style="margin-top:20px;">
+          <div class="qr_field">
+            <label for="endpntTbUrl">TB 시스템 주소 <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="제공 시스템 주소는 무엇인가요? 소비자가 호출하는 주소와 어떻게 다른가요?" aria-label="TB 시스템 주소 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+            <input type="text" id="endpntTbUrl" name="endpntTbUrl" placeholder="예: https://tb-internal.kt.com/msg/send" style="font-family:monospace;">
+            <span class="qr_err" id="endpntTbUrlErr">TB 시스템 주소를 입력하세요.</span>
+          </div>
+          <div class="qr_field">
+            <label for="endpntPrdUrl">운영 시스템 주소 <em>*</em> <button type="button" class="qr_help_bot" data-chat-ask="운영 시스템 주소에는 무엇을 넣나요?" aria-label="운영 시스템 주소 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
+            <input type="text" id="endpntPrdUrl" name="endpntPrdUrl" placeholder="예: https://prd-internal.kt.com/msg/send" style="font-family:monospace;">
+            <span class="qr_err" id="endpntPrdUrlErr">운영 시스템 주소를 입력하세요.</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 고급 설정(선택) - 엔드포인트/게이트웨이. 퍼블_v18.0(API등록_고급설정_디자인퍼블_요청서 회신)의
+         apiReg.html "②-1 고급 설정" 정식 마크업 그대로 반영. id/name은 퍼블의 qrAdv*가 아니라 이 화면이
+         이미 쓰던 VO 필드명 그대로 유지(값 바인딩/저장 로직이 필드명 기준). 거의 안 쓰는 고급 값이라 기본 접힘.
+         원래 여기 같이 있던 "응답 매핑"/"HDP 연동"/"클라이언트 IP"는 Handler에 따라 필요한 항목이
+         달라지는 값이라 위쪽 "Handler 설정"으로 옮겼다(Handler와 무관하게 항상 노출되던 것이 잘못).
+         TB/운영 URL은 필수값이라 "제공 시스템 주소" 섹션으로 분리했다(퍼블_v22.0). -->
+    <section class="sv_acc" style="margin-top:28px;">
+      <button type="button" class="sv_acc_head">
+        <span class="sv_acc_nm">고급 설정</span>
+        <span class="sv_acc_sum">호출 제어 · 게이트웨이 — 필요할 때만 펼쳐 입력하세요 (선택)</span>
+        <span class="sv_acc_toggle"><span class="sv_acc_toggle_lbl">펼치기</span><span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
+      </button>
+      <div class="sv_acc_body">
+
         <div class="qr_adv_group" style="margin-top:20px;">
-          <div class="sv_sub_head"><h4>엔드포인트 / 게이트웨이</h4><span>필요한 경우에만 추가로 설정하세요</span></div>
+            <!-- TB/운영 URL은 "제공 시스템 주소" 섹션으로, 클라이언트 IP 매핑키는 Handler별 항목이라
+                 "Handler 설정"으로 옮겨서 여기엔 호출 제약만 남았다(소제목은 퍼블_v19.0 기준). -->
+            <div class="sv_sub_head"><h4>호출 제어 <button type="button" class="qr_help_bot" data-chat-ask="고급 설정의 호출 제어는 어떤 값인가요?" aria-label="호출 제어 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></h4><span>게이트웨이가 내부 주소를 호출할 때의 제약</span></div>
           <div class="qr_grid2" style="margin-top:0;">
             <div class="qr_field">
               <label for="endpntMethodCd">Endpoint Method</label>
@@ -227,64 +283,8 @@
               <span class="qr_field_hint">내부 호출 Method가 API 자체 Method와 다를 때만 선택하세요.</span>
             </div>
             <div class="qr_field">
-              <label for="endpntClientIp">클라이언트 IP</label>
-              <input type="text" id="endpntClientIp" name="endpntClientIp" placeholder="비워두면 제한 없음">
-            </div>
-            <div class="qr_field">
               <label for="endpntTimeout">타임아웃(ms)</label>
               <input type="text" id="endpntTimeout" name="endpntTimeout">
-            </div>
-          </div>
-        </div>
-
-        <div class="qr_adv_group">
-          <div class="sv_sub_head"><h4>응답 매핑</h4><span>내부 응답에서 결과/에러를 읽어올 필드</span></div>
-          <div class="qr_grid2" style="margin-top:0;">
-            <div class="qr_field">
-              <label for="resmapResCdField">결과코드 필드</label>
-              <input type="text" id="resmapResCdField" name="resmapResCdField" style="font-family:monospace;">
-            </div>
-            <div class="qr_field">
-              <label for="resmapSuccVal">성공 값</label>
-              <input type="text" id="resmapSuccVal" name="resmapSuccVal" style="font-family:monospace;">
-            </div>
-            <div class="qr_field">
-              <label for="resmapErrCdField">에러코드 필드</label>
-              <input type="text" id="resmapErrCdField" name="resmapErrCdField" style="font-family:monospace;">
-            </div>
-            <div class="qr_field">
-              <label for="resmapErrMsgField">에러메시지 필드</label>
-              <input type="text" id="resmapErrMsgField" name="resmapErrMsgField" style="font-family:monospace;">
-            </div>
-          </div>
-        </div>
-
-        <div class="qr_adv_group">
-          <div class="sv_sub_head"><h4>HDP 연동</h4><span>HDP를 경유하는 경우에만 입력하세요.</span></div>
-          <div class="qr_grid2" style="margin-top:0;">
-            <div class="qr_field">
-              <label for="hdpApiEndpointId">HDP Endpoint ID</label>
-              <input type="text" id="hdpApiEndpointId" name="hdpApiEndpointId" style="font-family:monospace;">
-            </div>
-            <div class="qr_field">
-              <label for="hdpReqApiName">HDP 요청 API명</label>
-              <input type="text" id="hdpReqApiName" name="hdpReqApiName" style="font-family:monospace;">
-            </div>
-            <div class="qr_field">
-              <label for="hdpApiOutFormat">출력 포맷</label>
-              <input type="text" id="hdpApiOutFormat" name="hdpApiOutFormat">
-            </div>
-            <div class="qr_field">
-              <label for="hdpApiOutCommonParam">공통 파라미터</label>
-              <input type="text" id="hdpApiOutCommonParam" name="hdpApiOutCommonParam" placeholder="선택사항">
-            </div>
-            <div class="qr_field qr_span2">
-              <label for="hdpReqMappingToBody">요청 매핑(Body)</label>
-              <textarea id="hdpReqMappingToBody" name="hdpReqMappingToBody" rows="3" style="font-family:monospace;"></textarea>
-            </div>
-            <div class="qr_field qr_span2">
-              <label for="hdpResMappingToBody">응답 매핑(Body)</label>
-              <textarea id="hdpResMappingToBody" name="hdpResMappingToBody" rows="3" style="font-family:monospace;"></textarea>
             </div>
           </div>
         </div>
@@ -327,7 +327,7 @@
         <span class="sv_acc_nm">파라미터</span>
         <span class="sv_acc_badge" id="defParamBadge">0</span>
         <span class="sv_acc_sum" id="defParamSum">OAS 3.0 스키마 — 구조만 확인하고, 수정은 스코프별 [설계]에서</span>
-        <span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="sv_acc_toggle"><span class="sv_acc_toggle_lbl">펼치기</span><span class="sv_acc_ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
       </button>
       <div class="sv_acc_body">
         <div class="qr_pv" id="defParamBox">
@@ -423,7 +423,7 @@
   </div>
 </div>
 
-<!-- 팝업: 템플릿 선택 (퍼블_v16.0) - quickApiReg.html의 #qrTmpltModal과 동일한 마크업/클래스를
+<!-- 팝업: 템플릿 선택 (퍼블_v16.0) - (폐지된) 빠른 API 등록 화면의 #qrTmpltModal과 동일한 마크업/클래스를
      그대로 재사용(디자인 요청서에서 확인된 재사용 대상). 선택하면 Method/Path/API구분/입력 파라미터가
      "기본 정보"/"파라미터"에 자동 반영된다(defSelectTemplate). -->
 <div id="qrTmpltModal" class="qr_modal_backdrop qr_hide">
@@ -550,6 +550,148 @@
   </div>
 </div>
 
+<!-- ===== AI 챗봇 팝업 (API Manager 도우미) =====
+     화면 우하단 고정 패널. backdrop이 없어 팝업이 떠 있어도 뒤쪽 등록 화면을 계속 조작할 수 있습니다.
+     세로 스크롤은 대화 목록(.chat_body)에만 걸립니다.
+     서버 호출과 값 채우기는 개발 쪽에서 처리하며, 반복 조각은 아래 <template>을 복제해 씁니다.
+     클래스는 chat_ 접두어, 색·버튼은 이 화면의 --qr-* 토큰과 .qr_pill 을 그대로 씁니다. -->
+<div id="chatPanel" class="chat_panel qr_hide" role="dialog" aria-labelledby="chatTitle">
+
+  <div class="chat_head">
+    <div class="chat_head_txt">
+      <div class="chat_nm" id="chatTitle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg>
+        API Manager 도우미
+      </div>
+      <div class="chat_desc">등록 항목·용어를 물어보세요</div>
+    </div>
+    <div class="chat_head_acts">
+      <button type="button" class="chat_ico_btn" id="chatNewBtn" title="새 대화" aria-label="새 대화">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button type="button" class="chat_ico_btn" id="chatMinBtn" title="최소화" aria-label="최소화">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+      </button>
+      <button type="button" class="chat_ico_btn" id="chatCloseBtn" title="닫기" aria-label="닫기">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="chat_body" id="chatBody">
+
+    <!-- 인트로 - 새 대화 상태에서 노출 -->
+    <div class="chat_intro" id="chatIntro">
+      <p class="chat_intro_q">무엇이 궁금하신가요?</p>
+      <p class="chat_intro_sub">자주 찾는 주제</p>
+      <!-- 자주 찾는 주제. /api/categories 의 quick_category_ids 로 채운다. -->
+      <div class="chat_chips" id="chatChips"></div>
+    </div>
+
+    <!-- 대화 목록 (목업) -->
+    <!-- 대화 목록. 말풍선은 아래 <template>을 복제해 채운다(chatWidget.js). -->
+    <div class="chat_msgs" id="chatMsgs"></div>
+
+  </div>
+
+  <button type="button" class="chat_to_btm qr_hide" id="chatToBottom" aria-label="맨 아래로 이동" title="맨 아래로 이동">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+  </button>
+
+  <!-- 주제 선택 팝오버 - 2단계다.
+       ① 그룹(접기/펼치기) 안의 주제를 고른다  ② 그 주제의 예시 질문을 보여주고 고르면 바로 전송.
+       예시 질문이 없는 주제는 ①에서 고르는 즉시 검색 범위만 지정하고 닫힌다. -->
+  <div class="chat_topic_pop qr_hide" id="chatTopicPop">
+    <!-- 2단계일 때만 보이는 머리말. [뒤로]로 주제 목록으로 돌아간다. -->
+    <div class="chat_topic_head qr_hide" id="chatTopicHead">
+      <button type="button" class="chat_topic_back" id="chatTopicBack" aria-label="주제 목록으로">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="chat_topic_head_nm" id="chatTopicHeadNm"></span>
+    </div>
+    <div class="chat_topic_srch">
+      <input type="text" id="chatTopicSrch" placeholder="주제 검색" aria-label="주제 검색">
+    </div>
+    <!-- 전체 주제. /api/categories 의 groups 로 채운다. -->
+    <div class="chat_topic_list" id="chatTopicList"></div>
+    <p class="chat_topic_empty qr_hide" id="chatTopicEmpty">검색 결과가 없습니다.</p>
+  </div>
+
+  <!-- 고른 주제. 다음 질문의 검색 범위로 쓰인다 - 무엇이 걸려 있는지 보이지 않으면
+       왜 답이 달라지는지 알 수 없다. ×로 해제한다. -->
+  <div class="chat_picked qr_hide" id="chatPicked">
+    <span class="chat_picked_nm" id="chatPickedNm"></span>
+    <button type="button" class="chat_picked_clear" id="chatPickedClear" aria-label="주제 해제">&times;</button>
+  </div>
+
+  <div class="chat_input">
+    <button type="button" class="chat_topic_btn" id="chatTopicBtn" aria-label="주제 선택" title="주제 선택">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    </button>
+    <textarea id="chatText" rows="1" placeholder="궁금한 점을 입력하세요" aria-label="질문 입력"></textarea>
+    <button type="button" class="chat_send" id="chatSend" aria-label="전송" title="전송">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- 반복 생성 조각 - 개발 쪽에서 서버 응답을 채워 복제합니다.
+     답변 본문에는 이미지를 넣지 않습니다(도식은 문서 상세 모달에서만). -->
+<template id="chatTplMe">
+  <div class="chat_row chat_row_me"><div class="chat_bubble chat_bubble_me"></div></div>
+</template>
+<template id="chatTplBot">
+  <div class="chat_row">
+    <div class="chat_bubble">
+      <div class="chat_txt"></div>
+      <div class="chat_srcs"></div>
+      <div class="chat_foot">
+        <span class="chat_ai">AI가 작성한 답변입니다</span>
+        <span class="chat_fb">
+          <button type="button" class="chat_fb_btn" data-fb="up" aria-label="도움됨">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11l4-9h1a2 2 0 012 2v5h4.5a2 2 0 012 2.4l-1.5 7A2 2 0 0117 22z"/><path d="M7 11H4v11h3"/></svg>
+          </button>
+          <button type="button" class="chat_fb_btn" data-fb="down" aria-label="아쉬움">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v11l-4 9h-1a2 2 0 01-2-2v-5H5.5a2 2 0 01-2-2.4l1.5-7A2 2 0 017 2z"/><path d="M17 13h3V2h-3"/></svg>
+          </button>
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+<template id="chatTplSrc">
+  <button type="button" class="chat_src" data-doc-id="">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>
+    <span class="chat_src_nm"></span>
+  </button>
+</template>
+<template id="chatTplDoc">
+  <button type="button" class="chat_doc" data-doc-id="">
+    <span class="chat_doc_nm"></span>
+    <span class="chat_doc_sec"></span>
+  </button>
+</template>
+
+<!-- 문서 상세 - 팝업 밖 화면 중앙 모달. 표·도식이 들어가므로 넓게 봅니다.
+     이 화면의 .qr_modal_backdrop / .qr_modal 패턴을 재사용합니다. -->
+<div id="chatDocModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal chat_doc_modal" role="dialog" aria-modal="true" aria-labelledby="chatDocTitle">
+    <div class="qr_modal_head">
+      <div>
+        <div class="qr_modal_title" id="chatDocTitle"></div>
+        <div class="qr_modal_sub" id="chatDocSec"></div>
+      </div>
+      <button type="button" class="qr_modal_close" id="chatDocClose" aria-label="닫기">&times;</button>
+    </div>
+    <!-- 본문은 /api/docs/chunk/{chunk_id} 응답을 ChatMD.renderDoc() 으로 그려 넣는다.
+         여기서만 이미지(도식)가 나온다 - 답변 말풍선에는 그리지 않는다. -->
+    <div class="chat_doc_body" id="chatDocBody"></div>
+    <div class="qr_modal_foot">
+      <button type="button" class="qr_pill qr_pill_ghost" id="chatDocClose2">닫기</button>
+    </div>
+  </div>
+</div>
+
 <script th:inline="javascript">
   var g_def_dataTypeList = /*[[${dataTypeList}]]*/ [];
   var g_def_providerList = /*[[${apiProviderList}]]*/ [];
@@ -572,9 +714,13 @@
 <script th:src="@{/resources/js/cdn/codemirror/addon/hint/show-hint.js}"></script>
 <script th:src="@{/resources/js/cdn/codemirror/addon/hint/anyword-hint.js}"></script>
 <script th:src="@{/resources/js/api_reg/apiGlobalScript.js}"></script>
-<script th:src="@{/resources/js/api_reg/quickRegShared.js}"></script>
+<script th:src="@{/resources/js/api_reg/apiRegShared.js}"></script>
 <script th:src="@{/resources/js/api_reg/paramTreeEditor.js}"></script>
 <script th:src="@{/resources/js/spcreg/apiDefReg.js}"></script>
+<!-- AI 챗봇 팝업. 렌더러(ChatMD)는 챗봇 서버의 파일을 프록시로 그대로 불러온다 - 관리자
+     검수 미리보기와 같은 함수를 써야 답변 모양이 어긋나지 않기 때문이다(복사본을 두지 않는다). -->
+<script th:src="@{/chat/static/markdown.js}"></script>
+<script th:src="@{/resources/js/chat/chatWidget.js}"></script>
 
 </div>
 </body>

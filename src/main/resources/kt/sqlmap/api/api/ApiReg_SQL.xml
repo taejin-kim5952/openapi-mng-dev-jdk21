@@ -39,6 +39,7 @@
       ,BSTGW_YN
       ,API_VERI_BASEURL
       ,PROJECT_NS
+      ,SPC_SRC_CD
     )
     VALUES
     (
@@ -70,6 +71,7 @@
       ,#{bstgwYn}
       ,#{apiVeriBaseurl}
       ,#{projectNamespace}
+      ,'LEGACY'
     )
   </insert>
 
@@ -403,7 +405,9 @@
       , API_VERI_BASEURL
       , COALESCE(A.PROJECT_NS,'') AS PROJECT_NAMESPACE
       , A.API_NM AS PROJECT_NAME
-    FROM KOA_TB_API_SPC A 
+      /* 구버전 등록화면이 SPCREG(신규 화면 생성) 명세를 읽기 전용으로 막는 판정에 쓴다 */
+      , COALESCE(A.SPC_SRC_CD,'LEGACY') AS SPC_SRC_CD
+    FROM KOA_TB_API_SPC A
       LEFT OUTER JOIN KOA_TB_COMN_CD D ON (A.REG_STTUS_CD = D.COMN_CD AND D.GROUP_CD = 'APIREG1000')
       LEFT OUTER JOIN KOA_TB_API_SYSTEM S ON (S.SYS_ID = A.SYS_ID)
     WHERE (A.API_SPC_NO = #{apiSpcNo})

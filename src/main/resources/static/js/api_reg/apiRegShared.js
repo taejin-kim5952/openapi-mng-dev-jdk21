@@ -1,6 +1,7 @@
-/* quickRegShared.js - "빠른 API 등록"/"템플릿 관리" 화면 공용 로직.
-   두 화면 모두 같은 YAML 파싱·아이콘 규칙을 쓰므로 여기 한 곳에서만 관리한다.
-   기존 4단계 마법사 쪽 JS와는 무관 (그쪽은 건드리지 않음). */
+/* apiRegShared.js - API 등록 계열 화면(SPC 등록/API 등록/템플릿 관리/간단 상세) 공용 로직.
+   여러 화면이 같은 YAML 파싱·아이콘 규칙을 쓰므로 여기 한 곳에서만 관리한다.
+   기존 4단계 마법사 쪽 JS와는 무관 (그쪽은 건드리지 않음).
+   (구 quickRegShared.js - "빠른 API 등록" 화면 제거에 맞춰 이름에서 quick을 뺐다.) */
 
 // Method 기준 아이콘 (템플릿 이름은 무엇이든 나올 수 있어 확장성이 없으므로, 종류가 고정된
 // Method로 아이콘을 결정한다)
@@ -154,7 +155,7 @@ function qrParseOasYaml(yamlText) {
 }
 
 // OAS object 스키마(properties/required)를 params 배열([{name,type,required,desc,exam}])로 평탄화한다.
-// qrParamsToSchema(quickRegShared.js)의 역방향 - 1단계 속성만 다룬다(중첩 객체 미지원, 클래스 상단 주석 참고).
+// qrParamsToSchema(apiRegShared.js)의 역방향 - 1단계 속성만 다룬다(중첩 객체 미지원, 클래스 상단 주석 참고).
 function qrSchemaToParams(schema) {
   schema = schema || {};
   var props = schema.properties || {};

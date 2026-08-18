@@ -2195,7 +2195,13 @@ function fnApiAuthCheck() {
     var btnHtm = "";
     //btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_black btn_confirm" onclick="fnDeLogin()"  id="cBtton">확인</button> ';
     btnHtm+=' <button type="button" title="확인" class="btn btn_sml3 btn_confirm" id="cCbtn">확인</button> ';
-    fnOpenLayer(btnHtm, 'API권한경고','권한이 없습니다!<br>권한이 필요하시다면 운영팀(apilink@kt.com)으로 문의 주세요.' );
+    // 차단 사유가 두 가지다 - 실제 권한 부족과, 신규 등록화면(spcreg)으로 만든 명세라 이 화면에서는
+    // 조회만 되는 경우. 후자에 "권한이 없습니다"를 띄우면 사용자가 권한 신청을 하러 가게 되므로 구분한다.
+    if (typeof g_readOnlyReason !== 'undefined' && g_readOnlyReason == 'SPCREG') {
+      fnOpenLayer(btnHtm, '읽기 전용', '신규 "API 등록" 화면에서 만든 API입니다.<br>이 화면에서는 조회만 가능하며, 수정은 신규 등록 화면에서 해주세요.');
+    } else {
+      fnOpenLayer(btnHtm, 'API권한경고','권한이 없습니다!<br>권한이 필요하시다면 운영팀(apilink@kt.com)으로 문의 주세요.' );
+    }
     return false;
   }
   

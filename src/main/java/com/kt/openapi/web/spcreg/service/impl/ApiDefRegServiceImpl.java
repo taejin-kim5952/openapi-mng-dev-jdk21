@@ -2,6 +2,7 @@ package com.kt.openapi.web.spcreg.service.impl;
 
 import com.kt.openapi.web.spcreg.dao.ApiDefRegDAO;
 import com.kt.openapi.web.spcreg.service.ApiDefRegService;
+import com.kt.openapi.web.spcreg.service.ApiSpcYamlSyncService;
 import com.kt.openapi.web.spcreg.vo.ApiDefRegVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,10 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
 
     @Autowired
     private ApiDefRegDAO apiDefRegDAO;
+
+    /** DEF/PARAM 저장 후 KOA_TB_API_SPC의 YAML 파생 캐시(2.0/3.0)를 같은 트랜잭션에서 갱신한다. */
+    @Autowired
+    private ApiSpcYamlSyncService apiSpcYamlSyncService;
 
     @Override
     public List<Map<String, Object>> selDefListByApiSpcNo(String apiSpcNo) {
@@ -124,6 +129,9 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
 
         savParamTree(vo.getParamList(), vo.getApiNo(), vo.getRegr());
 
+        // 정본(DEF/PARAM)이 바뀌었으므로 파생 캐시인 YAML 두 컬럼을 같은 트랜잭션에서 다시 만든다.
+        apiSpcYamlSyncService.regenerate(vo.getApiSpcNo());
+
         return vo.getApiSpcNo();
     }
 
@@ -140,6 +148,8 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
         apiDefRegDAO.updApiDef(vo);
         apiDefRegDAO.delParamsByApiNo(vo.getApiNo());
         savParamTree(vo.getParamList(), vo.getApiNo(), vo.getAmdr());
+
+        apiSpcYamlSyncService.regenerate(vo.getApiSpcNo());
 
         return vo.getApiSpcNo();
     }

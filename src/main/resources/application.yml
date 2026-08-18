@@ -27,5 +27,12 @@ server:
       whitelabel:
         enabled: false # Whitelabel 에러 페이지 비활성화
 
+# AI 챗봇(openapi-chat-serve) - 별도 프로세스로 뜨는 FastAPI 앱.
+# 이 앱이 /chat/** 로 받아 여기로 중계한다(ChatProxyController). 챗봇 프로세스는 루프백에만
+# 바인딩해 두고 외부에 직접 열지 않는다.
+chat:
+  serve:
+    base-url: http://127.0.0.1:18100
+
 logging:
   config: classpath:logback-spring.xml

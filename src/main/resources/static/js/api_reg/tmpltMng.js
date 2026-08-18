@@ -1,5 +1,5 @@
 /* tmpltMng.js - "빠른 API 등록" 템플릿 관리(목록/등록/수정) 전용 스크립트.
-   YAML 파싱은 quickRegShared.js(qrParseOasYaml)를 그대로 재사용 - 실제 등록 화면의
+   YAML 파싱은 apiRegShared.js(qrParseOasYaml)를 그대로 재사용 - 실제 등록 화면의
    "YAML 등록"과 동일한 로직으로 미리보기한다. */
 
 var g_tm_cm = null;
@@ -88,7 +88,7 @@ function tmDeleteTmplt(tmpltNo) {
     return;
   }
   $.ajax({
-    url: c_url + 'api/quickreg/tmplt/delTmpltAjax.do',
+    url: c_url + 'api/tmplt/delTmpltAjax.do',
     type: 'POST',
     data: { tmpltNo: tmpltNo },
     dataType: 'json',
@@ -189,13 +189,13 @@ function tmSaveTmplt() {
   };
 
   $.ajax({
-    url: c_url + 'api/quickreg/tmplt/savTmpltAjax.do',
+    url: c_url + 'api/tmplt/savTmpltAjax.do',
     type: 'POST',
     data: formData,
     dataType: 'json',
     success: function (res) {
       if (res.returnCode === '1') {
-        location.href = c_url + 'api/quickreg/tmplt/mvTmpltMng.do';
+        location.href = c_url + 'api/tmplt/mvTmpltMng.do';
       } else {
         alert_message(res.message || '저장 중 오류가 발생했습니다.');
       }

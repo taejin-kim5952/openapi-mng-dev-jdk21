@@ -19,9 +19,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
+import org.springframework.beans.factory.annotation.Value;
+
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * <pre>
@@ -37,6 +41,41 @@ import java.util.Map;
 public class ApiDefRegController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ApiDefRegController.class);
+
+    /** 비즈나루 서비스(sysId)일 때만 COMMON Handler에 "비즈나루API 여부" 항목이 추가된다 */
+    @Value("${apisystem.sysid.biznaru}")
+    private String apisystemSysidBiznaru;
+
+    /**
+     * Handler(APIHDR10xx)별로 실제 사용하는 Handler 파라미터 필드명.
+     * 화면(apiDefReg.js DEF_HANDLER_PARAM)과 같은 표를 서버에도 두어, 화면을 우회한 요청이 와도
+     * 해당 Handler와 무관한 컬럼에는 값이 들어가지 않도록 저장 직전에 비운다.
+     */
+    private static final Map<String, Set<String>> HANDLER_PARAM_FIELDS = Map.of(
+        "APIHDR1010", Set.of("endpntClientIp", "hdpHndlroptnConfig", "hdpExtProp"),
+        "APIHDR1020", Set.of("endpntClientIp", "resmapResCdField", "resmapSuccVal", "resmapErrCdField",
+                             "resmapErrMsgField", "hdpHndlroptnConfig"),
+        "APIHDR1030", Set.of("hdpHndlroptnConfig"),
+        "APIHDR1040", Set.of("hdpHndlroptnConfig"),
+        "APIHDR1050", Set.of("hdpApiOutCommonParam", "hdpApiEndpointId", "hdpReqApiName", "hdpReqUrlDecode",
+                             "hdpResUrlEncode", "hdpReqConfigToBody", "hdpReqHeaderToBody", "hdpReqMappingToBody",
+                             "hdpResMappingToBody", "hdpResProvideParam", "hdpHndlroptnConfig"),
+        "APIHDR1060", Set.of("hdpReqUrlDecode", "hdpReqUrlEncode", "hdpResUrlEncode", "hdpReqConfigToBody",
+                             "hdpReqHeaderToBody", "hdpReqMappingToBody", "hdpResMappingToBody",
+                             "hdpResProvideParam", "hdpHndlroptnConfig"),
+        "APIHDR1070", Set.of("hdpApiOutFormat", "hdpApiOutCommonParam", "hdpReqApiName", "hdpReqUrlDecode",
+                             "hdpResUrlEncode", "hdpReqConfigToBody", "hdpReqHeaderToBody", "hdpReqMappingToBody",
+                             "hdpResMappingToBody", "hdpResProvideParam", "hdpHndlroptnConfig")
+    );
+
+    /** HANDLER_PARAM_FIELDS에 등장하는 전체 필드(= Handler에 따라 켜지고 꺼지는 값들) */
+    private static final List<String> ALL_HANDLER_PARAM_FIELDS = List.of(
+        "endpntClientIp", "resmapResCdField", "resmapSuccVal", "resmapErrCdField", "resmapErrMsgField",
+        "hdpApiEndpointId", "hdpReqApiName", "hdpApiOutFormat", "hdpApiOutCommonParam",
+        "hdpReqMappingToBody", "hdpResMappingToBody", "hdpReqConfigToBody", "hdpReqHeaderToBody",
+        "hdpResProvideParam", "hdpReqUrlDecode", "hdpReqUrlEncode", "hdpResUrlEncode",
+        "hdpHndlroptnConfig", "hdpExtProp"
+    );
 
     @Autowired
     @Qualifier("apiDefRegService")
@@ -97,6 +136,8 @@ public class ApiDefRegController {
         mv.addObject("cntTypeList", cmnService.selComnList("CNTTYP1000"));
         mv.addObject("dataTypeList", cmnService.selComnList("DATTYP1000"));
         mv.addObject("apiHandlerList", cmnService.selComnList("APIHDR1000"));
+        // COMMON Handler에 "비즈나루API 여부" 항목을 추가할지 여부(기존 마법사 ApiRegController와 동일 기준)
+        mv.addObject("isSysIdBiznaru", (apisystemSysidBiznaru != null && apisystemSysidBiznaru.equals(sysId)) ? "Y" : "");
         mv.addObject("piiList", cmnService.selComnList("PIICLS1000"));
         mv.addObject("tmpltList", apiDefRegService.selTmpltList());
         mv.addObject("apiProviderList", apiDefRegService.selApiProviderList());
@@ -200,6 +241,8 @@ public class ApiDefRegController {
             vo.setProviderSeq(null);
         }
 
+        clearUnusedHandlerParams(vo);
+
         boolean isEdit = vo.getApiNo() != null && !vo.getApiNo().trim().isEmpty();
 
         try {
@@ -241,4 +284,30 @@ public class ApiDefRegController {
             LOG.error("API(apiNo={}) 배포 프로세스 초기화 실패 - 배포현황 목록에 나타나지 않을 수 있습니다.", apiNo, deployEx);
         }
     }
+
+    /**
+     * 선택한 Handler에서 쓰지 않는 Handler 파라미터를 빈 값으로 만든다.
+     * Handler를 바꿔가며 입력하다 저장하면 이전 Handler에서 채운 값이 그대로 남을 수 있는데,
+     * 그 값이 KOA_TB_API_DEF에 저장되면 배포 시 G/W 설정이 실제 화면과 달라진다.
+     * Private이 아니면(=Handler 자체가 없으면) 전부 비운다.
+     */
+    private void clearUnusedHandlerParams(ApiDefRegVO vo) {
+        String handlerCd = vo.getApiHandlerCd();
+        Set<String> used = (handlerCd == null) ? Set.of()
+                : HANDLER_PARAM_FIELDS.getOrDefault(handlerCd, Set.of());
+
+        for (String field : ALL_HANDLER_PARAM_FIELDS) {
+            if (used.contains(field)) {
+                continue;
+            }
+            try {
+                Method setter = ApiDefRegVO.class.getMethod(
+                        "set" + Character.toUpperCase(field.charAt(0)) + field.substring(1), String.class);
+                setter.invoke(vo, "");
+            } catch (Exception e) {
+                LOG.warn("clearUnusedHandlerParams: {} 필드를 비우지 못했습니다.", field, e);
+            }
+        }
+    }
+
 }

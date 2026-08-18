@@ -1,6 +1,7 @@
 package com.kt.openapi.web.spcreg.service.impl;
 
 import com.kt.openapi.web.spcreg.dao.SpcRegDAO;
+import com.kt.openapi.web.spcreg.service.ApiSpcYamlSyncService;
 import com.kt.openapi.web.spcreg.service.SpcRegService;
 import com.kt.openapi.web.spcreg.vo.SpcRegVO;
 import org.slf4j.Logger;
@@ -28,6 +29,9 @@ public class SpcRegServiceImpl implements SpcRegService {
     @Autowired
     private SpcRegDAO spcRegDAO;
 
+    @Autowired
+    private ApiSpcYamlSyncService apiSpcYamlSyncService;
+
     @Override
     public List<Map<String, Object>> selSysSpcTree(String sysId) {
         return spcRegDAO.selSysSpcTree(sysId);
@@ -39,6 +43,9 @@ public class SpcRegServiceImpl implements SpcRegService {
         LOG.debug("####################### SpcRegServiceImpl savSpcReg START ############################");
         spcRegDAO.savApiSpc(vo);
         LOG.debug(" 생성된 apiSpcNo ========== {} ", vo.getApiSpcNo());
+        // 이 시점엔 아직 API(DEF)가 없어 재생성해도 paths가 빈 문서가 된다. "YAML 등록"으로 붙여넣은
+        // 원문(YAML_SBST)을 지우게 되므로 여기서는 호출하지 않는다 - 뒤이어 등록되는 첫 API의
+        // savApiDefReg()가 정본 기준으로 두 컬럼을 만들어 준다.
         return vo.getApiSpcNo();
     }
 
@@ -52,6 +59,8 @@ public class SpcRegServiceImpl implements SpcRegService {
     public String updSpcReg(SpcRegVO vo) {
         LOG.debug("####################### SpcRegServiceImpl updSpcReg START ############################");
         spcRegDAO.updApiSpc(vo);
+        // 그룹명/host/basPath/버전이 바뀌면 YAML의 info/servers도 따라가야 한다.
+        apiSpcYamlSyncService.regenerate(vo.getApiSpcNo());
         return vo.getApiSpcNo();
     }
 }
