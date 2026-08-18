@@ -8,8 +8,7 @@
 #   - JDK 17 로는 Java 21 로 컴파일된 클래스를 못 읽음
 # 그래서 내장 Tomcat 을 그대로 쓰는 jar 실행형으로 새로 작성한다.
 #
-# 빌드:
-#   mvn -DskipTests clean package
+# 빌드(멀티스테이지 - 호스트에 JDK/Maven 불필요, Docker 만 있으면 된다):
 #   docker build -f Dockerfile_jar -t apimanager:dev .
 #
 # 실행(예: tb 프로파일, 외부 8081 노출):
@@ -19,6 +18,28 @@
 #     apimanager:dev
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# 1단계: 빌드. Jenkins 서버(CentOS 7)에 JDK 21 / Maven 을 설치하지 않으려고
+# 빌드 자체를 컨테이너 안에서 돌린다.
+# -----------------------------------------------------------------------------
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+WORKDIR /build
+
+# 의존성 레이어를 따로 캐싱한다. pom.xml 이 안 바뀌면 재다운로드하지 않는다.
+# system scope 의존성(INICrypto, SafeDB 등)이 WEB-INF/lib 을 실제로 참조하므로
+# pom.xml 만으로는 해석이 안 된다. lib 디렉터리를 먼저 넣어준다.
+COPY pom.xml .
+COPY src/main/webapp/WEB-INF/lib ./src/main/webapp/WEB-INF/lib
+# 캐시 워밍업이라 실패해도 다음 단계의 실제 빌드에서 받아오면 된다.
+RUN mvn -B -DskipTests dependency:go-offline || true
+
+COPY src ./src
+RUN mvn -B -DskipTests clean package
+
+# -----------------------------------------------------------------------------
+# 2단계: 실행 이미지. JRE 만 담아 이미지를 가볍게 유지한다.
+# -----------------------------------------------------------------------------
 FROM eclipse-temurin:21-jre
 
 ENV LANG=C.UTF-8 \
@@ -40,7 +61,7 @@ COPY public_error.html /app/public_error.html
 
 # 실행형 jar. Boot 4 는 target/*.jar 하나만 만들지만(.original 은 제외됨),
 # 이름이 바뀌어도 되도록 와일드카드로 받는다.
-COPY target/*.jar /app/app.jar
+COPY --from=build /build/target/*.jar /app/app.jar
 
 # 기존 WAR 이미지와 동일한 TLS 정책을 유지한다(사내 게이트웨이 연동 시 필요).
 ENV JAVA_OPTS="-Djdk.tls.client.protocols=TLSv1.3,TLSv1.2 -Djdk.tls.client.cipherSuites=TLS_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"

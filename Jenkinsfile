@@ -2,7 +2,8 @@
 //
 // 전제
 //   - Jenkins 가 개발서버와 같은 머신에서 동작한다 (openapi-mock 파이프라인과 동일 구조).
-//   - Jenkins 에이전트에 JDK 21 과 Maven 이 설치돼 있다.
+//   - Jenkins 에이전트에는 Docker 만 있으면 된다. Maven/JDK21 은 Dockerfile_jar 의
+//     빌드 스테이지(maven:3.9-eclipse-temurin-21)가 담당한다.
 //   - GitHub Webhook 으로 push 시 자동 기동한다 (Jenkins 잡 설정에서
 //     "GitHub hook trigger for GITScm polling" 체크 필요).
 //
@@ -45,16 +46,9 @@ pipeline {
             }
         }
 
-        stage('Build (mvn package)') {
-            steps {
-                // 테스트는 건너뛴다. 산출물은 target/*.jar 하나(.original 제외)다.
-                sh 'mvn -B -DskipTests clean package'
-                sh 'ls -lh target/*.jar'
-            }
-        }
-
         stage('Build image') {
             steps {
+                // 멀티스테이지라 이 한 단계에서 mvn package 까지 같이 돌아간다.
                 sh """
                     docker build \
                         -f Dockerfile_jar \

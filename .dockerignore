@@ -1,7 +1,5 @@
-# 빌드 컨텍스트 축소 - target/*.jar 만 있으면 되므로 나머지 빌드 산출물은 제외한다.
-target/*
-!target/*.jar
-target/*.jar.original
+# 멀티스테이지 빌드라 jar 는 컨테이너 안에서 만든다. 호스트 빌드 산출물은 전부 제외한다.
+target/
 
 .git
 .github
