@@ -87,9 +87,12 @@ pipeline {
                 // actuator 를 안 쓰므로 컨텍스트 루트가 HTTP 로 응답하는지로 확인한다.
                 // 로그인 리다이렉트(302)도 "기동 성공"이다. 5xx 와 무응답(000)만 실패로 본다.
                 sh """
+                    # curl 은 접속 실패 시 '000' 을 출력하면서 종료코드 7 을 낸다.
+                    # || 를 \$(...) 안에 두면 '000' 이 두 번 이어붙어(000000) 검사가 무력화되므로
+                    # 대입문 전체의 실패를 받도록 바깥에 둔다.
                     for i in \$(seq 1 40); do
                         code=\$(curl -s -o /dev/null -w '%{http_code}' \
-                                http://localhost:${params.HOST_PORT}${CONTEXT_PATH}/ || echo 000)
+                                http://localhost:${params.HOST_PORT}${CONTEXT_PATH}/) || code=000
                         if [ "\$code" != "000" ] && [ "\$code" -lt 500 ]; then
                             echo "기동 확인 (HTTP \$code)"
                             exit 0
