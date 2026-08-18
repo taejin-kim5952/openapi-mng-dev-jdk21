@@ -8,7 +8,8 @@ target/
 .project
 build.xml
 classpath
-Jenkinsfile
+# Jenkinsfile 은 개발서버 배포 파이프라인 정의라 버전관리 대상이다.
+# (Jenkins 잡이 SCM 에서 이 파일을 읽어간다)
 migration-factory.properties
 project
 server.xml

@@ -19,6 +19,8 @@ pipeline {
                description: 'DB 비밀번호·PSSO 키 등 런타임 환경변수 파일. tb 프로파일은 기본값 없는 ${TB_DB_PASSWORD} 같은 값을 요구하므로 이 파일이 없으면 기동에 실패한다.')
         string(name: 'HOST_PORT', defaultValue: '8081',
                description: '개발서버에서 노출할 포트')
+        booleanParam(name: 'SAFEDB_MOCK', defaultValue: true,
+               description: 'SafeDB 암/복호화를 평문 통과로 우회한다. SafeDB Agent(127.0.0.1:19201)가 없는 환경에서는 SafeDBChecker 가 System.exit(1) 로 앱을 죽이기 때문에 켜야 기동된다. 끄려면 호스트에 Agent 가 떠 있어야 하고 --network host 도 필요하다.')
     }
 
     environment {
@@ -77,6 +79,7 @@ pipeline {
                         -p ${params.HOST_PORT}:${APP_PORT} \
                         --env-file "${params.ENV_FILE}" \
                         -e SPRING_PROFILES_ACTIVE=${params.SPRING_PROFILE} \
+                        -e SAFEDB_MOCK_ENABLED=${params.SAFEDB_MOCK} \
                         ${IMAGE_NAME}:${BUILD_NUMBER}
                 """
             }
