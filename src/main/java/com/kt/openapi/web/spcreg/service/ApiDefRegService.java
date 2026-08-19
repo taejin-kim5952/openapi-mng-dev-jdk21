@@ -22,6 +22,12 @@ public interface ApiDefRegService {
     Map<String, Object> selApiDefDetail(String apiNo);
 
     /** 템플릿 선택 팝업용 목록 */
+    /** 이 SPC의 API그룹 목록 */
+    List<Map<String, Object>> selCtgryListBySpc(String apiSpcNo);
+
+    /** API그룹 추가. 이름이 겹치면 null을 돌려준다(호출부가 안내 문구를 정한다). */
+    Map<String, Object> savCtgry(ApiDefRegVO vo);
+
     List<Map<String, Object>> selTmpltList();
 
     /** Provider(단위서비스코드) 선택 팝업용 목록 */

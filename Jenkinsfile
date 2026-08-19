@@ -76,6 +76,7 @@ pipeline {
                     docker run -d \
                         --name ${CONTAINER_NAME} \
                         --restart unless-stopped \
+                        --add-host=host.docker.internal:host-gateway \
                         -p ${params.HOST_PORT}:${APP_PORT} \
                         --env-file "${params.ENV_FILE}" \
                         -e SPRING_PROFILES_ACTIVE=${params.SPRING_PROFILE} \

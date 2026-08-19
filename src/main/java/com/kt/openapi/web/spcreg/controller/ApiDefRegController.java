@@ -42,6 +42,9 @@ public class ApiDefRegController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ApiDefRegController.class);
 
+    /** 구 등록 마법사(infoRegForm.html)의 default_ctgryNm 과 같은 값 */
+    private static final String DEFAULT_CTGRY_NM = "v1.0";
+
     /** 비즈나루 서비스(sysId)일 때만 COMMON Handler에 "비즈나루API 여부" 항목이 추가된다 */
     @Value("${apisystem.sysid.biznaru}")
     private String apisystemSysidBiznaru;
@@ -139,6 +142,9 @@ public class ApiDefRegController {
         // COMMON Handler에 "비즈나루API 여부" 항목을 추가할지 여부(기존 마법사 ApiRegController와 동일 기준)
         mv.addObject("isSysIdBiznaru", (apisystemSysidBiznaru != null && apisystemSysidBiznaru.equals(sysId)) ? "Y" : "");
         mv.addObject("piiList", cmnService.selComnList("PIICLS1000"));
+        // API그룹(카테고리) 목록. 구 마법사 좌측 트리의 1단에 해당하는 값으로,
+        // 등록 화면에서 어느 그룹에 넣을지 고르게 한다.
+        mv.addObject("ctgryList", apiDefRegService.selCtgryListBySpc(apiSpcNo));
         mv.addObject("tmpltList", apiDefRegService.selTmpltList());
         mv.addObject("apiProviderList", apiDefRegService.selApiProviderList());
 
@@ -207,7 +213,51 @@ public class ApiDefRegController {
         return mv;
     }
 
-    /** API(DEF) 등록/수정 저장 - apiNo가 넘어오면 수정, 없으면 신규 등록(카테고리 재사용/최초생성 포함) */
+    /** API그룹 추가 - 등록 화면의 "+ 새 API그룹"에서 부른다 */
+    @ResponseBody
+    @RequestMapping(value = "/savCtgryAjax.do")
+    public ModelAndView savCtgryAjax(HttpSession session, ApiDefRegVO vo) throws Exception {
+        ModelAndView mv = new ModelAndView("jsonView");
+
+        UserJoinVO userJVo = (UserJoinVO) session.getAttribute("ssUserVo");
+        if (userJVo == null) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "로그인 세션이 만료되었습니다.");
+            return mv;
+        }
+        if (vo.getApiSpcNo() == null || vo.getApiSpcNo().trim().isEmpty()) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "API 그룹을 선택하세요.");
+            return mv;
+        }
+        if (vo.getCtgryNm() == null || vo.getCtgryNm().trim().isEmpty()) {
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "API그룹 이름을 입력해 주세요.");
+            return mv;
+        }
+
+        vo.setCtgryNm(vo.getCtgryNm().trim());
+        vo.setRegr(userJVo.getEnCmbrId());
+        vo.setAmdr(userJVo.getEnCmbrId());
+
+        try {
+            Map<String, Object> created = apiDefRegService.savCtgry(vo);
+            if (created == null) {
+                mv.addObject("returnCode", "0");
+                mv.addObject("message", "이미 같은 이름의 API그룹이 있습니다.");
+                return mv;
+            }
+            mv.addObject("returnCode", "1");
+            mv.addObject("ctgry", created);
+        } catch (Exception e) {
+            LOG.error("savCtgryAjax error", e);
+            mv.addObject("returnCode", "0");
+            mv.addObject("message", "저장 중 오류가 발생했습니다.");
+        }
+        return mv;
+    }
+
+    /** API(DEF) 등록/수정 저장 - apiNo가 넘어오면 수정, 없으면 신규 등록(API그룹 재사용/최초생성 포함) */
     @ResponseBody
     @RequestMapping(value = "/savApiDefRegAjax.do")
     public ModelAndView savApiDefRegAjax(HttpSession session, ApiDefRegVO vo) throws Exception {
@@ -231,8 +281,11 @@ public class ApiDefRegController {
         vo.setRegr(userJVo.getEnCmbrId());
         vo.setAmdr(userJVo.getEnCmbrId());
 
+        // API그룹(카테고리)을 화면에서 안 골랐을 때 만들 이름. 구 등록 마법사가
+        // infoRegForm.html 의 default_ctgryNm 으로 항상 'v1.0' 을 보내므로 같은 값을 쓴다
+        // ("기본"으로 두면 같은 시스템에서 그룹 표기가 갈리고, 규격서 tags 도 달라진다).
         if (vo.getCtgryNm() == null || vo.getCtgryNm().trim().isEmpty()) {
-            vo.setCtgryNm("기본");
+            vo.setCtgryNm(DEFAULT_CTGRY_NM);
         }
 
         // Private이 아니면 Handler/Provider는 사용하지 않음

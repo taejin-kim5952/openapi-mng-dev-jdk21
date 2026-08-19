@@ -24,8 +24,10 @@ public class ApiDefRegVO {
     private String apiSpcNo;
     private String autId;
 
-    // KOA_TB_API_CTGRY
+    // KOA_TB_API_CTGRY - 화면의 "API그룹". 구 마법사의 좌측 트리 1단이 이 값이고,
+    // 관례적으로 v1.0 / v2.0 처럼 버전 이름을 붙여 쓴다(시스템이 강제하는 규칙은 아니다).
     private String ctgryNm;
+    private String ctgryDesc;
     private String apiCtgryNo;
 
     // KOA_TB_API_DEF

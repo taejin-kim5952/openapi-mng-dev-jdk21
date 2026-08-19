@@ -118,6 +118,19 @@
             <span class="qr_field_hint">전체 경로 <span class="qr_mono" id="defFullPath">/</span> — 앞의 기본경로는 그룹 값입니다.</span>
             <span class="qr_err" id="apiPathErr">Path를 입력하세요. (/로 시작)</span>
           </div>
+          <!-- API그룹(카테고리) - 구 등록 마법사 좌측 트리의 1단이다. 한 SPC 안에서 API를 묶는
+               분류이고, 관례적으로 v1.0 / v2.0 처럼 버전 이름을 붙여 쓴다(강제 규칙은 아니다).
+               SPC를 만들면 v1.0 하나가 자동으로 생기고, 여기서 더 추가할 수 있다. -->
+          <div class="qr_field">
+            <label for="apiCtgryNo">API그룹</label>
+            <div class="qr_inline_select">
+              <select id="apiCtgryNo" name="apiCtgryNo">
+                <option th:each="c : ${ctgryList}" th:value="${c.apiCtgryNo}" th:text="${c.ctgryNm}"></option>
+              </select>
+              <button type="button" class="qr_pill qr_pill_outline qr_pill_sm" id="defBtnAddCtgry">+ 새 API그룹</button>
+            </div>
+            <span class="qr_field_hint">이 API가 속할 그룹입니다. 좌측 목록이 이 기준으로 묶입니다.</span>
+          </div>
           <div class="qr_field">
             <label for="methodCd">Method <button type="button" class="qr_help_bot" data-chat-ask="Method는 무엇을 기준으로 고르나요?" aria-label="Method 도움말" title="이 항목이 궁금하면 눌러보세요"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8M2 13v3M22 13v3"/><path d="M9 13.5h.01M15 13.5h.01"/></svg></button></label>
             <select id="methodCd" name="methodCd">
@@ -546,6 +559,35 @@
     </div>
     <div class="qr_tmplt_list" id="defBstSysGrid">
       <p id="defBstSysEmptyMsg" class="qr_no_params">검색 조건을 입력하고 [검색]을 눌러주세요.</p>
+    </div>
+  </div>
+</div>
+
+<!-- API그룹 추가 팝업 - 이름·설명만 받는다(구 마법사 cateInfoRegForm.html 과 같은 항목).
+     정렬 순서는 서버가 MAX+1 로 채운다. -->
+<div id="defCtgryModal" class="qr_modal_backdrop qr_hide">
+  <div class="qr_modal">
+    <div class="qr_modal_head">
+      <div>
+        <div class="qr_modal_title">API그룹 추가</div>
+        <div class="qr_modal_sub">한 그룹(SPC) 안에서 API를 묶는 분류입니다 (예: v1.0, v2.0)</div>
+      </div>
+      <button type="button" class="qr_modal_close" id="defCtgryModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div class="qr_field">
+        <label for="defCtgryNm">이름 <em>*</em></label>
+        <input type="text" id="defCtgryNm" maxlength="100" placeholder="예: v2.0">
+        <span class="qr_err" id="defCtgryNmErr">이름을 입력하세요.</span>
+      </div>
+      <div class="qr_field" style="margin-top:14px;">
+        <label for="defCtgryDesc">설명</label>
+        <textarea id="defCtgryDesc" rows="2" maxlength="4000" placeholder="선택사항"></textarea>
+      </div>
+    </div>
+    <div class="qr_modal_foot">
+      <button type="button" class="qr_pill qr_pill_ghost" id="defCtgryCancel">취소</button>
+      <button type="button" class="qr_pill qr_pill_teal" id="defCtgrySave">추가</button>
     </div>
   </div>
 </div>

@@ -32,6 +32,12 @@ public interface ApiDefRegDAO {
 
     /** 템플릿 선택 팝업용 목록 (KOA_TB_API_QUICK_TMPLT, 사용중인 것만). quickApiReg가 쓰는 것과
         같은 테이블이지만, 화면 독립 원칙에 따라 이 화면 전용으로 별도 조회한다. */
+    /** 이 SPC의 API그룹(카테고리) 목록 - 등록 화면 선택 드롭다운용 */
+    List<Map<String, Object>> selCtgryListBySpc(String apiSpcNo);
+
+    /** 같은 SPC 안에서 API그룹 이름이 겹치는 개수 */
+    int selCtgryNmDupCnt(Map<String, Object> param);
+
     List<Map<String, Object>> selTmpltList();
 
     /** Provider(단위서비스코드) 선택 팝업용 목록 (KOA_TB_API_PROVIDER, 사용중인 것만). 기존 등록

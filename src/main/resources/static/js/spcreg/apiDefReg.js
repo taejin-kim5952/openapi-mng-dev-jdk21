@@ -77,6 +77,24 @@ $(document).ready(function () {
   });
   $('#defNewBtn').on('click', defResetToCreate);
 
+  /* ---------- API그룹 추가 ----------
+     구 등록 마법사의 "API그룹 추가"(cateInfoRegForm)에 해당한다. 별도 화면 대신 등록 흐름
+     안에서 만들고 바로 선택되게 한다 - 그러려고 화면을 빠져나가면 입력하던 값이 날아간다. */
+  $('#defBtnAddCtgry').on('click', function () {
+    $('#defCtgryNm').val('').removeClass('qr_input_err');
+    $('#defCtgryDesc').val('');
+    $('#defCtgryNmErr').removeClass('qr_show');
+    $('#defCtgryModal').removeClass('qr_hide');
+    $('#defCtgryNm').focus();
+  });
+  $('#defCtgryModalClose, #defCtgryCancel').on('click', function () {
+    $('#defCtgryModal').addClass('qr_hide');
+  });
+  $('#defCtgrySave').on('click', defSaveCtgry);
+  $('#defCtgryNm').on('keydown', function (e) {
+    if (e.keyCode === 13) { e.preventDefault(); defSaveCtgry(); }
+  });
+
   /* 템플릿 선택(퍼블_v16.0) - API(DEF) 단위 기능이라 이 화면 헤더에 둔다. */
   $('#qrBtnOpenTmpltModal').on('click', function () { $('#qrTmpltModal').removeClass('qr_hide'); });
   $('#qrTmpltModalClose').on('click', function () { $('#qrTmpltModal').addClass('qr_hide'); });
@@ -221,6 +239,7 @@ function defFillFormFromDetail(def) {
   $('#apiDesc').val(def.apiDesc || '');
   $('#apiPath').val(def.apiPath || '');
   $('#methodCd').val(def.methodCd || '');
+  $('#apiCtgryNo').val(def.apiCtgryNo || '');
   $('input[name="apiClass"][value="' + def.apiClass + '"]').prop('checked', true);
   $('#apiHandlerCd').val(def.apiHandlerCd || '');
   $('#providerSeq').val(def.providerSeq || '');
@@ -778,6 +797,7 @@ function defDoSave() {
 
   var formData = {
     apiSpcNo: apiSpcNo,
+    apiCtgryNo: $('#apiCtgryNo').val(),   // 고른 API그룹. 비면 서버가 v1.0 을 만든다
     apiNo: $('#editApiNo').val(),
     apiId: $.trim($('#apiId').val()),
     apiVerNo: $('#defPendingApiVerNo').val(), // 버전업 진행 중일 때만 값이 있음(defApplyVerUp)
@@ -1114,4 +1134,37 @@ function defRefreshBasicSum() {
     $out = $out.add($('<span class="qr_sum_v qr_mono"></span>').text($.trim(method + ' ' + apiPath)));
   }
   $sum.empty().append($out);
+}
+
+/* API그룹을 만들고 드롭다운에 넣은 뒤 그대로 선택한다. 이름 중복은 서버가 막는다
+   - 같은 이름이 둘이면 좌측 트리에서 어느 쪽에 넣었는지 구분할 수 없다. */
+function defSaveCtgry() {
+  var nm = $.trim($('#defCtgryNm').val());
+  if (!nm) {
+    $('#defCtgryNm').addClass('qr_input_err');
+    $('#defCtgryNmErr').addClass('qr_show');
+    return;
+  }
+
+  $('#defCtgrySave').prop('disabled', true);
+  $.ajax({
+    url: c_url + 'api/spcreg/def/savCtgryAjax.do',
+    type: 'POST', cache: false, dataType: 'json',
+    data: {
+      apiSpcNo: $('#apiSpcNo').val(),
+      ctgryNm: nm,
+      ctgryDesc: $('#defCtgryDesc').val()
+    }
+  })
+    .done(function (res) {
+      if (res.returnCode !== '1') {
+        alert_message(res.message || 'API그룹을 추가하지 못했습니다.');
+        return;
+      }
+      $('<option></option>').val(res.ctgry.apiCtgryNo).text(res.ctgry.ctgryNm).appendTo('#apiCtgryNo');
+      $('#apiCtgryNo').val(res.ctgry.apiCtgryNo);
+      $('#defCtgryModal').addClass('qr_hide');
+    })
+    .fail(function () { alert_message('API그룹을 추가하지 못했습니다.'); })
+    .always(function () { $('#defCtgrySave').prop('disabled', false); });
 }

@@ -183,8 +183,10 @@ public class OasYamlGenerator {
         if (ctgryList == null) {
             return tags;
         }
-        // 카테고리가 "기본" 하나뿐이면 의미 있는 분류가 아니므로 tags를 만들지 않는다.
-        if (ctgryList.size() == 1 && "기본".equals(str(ctgryList.get(0).get("ctgryNm")))) {
+        // 자동 생성된 API그룹 하나뿐이면 의미 있는 분류가 아니므로 tags를 만들지 않는다.
+        // ("기본"은 예전 기본값 - 그때 만든 그룹도 같이 걸러준다)
+        String only = ctgryList.size() == 1 ? str(ctgryList.get(0).get("ctgryNm")) : "";
+        if ("v1.0".equals(only) || "기본".equals(only)) {
             return tags;
         }
         for (Map<String, Object> c : ctgryList) {

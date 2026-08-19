@@ -66,6 +66,34 @@ public class ApiDefRegServiceImpl implements ApiDefRegService {
     }
 
     @Override
+    public List<Map<String, Object>> selCtgryListBySpc(String apiSpcNo) {
+        return apiDefRegDAO.selCtgryListBySpc(apiSpcNo);
+    }
+
+    /**
+     * API그룹 추가. 같은 SPC 안에서 이름이 겹치면 만들지 않는다 - 좌측 트리에 같은 이름이 둘
+     * 생기면 어느 쪽에 API를 넣었는지 구분할 수 없다.
+     */
+    @Override
+    @Transactional(rollbackFor = { Exception.class })
+    public Map<String, Object> savCtgry(ApiDefRegVO vo) {
+        Map<String, Object> dup = new HashMap<>();
+        dup.put("apiSpcNo", vo.getApiSpcNo());
+        dup.put("ctgryNm", vo.getCtgryNm());
+        if (apiDefRegDAO.selCtgryNmDupCnt(dup) > 0) {
+            return null;
+        }
+
+        apiDefRegDAO.savApiCtgry(vo);
+
+        Map<String, Object> created = new HashMap<>();
+        created.put("apiCtgryNo", vo.getApiCtgryNo());
+        created.put("ctgryNm", vo.getCtgryNm());
+        created.put("ctgryDesc", vo.getCtgryDesc() == null ? "" : vo.getCtgryDesc());
+        return created;
+    }
+
+    @Override
     public List<Map<String, Object>> selTmpltList() {
         return apiDefRegDAO.selTmpltList();
     }
